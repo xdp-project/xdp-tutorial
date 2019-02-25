@@ -34,3 +34,21 @@ If you want submodules to be part of the clone, you can use this command:
 git clone --recurse-submodules https://github.com/xdp-project/xdp-tutorial
 #+end_example
 
+* Dependencies
+
+The main dependencies are =libbpf=, =llvm=, =clang= and =libelf=. LLVM+clang
+compiles our restricted-C programs into BPF-byte-code, which is stored in an
+ELF-object file (=libelf=), that is loaded by =libbpf= into the kernel via
+the bpf-syscall.
+
+The Makefiles in this repo will try to detect if you are missing some
+dependencies, and give you some pointers.
+
+** Packages on Fedora
+
+On a machine running the Fedora Linux distribution, install the packages:
+
+#+begin_example
+ $ sudo dnf install clang llvm
+ $ sudo dnf install elfutils-libelf-devel
+#+end_example
