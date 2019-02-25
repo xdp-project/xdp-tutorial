@@ -52,3 +52,18 @@ On a machine running the Fedora Linux distribution, install the packages:
  $ sudo dnf install clang llvm
  $ sudo dnf install elfutils-libelf-devel
 #+end_example
+
+* Recommended tools
+
+The =bpftool= is the recommended tool for inspecting BPF programs running on
+your system. It also offers simple manipulation of eBPF programs and maps.
+The =bpftool= is part of the Linux kernel tree under [[https://github.com/torvalds/linux/tree/master/tools/bpf/bpftool][tools/bpf/bpftool/]], but
+some Linux distributions also ship the tool as a software package.
+
+* Packages on Fedora
+
+On a machine running the Fedora Linux distribution, install package:
+
+#+begin_example
+ $ sudo dnf install bpftool
+#+end_example
