@@ -5,3 +5,11 @@
 This GitHub repository aim to take you through the different steps of writing
 XDP programs.
 
+* Based on libbpf
+
+This XDP-tutorial leverage [[https://github.com/libbpf/libbpf/][libbpf]] to ease development and loading of
+BPF-programs. The library libbpf is part of the kernel tree under
+[[https://github.com/torvalds/linux/blob/master/tools/lib/bpf/README.rst][tools/lib/bpf]], but Facebook engineers maintains a stand-alone build on
+GitHub under https://github.com/libbpf/libbpf.
+
+
