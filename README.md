@@ -1,2 +1,0 @@
-# xdp-tutorial
-XDP tutorial
