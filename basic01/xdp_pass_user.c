@@ -128,9 +128,13 @@ int main(int argc, char **argv)
 	if (unload)
 		return xdp_unload(ifindex);
 
+	/* Locate BPF-ELF object file:  xdp_pass_kern.o */
 	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
 	prog_load_attr.file = filename;
 
+        /* Use libbpf for extracting BPF byte-code from BPF-ELF object, and
+         * loading this into the kernel via bpf-syscall
+         */
 	if (bpf_prog_load_xattr(&prog_load_attr, &obj, &prog_fd))
 		return EXIT_FAIL;
 
@@ -139,12 +143,18 @@ int main(int argc, char **argv)
 		return EXIT_FAIL;
 	}
 
+        /* At this point: BPF-prog is (only) loaded by the kernel, and prog_fd
+         * is our file-descriptor handle. Next step is attaching this FD to a
+         * kernel hook point, in this case XDP net_device link-level hook.
+         * Fortunately libbpf have a helper for this:
+         */
 	if ((err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags)) < 0) {
 		fprintf(stderr, "ERR: link set xdp fd failed (err=%d):%s\n",
 			err, strerror(-err));
 		return EXIT_FAIL_XDP;
 	}
 
+        /* This step is not really needed */
 	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
 	if (err) {
 		fprintf(stderr, "ERR: can't get prog info - %s\n",
