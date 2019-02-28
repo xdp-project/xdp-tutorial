@@ -8,6 +8,8 @@ struct config {
 	char *ifname;
 	char ifname_buf[IF_NAMESIZE];
 	bool do_unload;
+	char filename[512];
+	char progname[32];
 };
 
 /* Exit return codes */

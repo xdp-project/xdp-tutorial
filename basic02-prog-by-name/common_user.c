@@ -23,10 +23,12 @@ void usage(const char *prog_name, const char *doc,
 		printf(" --%-12s", long_options[i].name);
 		if (long_options[i].flag != NULL)
 			printf(" flag (internal value:%d)",
-				*long_options[i].flag);
-		else
-			printf(" short-option: -%c",
-				long_options[i].val);
+			       long_options[i].flag);
+		else {
+			if (long_options[i].val > 64) /* ord('A') = 65 */
+				printf(" short-option: -%c",
+				       long_options[i].val);
+		}
 		printf("\n");
 	}
 	printf("\n");
@@ -37,6 +39,7 @@ void parse_cmdline_args(int argc, char **argv,
                         struct config *cfg, const char *doc)
 {
 	int longindex = 0;
+	char *dest;
 	int opt;
 
 	/* Parse commands line args */
@@ -75,6 +78,14 @@ void parse_cmdline_args(int argc, char **argv,
 			break;
 		case 'U':
 			cfg->do_unload = true;
+			break;
+		case 1: /* --filename */
+			dest  = (char *)&cfg->filename;
+			strncpy(dest, optarg, sizeof(cfg->filename));
+			break;
+		case 2: /* --progname */
+			dest  = (char *)&cfg->progname;
+			strncpy(dest, optarg, sizeof(cfg->progname));
 			break;
 		case 'h':
 		error:

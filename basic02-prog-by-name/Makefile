@@ -17,7 +17,7 @@ USER_OBJ = ${USER_C:.c=.o}
 
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
-# COMMON_USER_OBJ := common_user.o
+COMMON_USER_OBJ := common_user.o
 
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
@@ -25,13 +25,13 @@ LDFLAGS ?= -L$(LIBBPF_DIR)
 
 LIBS = -lbpf -lelf
 
-all: llvm-check $(TARGETS) $(XDP_OBJ)
+all: llvm-check $(USER_TARGETS) $(XDP_OBJ)
 
 .PHONY: clean $(CLANG) $(LLC)
 
 clean:
 	cd $(LIBBPF_DIR) && $(MAKE) clean;
-	rm -f $(TARGETS)
+	rm -f $(USER_TARGETS)
 	rm -f $(XDP_OBJ)
 	rm -f $(USER_OBJ)
 	rm -f *.ll
@@ -55,10 +55,10 @@ $(OBJECT_LIBBPF):
 		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
 	fi
 
-# $(COMMON_USER_OBJ): common_user.c common_user.h
-#	$(CC) -c -o $@ $< $(CFLAGS)
+$(COMMON_USER_OBJ): common_user.c common_user.h
+	$(CC) -c -o $@ $< $(CFLAGS)
 
-$(USER_TARGETS): %: %_user.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ)
+$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ)
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_USER_OBJ) \
 	 $< $(LIBS)
 
