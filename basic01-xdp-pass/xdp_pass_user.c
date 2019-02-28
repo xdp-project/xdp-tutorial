@@ -169,6 +169,10 @@ int main(int argc, char **argv)
 	if (err < 0) {
 		fprintf(stderr, "ERR: link set xdp fd failed (err=%d): %s\n",
 			err, strerror(-err));
+		if (-err == EBUSY) {
+			fprintf(stderr, "INFO: XDP already loaded on device:%s"
+				" use --force to swap/replace\n", cfg.ifname);
+		}
 		return EXIT_FAIL_XDP;
 	}
 
