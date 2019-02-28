@@ -19,6 +19,8 @@ struct config {
 #define EXIT_FAIL_XDP		30
 #define EXIT_FAIL_BPF		40
 
+extern int verbose;
+
 void usage(const char *prog_name, const char *doc,
            const struct option *long_options);
 

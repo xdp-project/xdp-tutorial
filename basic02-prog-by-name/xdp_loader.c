@@ -26,6 +26,7 @@ static const struct option long_options[] = {
 	{"auto-mode",   no_argument,		NULL, 'A' },
 	{"force",       no_argument,		NULL, 'F' },
 	{"unload",      no_argument,		NULL, 'U' },
+	{"quiet",       no_argument,		NULL, 'q' },
 	{"filename",    required_argument,	NULL,  1  },
 	{"progsec",    required_argument,	NULL,  2  },
 	{0, 0, NULL,  0 }
@@ -126,8 +127,6 @@ int main(int argc, char **argv)
 	/* Cmdline options can change these */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
-	printf("filename:%s size:%ld progsec:%s\n",
-	       cfg.filename, sizeof(cfg.filename), cfg.progsec);
 	/* Required option */
 	if (cfg.ifindex == -1) {
 		fprintf(stderr, "ERR: required option --dev missing\n");
@@ -143,10 +142,17 @@ int main(int argc, char **argv)
 		fprintf(stderr, "ERR: loading file: %s\n", cfg.filename);
 		return EXIT_FAIL_BPF;
 	}
+	/* At this point: All XDP/BPF programs from the cfg.filename have been
+	 * loaded into the kernel, and evaluated by the verifier. Only one of
+	 * these gets attached to XDP hook, the others will get freed once this
+	 * process exit.
+	 */
 
-	printf("XXX: bpf_object__name:%s\n", bpf_object__name(bpf_obj));
-
-	print_avail_progs(bpf_obj);
+	if (verbose) {
+		printf("Loaded (%s) BPF object with avail --procsec names\n",
+		       bpf_object__name(bpf_obj));
+		print_avail_progs(bpf_obj);
+	}
 
 	/* Find a matching BPF prog section name */
 	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg.progsec);
@@ -161,9 +167,9 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_BPF;
 	}
 
-	/* At this point: BPF-prog is (only) loaded by the kernel, and prog_fd
-	 * is our file-descriptor handle. Next step is attaching this FD to a
-	 * kernel hook point, in this case XDP net_device link-level hook.
+	/* At this point: BPF-progs are (only) loaded by the kernel, and prog_fd
+	 * is our select file-descriptor handle. Next step is attaching this FD
+	 * to a kernel hook point, in this case XDP net_device link-level hook.
 	 */
 	err = xdp_load(cfg, prog_fd);
 	if (err)

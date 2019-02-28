@@ -11,6 +11,8 @@
 
 #include "common_user.h"
 
+int verbose = 1;
+
 void usage(const char *prog_name, const char *doc,
            const struct option *long_options)
 {
@@ -43,7 +45,7 @@ void parse_cmdline_args(int argc, char **argv,
 	int opt;
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:SNFU",
+	while ((opt = getopt_long(argc, argv, "hd:SNFUq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
@@ -78,6 +80,9 @@ void parse_cmdline_args(int argc, char **argv,
 			break;
 		case 'U':
 			cfg->do_unload = true;
+			break;
+		case 'q':
+			verbose = false;
 			break;
 		case 1: /* --filename */
 			dest  = (char *)&cfg->filename;
