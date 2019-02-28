@@ -16,7 +16,7 @@ static const char *__doc__ = "XDP loader\n";
 #include "common_user.h"
 
 static const char *default_filename = "xdp_prog_kern.o";
-static const char *default_progname = "xdp_pass";
+static const char *default_progsec = "xdp_pass";
 
 static const struct option long_options[] = {
 	{"help",        no_argument,		NULL, 'h' },
@@ -27,7 +27,7 @@ static const struct option long_options[] = {
 	{"force",       no_argument,		NULL, 'F' },
 	{"unload",      no_argument,		NULL, 'U' },
 	{"filename",    required_argument,	NULL,  1  },
-	{"progname",    required_argument,	NULL,  2  },
+	{"progsec",    required_argument,	NULL,  2  },
 	{0, 0, NULL,  0 }
 };
 
@@ -122,12 +122,12 @@ int main(int argc, char **argv)
 	};
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
-	strncpy(cfg.progname, default_progname, sizeof(cfg.progname));
+	strncpy(cfg.progsec,  default_progsec,  sizeof(cfg.progsec));
 	/* Cmdline options can change these */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
-	printf("filename:%s size:%ld progname:%s\n",
-	       cfg.filename, sizeof(cfg.filename), cfg.progname);
+	printf("filename:%s size:%ld progsec:%s\n",
+	       cfg.filename, sizeof(cfg.filename), cfg.progsec);
 	/* Required option */
 	if (cfg.ifindex == -1) {
 		fprintf(stderr, "ERR: required option --dev missing\n");
@@ -148,10 +148,10 @@ int main(int argc, char **argv)
 
 	print_avail_progs(bpf_obj);
 
-	/* Find a matching BPF progname */
-	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg.progname);
+	/* Find a matching BPF prog section name */
+	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg.progsec);
 	if (!bpf_prog) {
-		fprintf(stderr, "ERR: finding progname: %s\n", cfg.progname);
+		fprintf(stderr, "ERR: finding progsec: %s\n", cfg.progsec);
 		return EXIT_FAIL_BPF;
 	}
 
