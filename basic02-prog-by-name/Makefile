@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
 
-TARGETS := xdp_pass
+# Departing from the implicit _user.c scheme
+XDP_TARGETS  := xdp_prog_kern
+USER_TARGETS := xdp_loader
 
 LLC ?= llc
 CLANG ?= clang
@@ -8,13 +10,14 @@ CC := gcc
 
 LIBBPF_DIR = ../libbpf/src/
 
-XDP_C = ${TARGETS:=_kern.c}
+XDP_C = ${XDP_TARGETS:=.c}
 XDP_OBJ = ${XDP_C:.c=.o}
-USER_C = ${TARGETS:=_user.c}
+USER_C = ${USER_TARGETS:=.c}
 USER_OBJ = ${USER_C:.c=.o}
+
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
-COMMON_USER_OBJ := common_user.o
+# COMMON_USER_OBJ := common_user.o
 
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
@@ -52,10 +55,10 @@ $(OBJECT_LIBBPF):
 		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
 	fi
 
-$(COMMON_USER_OBJ): common_user.c common_user.h
-	$(CC) -c -o $@ $< $(CFLAGS)
+# $(COMMON_USER_OBJ): common_user.c common_user.h
+#	$(CC) -c -o $@ $< $(CFLAGS)
 
-$(TARGETS): %: %_user.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ)
+$(USER_TARGETS): %: %_user.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ)
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_USER_OBJ) \
 	 $< $(LIBS)
 
