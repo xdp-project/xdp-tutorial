@@ -20,6 +20,7 @@ static const struct option long_options[] = {
 	{"dev",         required_argument,	NULL, 'd' },
 	{"skb-mode",    no_argument,		NULL, 'S' },
 	{"native-mode", no_argument,		NULL, 'N' },
+	{"auto-mode",   no_argument,		NULL, 'A' },
 	{"force",       no_argument,		NULL, 'F' },
 	{"unload",      no_argument,		NULL, 'U' },
 	{0, 0, NULL,  0 }
@@ -69,7 +70,7 @@ int main(int argc, char **argv)
 	int prog_fd, err;
 
 	struct config cfg = {
-		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST,
+		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
 		.ifindex   = -1,
 		.do_unload = false,
 	};
@@ -101,11 +102,19 @@ int main(int argc, char **argv)
 	 */
 	err = bpf_set_link_xdp_fd(cfg.ifindex, prog_fd, cfg.xdp_flags);
 	if (err < 0) {
-		fprintf(stderr, "ERR: link set xdp fd failed (%d): %s\n",
-			-err, strerror(-err));
-		if (-err == EBUSY) {
-			fprintf(stderr, "INFO: XDP already loaded on device:%s"
-				" use --force to swap/replace\n", cfg.ifname);
+		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
+			cfg.ifname, -err, strerror(-err));
+		switch (-err) {
+		case EBUSY:
+			fprintf(stderr, "Hint: XDP already loaded on device"
+				" use --force to swap/replace\n");
+			break;
+		case EOPNOTSUPP:
+			fprintf(stderr, "Hint: Native-XDP not supported"
+				" use --skb-mode or --auto-mode\n");
+			break;
+		default:
+			break;
 		}
 		return EXIT_FAIL_XDP;
 	}
