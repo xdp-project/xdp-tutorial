@@ -14,6 +14,8 @@ static const char *__doc__ = "Simple XDP prog doing XDP_PASS\n";
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
+#include "common_user.h"
+
 static const struct option long_options[] = {
 	{"help",        no_argument,		NULL, 'h' },
 	{"dev",         required_argument,	NULL, 'd' },
@@ -23,26 +25,6 @@ static const struct option long_options[] = {
 	{"unload",      no_argument,		NULL, 'U' },
 	{0, 0, NULL,  0 }
 };
-
-static void usage(const char *prog_name, const char *doc)
-{
-	int i;
-
-	printf("\nDOCUMENTATION:\n %s\n", doc);
-	printf(" Usage: %s (options-see-below)\n", prog_name);
-	printf(" Listing options:\n");
-	for (i = 0; long_options[i].name != 0; i++) {
-		printf(" --%-12s", long_options[i].name);
-		if (long_options[i].flag != NULL)
-			printf(" flag (internal value:%d)",
-				*long_options[i].flag);
-		else
-			printf(" short-option: -%c",
-				long_options[i].val);
-		printf("\n");
-	}
-	printf("\n");
-}
 
 /* Exit return codes */
 #define EXIT_OK		0
@@ -111,7 +93,7 @@ void parse_cmdline_args(int argc, char **argv,
 		case 'h':
 		error:
 		default:
-			usage(argv[0], __doc__);
+			usage(argv[0], __doc__, long_options);
 			exit(EXIT_FAIL_OPTION);
 		}
 	}
@@ -139,7 +121,7 @@ int main(int argc, char **argv)
 	/* Required option */
 	if (cfg.ifindex == -1) {
 		fprintf(stderr, "ERR: required option --dev missing\n");
-		usage(argv[0], __doc__);
+		usage(argv[0], __doc__, long_options);
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)

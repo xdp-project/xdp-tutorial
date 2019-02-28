@@ -14,6 +14,8 @@ USER_C = ${TARGETS:=_user.c}
 USER_OBJ = ${USER_C:.c=.o}
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
+COMMON_USER_OBJ := common_user.o
+
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
 LDFLAGS ?= -L$(LIBBPF_DIR)
@@ -50,8 +52,11 @@ $(OBJECT_LIBBPF):
 		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
 	fi
 
-$(TARGETS): %: %_user.c $(OBJECT_LIBBPF) Makefile
-	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ \
+$(COMMON_USER_OBJ): common_user.c common_user.h
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+$(TARGETS): %: %_user.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ)
+	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_USER_OBJ) \
 	 $< $(LIBS)
 
 $(XDP_OBJ): %.o: %.c
