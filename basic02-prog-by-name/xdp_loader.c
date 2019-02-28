@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-static const char *__doc__ = "XDP loader\n";
+static const char *__doc__ = "XDP loader\n"
+	" - Specify BPF-object --filename to load \n"
+	" - and select BPF section --progsec name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,11 +108,27 @@ static void print_avail_progs(struct bpf_object *obj)
 	}
 }
 
-int main(int argc, char **argv)
+static void print_fd_info(int prog_fd)
 {
 	struct bpf_prog_info info = {};
 	__u32 info_len = sizeof(info);
+	int err;
 
+	if (prog_fd < 0)
+		return;
+
+        /* BPF-info via bpf-syscall */
+	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
+	if (err) {
+		fprintf(stderr, "ERR: can't get prog info - %s\n",
+			strerror(errno));
+		exit(EXIT_FAIL_BPF) ;
+	}
+	printf(" - BPF prog id:%d name:%s\n", info.id, info.name);
+}
+
+int main(int argc, char **argv)
+{
 	struct bpf_program *bpf_prog;
 	struct bpf_object *bpf_obj;
 	int prog_fd = -1;
@@ -175,16 +193,14 @@ int main(int argc, char **argv)
 	if (err)
 		return err;
 
-        /* This step is not really needed , BPF-info via bpf-syscall */
-	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
-	if (err) {
-		fprintf(stderr, "ERR: can't get prog info - %s\n",
-			strerror(errno));
-		return err;
+	if (verbose) {
+		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
+		       cfg.filename, cfg.progsec);
+		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
+		       cfg.ifname, cfg.ifindex);
+		print_fd_info(prog_fd);
 	}
 
-	printf("Success: Loading "
-	       "XDP prog name:%s(id:%d) on device:%s(ifindex:%d)\n",
-	       info.name, info.id, cfg.ifname, cfg.ifindex);
+	/* Other BPF section programs will get freed on exit */
 	return EXIT_OK;
 }
