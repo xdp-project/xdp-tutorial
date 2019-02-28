@@ -62,6 +62,33 @@ static int xdp_unload(int ifindex, __u32 xdp_flags)
 	return EXIT_OK;
 }
 
+static int xdp_load(struct config cfg, int prog_fd)
+{
+	int err;
+
+	err = bpf_set_link_xdp_fd(cfg.ifindex, prog_fd, cfg.xdp_flags);
+	if (err < 0) {
+		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
+			cfg.ifname, -err, strerror(-err));
+
+		switch (-err) {
+		case EBUSY:
+			fprintf(stderr, "Hint: XDP already loaded on device"
+				" use --force to swap/replace\n");
+			break;
+		case EOPNOTSUPP:
+			fprintf(stderr, "Hint: Native-XDP not supported"
+				" use --skb-mode or --auto-mode\n");
+			break;
+		default:
+			break;
+		}
+		return EXIT_FAIL_XDP;
+	}
+
+	return EXIT_OK;
+}
+
 int main(int argc, char **argv)
 {
 	struct bpf_prog_info info = {};
@@ -100,24 +127,9 @@ int main(int argc, char **argv)
 	 * kernel hook point, in this case XDP net_device link-level hook.
 	 * Fortunately libbpf have a helper for this:
 	 */
-	err = bpf_set_link_xdp_fd(cfg.ifindex, prog_fd, cfg.xdp_flags);
-	if (err < 0) {
-		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
-			cfg.ifname, -err, strerror(-err));
-		switch (-err) {
-		case EBUSY:
-			fprintf(stderr, "Hint: XDP already loaded on device"
-				" use --force to swap/replace\n");
-			break;
-		case EOPNOTSUPP:
-			fprintf(stderr, "Hint: Native-XDP not supported"
-				" use --skb-mode or --auto-mode\n");
-			break;
-		default:
-			break;
-		}
-		return EXIT_FAIL_XDP;
-	}
+	err = xdp_load(cfg, prog_fd);
+	if (err)
+		return err;
 
         /* This step is not really needed , BPF-info via bpf-syscall */
 	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
