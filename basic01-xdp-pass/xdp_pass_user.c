@@ -14,11 +14,6 @@ static const char *__doc__ = "Simple XDP prog doing XDP_PASS\n";
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
-static int ifindex = -1;
-static char ifname_buf[IF_NAMESIZE];
-static char *ifname;
-static __u32 xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
-
 static const struct option long_options[] = {
 	{"help",        no_argument,		NULL, 'h' },
 	{"dev",         required_argument,	NULL, 'd' },
@@ -29,12 +24,12 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
-static void usage(char *argv[])
+static void usage(const char *prog_name, const char *doc)
 {
 	int i;
 
-	printf("\nDOCUMENTATION:\n %s\n", __doc__);
-	printf(" Usage: %s (options-see-below)\n", argv[0]);
+	printf("\nDOCUMENTATION:\n %s\n", doc);
+	printf(" Usage: %s (options-see-below)\n", prog_name);
 	printf(" Listing options:\n");
 	for (i = 0; long_options[i].name != 0; i++) {
 		printf(" --%-12s", long_options[i].name);
@@ -55,7 +50,7 @@ static void usage(char *argv[])
 #define EXIT_FAIL_OPTION	2
 #define EXIT_FAIL_XDP		3
 
-static int xdp_unload(int ifindex_unload)
+static int xdp_unload(int ifindex, __u32 xdp_flags)
 {
 	int err;
 
@@ -67,19 +62,20 @@ static int xdp_unload(int ifindex_unload)
 	return EXIT_OK;
 }
 
-int main(int argc, char **argv)
-{
-	struct bpf_prog_info info = {};
-	__u32 info_len = sizeof(info);
-	struct bpf_object *obj;
-	int prog_fd, opt, err;
-	bool unload = false;
-	char filename[256];
-	int longindex = 0;
+struct config {
+	__u32 xdp_flags;
+	int ifindex;
+	char *ifname;
+	char ifname_buf[IF_NAMESIZE];
+	bool do_unload;
+};
 
-	struct bpf_prog_load_attr prog_load_attr = {
-		.prog_type      = BPF_PROG_TYPE_XDP,
-	};
+void parse_cmdline_args(int argc, char **argv,
+			const struct option *long_options,
+			struct config *cfg)
+{
+	int longindex = 0;
+	int opt;
 
 	/* Parse commands line args */
 	while ((opt = getopt_long(argc, argv, "hd:SNFU",
@@ -90,10 +86,10 @@ int main(int argc, char **argv)
 				fprintf(stderr, "ERR: --dev name too long\n");
 				goto error;
 			}
-			ifname = (char *)&ifname_buf;
-			strncpy(ifname, optarg, IF_NAMESIZE);
-			ifindex = if_nametoindex(ifname);
-			if (ifindex == 0) {
+			cfg->ifname = (char *)&cfg->ifname_buf;
+			strncpy(cfg->ifname, optarg, IF_NAMESIZE);
+			cfg->ifindex = if_nametoindex(cfg->ifname);
+			if (cfg->ifindex == 0) {
 				fprintf(stderr,
 					"ERR: --dev name unknown err(%d):%s\n",
 					errno, strerror(errno));
@@ -101,32 +97,53 @@ int main(int argc, char **argv)
 			}
 			break;
 		case 'S':
-			xdp_flags |= XDP_FLAGS_SKB_MODE;
+			cfg->xdp_flags |= XDP_FLAGS_SKB_MODE;
 			break;
 		case 'N':
-			xdp_flags |= XDP_FLAGS_DRV_MODE;
+			cfg->xdp_flags |= XDP_FLAGS_DRV_MODE;
 			break;
 		case 'F':
-			xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
+			cfg->xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
 			break;
 		case 'U':
-			unload = true;
+			cfg->do_unload = true;
 			break;
 		case 'h':
 		error:
 		default:
-			usage(argv);
-			return EXIT_FAIL_OPTION;
+			usage(argv[0], __doc__);
+			exit(EXIT_FAIL_OPTION);
 		}
 	}
+}
+
+int main(int argc, char **argv)
+{
+	struct bpf_prog_info info = {};
+	__u32 info_len = sizeof(info);
+	struct bpf_object *obj;
+	char filename[256];
+	int prog_fd, err;
+
+	struct config cfg = {
+		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST,
+		.ifindex   = -1,
+		.do_unload = false,
+	};
+
+	struct bpf_prog_load_attr prog_load_attr = {
+		.prog_type      = BPF_PROG_TYPE_XDP,
+	};
+
+	parse_cmdline_args(argc, argv, long_options, &cfg);
 	/* Required option */
-	if (ifindex == -1) {
+	if (cfg.ifindex == -1) {
 		fprintf(stderr, "ERR: required option --dev missing\n");
-		usage(argv);
+		usage(argv[0], __doc__);
 		return EXIT_FAIL_OPTION;
 	}
-	if (unload)
-		return xdp_unload(ifindex);
+	if (cfg.do_unload)
+		return xdp_unload(cfg.ifindex, cfg.xdp_flags);
 
 	/* Locate BPF-ELF object file:  xdp_pass_kern.o */
 	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
@@ -148,8 +165,9 @@ int main(int argc, char **argv)
          * kernel hook point, in this case XDP net_device link-level hook.
          * Fortunately libbpf have a helper for this:
          */
-	if ((err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags)) < 0) {
-		fprintf(stderr, "ERR: link set xdp fd failed (err=%d):%s\n",
+	err = bpf_set_link_xdp_fd(cfg.ifindex, prog_fd, cfg.xdp_flags);
+	if (err < 0) {
+		fprintf(stderr, "ERR: link set xdp fd failed (err=%d): %s\n",
 			err, strerror(-err));
 		return EXIT_FAIL_XDP;
 	}
@@ -163,6 +181,6 @@ int main(int argc, char **argv)
 	}
 
 	printf("Success: Load XDP prog id=%d on device:%s ifindex:%d\n",
-		info.id, ifname, ifindex);
+		info.id, cfg.ifname, cfg.ifindex);
 	return EXIT_OK;
 }
