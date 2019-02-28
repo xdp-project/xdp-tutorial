@@ -101,8 +101,8 @@ int main(int argc, char **argv)
          */
 	err = bpf_set_link_xdp_fd(cfg.ifindex, prog_fd, cfg.xdp_flags);
 	if (err < 0) {
-		fprintf(stderr, "ERR: link set xdp fd failed (err=%d): %s\n",
-			err, strerror(-err));
+		fprintf(stderr, "ERR: link set xdp fd failed (%d): %s\n",
+			-err, strerror(-err));
 		if (-err == EBUSY) {
 			fprintf(stderr, "INFO: XDP already loaded on device:%s"
 				" use --force to swap/replace\n", cfg.ifname);
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_XDP;
 	}
 
-        /* This step is not really needed */
+        /* This step is not really needed , BPF-info via bpf-syscall */
 	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
 	if (err) {
 		fprintf(stderr, "ERR: can't get prog info - %s\n",
@@ -118,7 +118,8 @@ int main(int argc, char **argv)
 		return err;
 	}
 
-	printf("Success: Load XDP prog id=%d on device:%s ifindex:%d\n",
-		info.id, cfg.ifname, cfg.ifindex);
+	printf("Success: Loading "
+	       "XDP prog name:%s(id:%d) on device:%s(ifindex:%d)\n",
+	       info.name, info.id, cfg.ifname, cfg.ifindex);
 	return EXIT_OK;
 }
