@@ -26,12 +26,6 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
-/* Exit return codes */
-#define EXIT_OK		0
-#define EXIT_FAIL		1
-#define EXIT_FAIL_OPTION	2
-#define EXIT_FAIL_XDP		3
-
 static int xdp_unload(int ifindex, __u32 xdp_flags)
 {
 	int err;
