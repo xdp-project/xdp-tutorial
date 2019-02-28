@@ -25,6 +25,30 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
+int load_bpf_object_file(const char *filename)
+{
+	int first_prog_fd = -1;
+	struct bpf_object *obj;
+	int err;
+
+	struct bpf_prog_load_attr prog_load_attr = {
+		.prog_type      = BPF_PROG_TYPE_XDP,
+	};
+	prog_load_attr.file = filename;
+
+        /* Use libbpf for extracting BPF byte-code from BPF-ELF object, and
+         * loading this into the kernel via bpf-syscall
+         */
+	err = bpf_prog_load_xattr(&prog_load_attr, &obj, &first_prog_fd);
+	if (err) {
+		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
+			filename, err, strerror(-err));
+		return -1;
+	}
+
+	return first_prog_fd;
+}
+
 static int xdp_unload(int ifindex, __u32 xdp_flags)
 {
 	int err;
@@ -41,7 +65,6 @@ int main(int argc, char **argv)
 {
 	struct bpf_prog_info info = {};
 	__u32 info_len = sizeof(info);
-	struct bpf_object *obj;
 	char filename[256];
 	int prog_fd, err;
 
@@ -49,10 +72,6 @@ int main(int argc, char **argv)
 		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST,
 		.ifindex   = -1,
 		.do_unload = false,
-	};
-
-	struct bpf_prog_load_attr prog_load_attr = {
-		.prog_type      = BPF_PROG_TYPE_XDP,
 	};
 
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
@@ -67,17 +86,12 @@ int main(int argc, char **argv)
 
 	/* Locate BPF-ELF object file:  xdp_pass_kern.o */
 	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
-	prog_load_attr.file = filename;
 
-        /* Use libbpf for extracting BPF byte-code from BPF-ELF object, and
-         * loading this into the kernel via bpf-syscall
-         */
-	if (bpf_prog_load_xattr(&prog_load_attr, &obj, &prog_fd))
-		return EXIT_FAIL;
-
-	if (!prog_fd) {
-		fprintf(stderr, "ERR: load_bpf_file: %s\n", strerror(errno));
-		return EXIT_FAIL;
+	/* Load the BPF-ELF object file and get back first BPF_prog FD */
+	prog_fd = load_bpf_object_file(filename);
+	if (prog_fd <= 0) {
+		fprintf(stderr, "ERR: loading file: %s\n", filename);
+		return EXIT_FAIL_BPF;
 	}
 
         /* At this point: BPF-prog is (only) loaded by the kernel, and prog_fd
