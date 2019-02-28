@@ -3,7 +3,6 @@ static const char *__doc__ = "Simple XDP prog doing XDP_PASS\n";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
@@ -38,61 +37,6 @@ static int xdp_unload(int ifindex, __u32 xdp_flags)
 	return EXIT_OK;
 }
 
-struct config {
-	__u32 xdp_flags;
-	int ifindex;
-	char *ifname;
-	char ifname_buf[IF_NAMESIZE];
-	bool do_unload;
-};
-
-void parse_cmdline_args(int argc, char **argv,
-			const struct option *long_options,
-			struct config *cfg)
-{
-	int longindex = 0;
-	int opt;
-
-	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:SNFU",
-				  long_options, &longindex)) != -1) {
-		switch (opt) {
-		case 'd':
-			if (strlen(optarg) >= IF_NAMESIZE) {
-				fprintf(stderr, "ERR: --dev name too long\n");
-				goto error;
-			}
-			cfg->ifname = (char *)&cfg->ifname_buf;
-			strncpy(cfg->ifname, optarg, IF_NAMESIZE);
-			cfg->ifindex = if_nametoindex(cfg->ifname);
-			if (cfg->ifindex == 0) {
-				fprintf(stderr,
-					"ERR: --dev name unknown err(%d):%s\n",
-					errno, strerror(errno));
-				goto error;
-			}
-			break;
-		case 'S':
-			cfg->xdp_flags |= XDP_FLAGS_SKB_MODE;
-			break;
-		case 'N':
-			cfg->xdp_flags |= XDP_FLAGS_DRV_MODE;
-			break;
-		case 'F':
-			cfg->xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
-			break;
-		case 'U':
-			cfg->do_unload = true;
-			break;
-		case 'h':
-		error:
-		default:
-			usage(argv[0], __doc__, long_options);
-			exit(EXIT_FAIL_OPTION);
-		}
-	}
-}
-
 int main(int argc, char **argv)
 {
 	struct bpf_prog_info info = {};
@@ -111,7 +55,7 @@ int main(int argc, char **argv)
 		.prog_type      = BPF_PROG_TYPE_XDP,
 	};
 
-	parse_cmdline_args(argc, argv, long_options, &cfg);
+	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 	/* Required option */
 	if (cfg.ifindex == -1) {
 		fprintf(stderr, "ERR: required option --dev missing\n");
