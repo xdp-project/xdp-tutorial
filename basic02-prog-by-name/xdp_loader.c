@@ -15,6 +15,9 @@ static const char *__doc__ = "XDP loader\n";
 
 #include "common_user.h"
 
+static const char *default_filename = "xdp_prog_kern.o";
+static const char *default_progname = "xdp_pass";
+
 static const struct option long_options[] = {
 	{"help",        no_argument,		NULL, 'h' },
 	{"dev",         required_argument,	NULL, 'd' },
@@ -28,7 +31,7 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
-int load_bpf_object_file(const char *filename)
+struct bpf_object *load_bpf_object_file(const char *filename)
 {
 	int first_prog_fd = -1;
 	struct bpf_object *obj;
@@ -46,10 +49,10 @@ int load_bpf_object_file(const char *filename)
 	if (err) {
 		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
 			filename, err, strerror(-err));
-		return -1;
+		return NULL;
 	}
 
-	return first_prog_fd;
+	return obj;
 }
 
 static int xdp_unload(int ifindex, __u32 xdp_flags)
@@ -68,6 +71,7 @@ static int xdp_load(struct config cfg, int prog_fd)
 {
 	int err;
 
+	/* libbpf provide the XDP net_device link-level hook attach helper */
 	err = bpf_set_link_xdp_fd(cfg.ifindex, prog_fd, cfg.xdp_flags);
 	if (err < 0) {
 		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
@@ -91,20 +95,39 @@ static int xdp_load(struct config cfg, int prog_fd)
 	return EXIT_OK;
 }
 
+static void print_avail_progs(struct bpf_object *obj)
+{
+	struct bpf_program *pos;
+
+	bpf_object__for_each_program(pos, obj) {
+		if (bpf_program__is_xdp(pos))
+			printf(" %s\n", bpf_program__title(pos, false));
+	}
+}
+
 int main(int argc, char **argv)
 {
 	struct bpf_prog_info info = {};
 	__u32 info_len = sizeof(info);
-	char filename[256];
-	int prog_fd, err;
+
+	struct bpf_program *bpf_prog;
+	struct bpf_object *bpf_obj;
+	int prog_fd = -1;
+	int err;
 
 	struct config cfg = {
 		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
 		.ifindex   = -1,
 		.do_unload = false,
 	};
-
+	/* Set default BPF-ELF object file and BPF program name */
+	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
+	strncpy(cfg.progname, default_progname, sizeof(cfg.progname));
+	/* Cmdline options can change these */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
+
+	printf("filename:%s size:%ld progname:%s\n",
+	       cfg.filename, sizeof(cfg.filename), cfg.progname);
 	/* Required option */
 	if (cfg.ifindex == -1) {
 		fprintf(stderr, "ERR: required option --dev missing\n");
@@ -114,20 +137,33 @@ int main(int argc, char **argv)
 	if (cfg.do_unload)
 		return xdp_unload(cfg.ifindex, cfg.xdp_flags);
 
-	/* Locate BPF-ELF object file:  xdp_pass_kern.o */
-	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
+	/* Load the BPF-ELF object file and get back libbpf bpf_object */
+	bpf_obj = load_bpf_object_file(cfg.filename);
+	if (!bpf_obj) {
+		fprintf(stderr, "ERR: loading file: %s\n", cfg.filename);
+		return EXIT_FAIL_BPF;
+	}
 
-	/* Load the BPF-ELF object file and get back first BPF_prog FD */
-	prog_fd = load_bpf_object_file(filename);
+	printf("XXX: bpf_object__name:%s\n", bpf_object__name(bpf_obj));
+
+	print_avail_progs(bpf_obj);
+
+	/* Find a matching BPF progname */
+	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg.progname);
+	if (!bpf_prog) {
+		fprintf(stderr, "ERR: finding progname: %s\n", cfg.progname);
+		return EXIT_FAIL_BPF;
+	}
+
+	prog_fd = bpf_program__fd(bpf_prog);
 	if (prog_fd <= 0) {
-		fprintf(stderr, "ERR: loading file: %s\n", filename);
+		fprintf(stderr, "ERR: bpf_program__fd failed\n");
 		return EXIT_FAIL_BPF;
 	}
 
 	/* At this point: BPF-prog is (only) loaded by the kernel, and prog_fd
 	 * is our file-descriptor handle. Next step is attaching this FD to a
 	 * kernel hook point, in this case XDP net_device link-level hook.
-	 * Fortunately libbpf have a helper for this:
 	 */
 	err = xdp_load(cfg, prog_fd);
 	if (err)
