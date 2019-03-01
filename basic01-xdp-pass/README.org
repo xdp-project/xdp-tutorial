@@ -75,7 +75,7 @@ This is where *libbpf* comes into the picture, as it both provide an
 ELF-loader and XDP-hook helper functions.  In this tutorial you will learn
 how to write C-code using this library.
 
-The C-code in [[file:xdp_pass_kern.c]] (which gets compiled to program
+The C-code in [[file:xdp_pass_user.c]] (which gets compiled to program
 =xdp_pass=) shows howto write a BPF-loader specifically for our
 =xdp_pass_kern.o= ELF-file, that XDP-attach to a network device.
 
