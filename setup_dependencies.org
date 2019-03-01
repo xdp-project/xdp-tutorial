@@ -53,6 +53,29 @@ On a machine running the Fedora Linux distribution, install the packages:
  $ sudo dnf install elfutils-libelf-devel
 #+end_example
 
+* Kernel headers dependency
+
+The Linux kernel provides a number of header files, which are usually installed
+in =/usr/include/linux=. The different Linux distributions usually provide a
+software package with this.
+
+Some of the header files (we depend on) are located in the kernel tree under
+include/uapi/linux/ (e.g. include/uapi/linux/bpf.h), but you should not include
+those files as they go through a conversion process when exported/installed into
+distros =/usr/include/linux= directory. In the kernel git tree you can run the
+command: =make headers_install= which will create a lot of headers files in
+directory "usr/".
+
+For now, this XDP-tutorial depend on Linux distro installing the kernel-headers
+package.  We might choose to shadow some of these later.
+
+** Packages on Fedora
+
+On a machine running the Fedora Linux distribution, install the package:
+#+begin_example
+ $ sudo dnf install kernel-headers
+#+end_example
+
 * Recommended tools
 
 The =bpftool= is the recommended tool for inspecting BPF programs running on
