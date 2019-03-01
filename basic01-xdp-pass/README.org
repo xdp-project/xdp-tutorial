@@ -110,3 +110,30 @@ Removing the XDP program again from the device:
  ip link set dev lo xdp off
 #+end_example
 
+** Loading using xdp_pass
+
+Also try loading, using our own program: =xdp_pass=.
+
+#+begin_example sh
+ $ sudo ./xdp_pass --dev lo --skb-mode
+ Success: Loading XDP prog name:xdp_prog_simple(id:225) on device:lo(ifindex:1)
+#+end_example
+
+Loading it again will fail, as there is already loaded a program. This is
+because we use the xdp_flag =XDP_FLAGS_UPDATE_IF_NOEXIST=. This to
+illustrate that you should be careful not to automatically unload someone
+elses XDP program.
+
+#+begin_example sh
+ $ sudo ./xdp_pass --dev lo --skb-mode
+ ERR: dev:lo link set xdp fd failed (16): Device or resource busy
+ Hint: XDP already loaded on device use --force to swap/replace
+#+end_example
+
+As the hint suggest, the option --force can be used to replace the existing
+XDP program.
+
+#+begin_example
+ $ sudo ./xdp_pass --dev lo --skb-mode --force
+ Success: Loading XDP prog name:xdp_prog_simple(id:231) on device:lo(ifindex:1)
+#+end_example
