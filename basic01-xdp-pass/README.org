@@ -4,3 +4,141 @@
 
 Welcome to the first step in this XDP-tutorial.
 
+The programming language for XDP is eBPF (Extended Berkeley Packet Filter) which
+we will just refer to as BPF. Thus, this tutorial will also be relevant for
+learning how to write other BPF program.  The focus is on BPF programs
+that can be used in the XDP-hook.
+
+* First step: setup dependencies
+
+There are a number of setup dependencies, that need to in-order to compile the
+source code in this git-repository. Please go read and complete the
+[[file:../setup_dependencies.org]] guide.
+
+Return here, and see if the next step compiles.
+
+* Compiling example code
+
+If you completed the setup dependencies guide, then you should be able to
+simply run the =make= command, in this directory. (The [[file:Makefile][Makefile]] will try to
+be nice and detect if you didn't complete the setup steps).
+
+** Simple XDP code
+
+The very simple XDP code used in this step is located in
+file:xdp_pass_kern.c, and displayed below:
+
+#+begin_src C
+SEC("xdp")
+int  xdp_prog_simple(struct xdp_md *ctx)
+{
+        return XDP_PASS;
+}
+#+end_src
+
+** Compiling process
+
+The LLVM+clang compiler turns this restricted-C code into BPF-byte-code and
+store it in an ELF-object file, named =xdp_pass_kern.o=.
+
+** Looking into the BPF-ELF object
+
+You can inspect the contents of the =xdp_pass_kern.o= file with different
+tools like =readelf= or =llvm-objdump=. As the Makefile compiled with debug
+options =-g= (LLVM version >= 4.0), llvm-objdump tool can annotate
+assembler output with the original C code:
+
+Run: =llvm-objdump -S xdp_pass_kern.o=
+#+begin_example asm
+xdp_pass_kern.o:	file format ELF64-BPF
+
+Disassembly of section xdp:
+xdp_prog_simple:
+; {
+       0:	b7 00 00 00 02 00 00 00 	r0 = 2
+; return XDP_PASS;
+       1:	95 00 00 00 00 00 00 00 	exit
+#+end_example
+
+If you don't care to see the raw-BPF instrutions add: =-no-show-raw-insn=.
+The define/enum XDP_PASS have value 2, as can be seen in the dump. The
+section name "xdp" was defined by =SEC("xdp")=, and the =xdp_prog_simple:=
+is our C-function name.
+
+* Loading and XDP-hook
+
+As you should understand by now, the BPF-byte-code is stored in an ELF-file.
+Thus, to loaded this into the kernel, userspace first need to have an
+ELF-loader, which is where our libelf-devel dependency comes from,
+
+This is where *libbpf* comes into the picture, as it both provide an
+ELF-loader and XDP-hook helper functions.  In this tutorial you will learn
+how to write C-code using this library.
+
+The C-code in [[file:xdp_pass_user.c]] (which gets compiled to program
+=xdp_pass=) shows howto write a BPF-loader specifically for our
+=xdp_pass_kern.o= ELF-file, that XDP-attach to a network device.
+
+** Loading via iproute2 ip
+
+It does seem overkill to write a C-program to simply load and XDP-attach a
+specific BPF-program.  This is part of the tutorial and will help you
+integrate BPF into different Open Source projects.
+
+The standard iproute2 tool that most distros provide, also contains a BPF
+ELF-loader (not based on libbpf, which unfortunately makes it incompatible
+when starting to use BPF-maps).
+
+Thus, with the standard =ip= tool, you can actually load our ELF-file
+=xdp_pass_kern.o=, where we named our ELF-section "xdp".
+
+#+begin_example sh
+ ip link set dev lo xdpgeneric obj xdp_pass_kern.o sec xdp
+#+end_example
+
+Listing the device via =ip link show= also show the XDP info:
+
+#+begin_example sh
+$ ip link show dev lo
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    prog/xdp id 220 tag 3b185187f1855c4c jited
+#+end_example
+
+Removing the XDP program again from the device:
+#+begin_example
+ ip link set dev lo xdp off
+#+end_example
+
+** Loading using xdp_pass
+
+Also try loading, using our own program: =xdp_pass=.
+
+#+begin_example sh
+ $ sudo ./xdp_pass --dev lo --skb-mode
+ Success: Loading XDP prog name:xdp_prog_simple(id:225) on device:lo(ifindex:1)
+#+end_example
+
+Loading it again will fail, as there is already loaded a program. This is
+because we use the xdp_flag =XDP_FLAGS_UPDATE_IF_NOEXIST=. This to
+illustrate that you should be careful not to automatically unload someone
+elses XDP program.
+
+#+begin_example sh
+ $ sudo ./xdp_pass --dev lo --skb-mode
+ ERR: dev:lo link set xdp fd failed (16): Device or resource busy
+ Hint: XDP already loaded on device use --force to swap/replace
+#+end_example
+
+As the hint suggest, the option --force can be used to replace the existing
+XDP program.
+
+#+begin_example
+ $ sudo ./xdp_pass --dev lo --skb-mode --force
+ Success: Loading XDP prog name:xdp_prog_simple(id:231) on device:lo(ifindex:1)
+#+end_example
+
+You can list XDP-prog on the device using different commands, and verify
+that the program ID is the same:
+- ip link list dev lo
+- bpftool net list dev lo

@@ -5,65 +5,8 @@
 This GitHub repository aim to take you through the different steps of writing
 XDP programs.
 
-* Based on libbpf
+* First step: Setup dependencies
 
-This XDP-tutorial leverage [[https://github.com/libbpf/libbpf/][libbpf]] to ease development and loading of
-BPF-programs. The library libbpf is part of the kernel tree under
-[[https://github.com/torvalds/linux/blob/master/tools/lib/bpf/README.rst][tools/lib/bpf]], but Facebook engineers maintains a stand-alone build on
-GitHub under https://github.com/libbpf/libbpf.
+Before you can start completing step in this XDP-tutorial, there are some
+setup dependencies that are described in [[file:setup_dependencies.org]].
 
-** libbpf as git-submodule
-
-This repository use [[https://github.com/libbpf/libbpf][libbpf]] as a git-submodule.
-
-If you need to add this to your own project, you can use the the command:
-
-#+begin_example
-git submodule add https://github.com/libbpf/libbpf/ libbpf
-#+end_example
-
-After cloning this repository you need to run the command:
-
-#+begin_example
-git submodule update --init
-#+end_example
-
-If you want submodules to be part of the clone, you can use this command:
-
-#+begin_example
-git clone --recurse-submodules https://github.com/xdp-project/xdp-tutorial
-#+end_example
-
-* Dependencies
-
-The main dependencies are =libbpf=, =llvm=, =clang= and =libelf=. LLVM+clang
-compiles our restricted-C programs into BPF-byte-code, which is stored in an
-ELF-object file (=libelf=), that is loaded by =libbpf= into the kernel via
-the bpf-syscall.
-
-The Makefiles in this repo will try to detect if you are missing some
-dependencies, and give you some pointers.
-
-** Packages on Fedora
-
-On a machine running the Fedora Linux distribution, install the packages:
-
-#+begin_example
- $ sudo dnf install clang llvm
- $ sudo dnf install elfutils-libelf-devel
-#+end_example
-
-* Recommended tools
-
-The =bpftool= is the recommended tool for inspecting BPF programs running on
-your system. It also offers simple manipulation of eBPF programs and maps.
-The =bpftool= is part of the Linux kernel tree under [[https://github.com/torvalds/linux/tree/master/tools/bpf/bpftool][tools/bpf/bpftool/]], but
-some Linux distributions also ship the tool as a software package.
-
-* Packages on Fedora
-
-On a machine running the Fedora Linux distribution, install package:
-
-#+begin_example
- $ sudo dnf install bpftool
-#+end_example
