@@ -49,7 +49,7 @@ options =-g=, llvm-objdump tool can annotate assembler output with the
 original C code:
 
 Run: =llvm-objdump -S xdp_pass_kern.o=
-#+begin_example sh
+#+begin_example asm
 $ llvm-objdump -S xdp_pass_kern.o 
 
 xdp_pass_kern.o:	file format ELF64-BPF
