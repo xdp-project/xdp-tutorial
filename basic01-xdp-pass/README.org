@@ -18,3 +18,9 @@ source code in this git-repository. Please go read and complete the
 Return here, and see if the next step compiles.
 
 * Compiling example code
+
+If you completed the setup dependencies guide, then you should be able to
+simply run the =make= command, in this directory. (The [[file:Makefile][Makefile]] will try to
+be nice and detect if you didn't complete the setup steps).
+
+
