@@ -23,4 +23,24 @@ If you completed the setup dependencies guide, then you should be able to
 simply run the =make= command, in this directory. (The [[file:Makefile][Makefile]] will try to
 be nice and detect if you didn't complete the setup steps).
 
+** Simple XDP code
+
+The very simple XDP code used in this step is located in
+file:xdp_pass_kern.c, and displayed below:
+
+#+begin_src C
+SEC("xdp")
+int  xdp_prog_simple(struct xdp_md *ctx)
+{
+        return XDP_PASS;
+}
+#+end_src
+
+** Compiling process
+
+The LLVM+clang compiler turns this restricted-C code into BPF-byte-code and
+store it in an ELF-object file, named =xdp_pass_kern.o=.
+
+** Looking into the BPF-ELF object
+
 
