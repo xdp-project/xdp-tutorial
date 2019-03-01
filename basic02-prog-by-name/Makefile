@@ -48,7 +48,7 @@ llvm-check: $(CLANG) $(LLC)
 $(OBJECT_LIBBPF):
 	@if [ ! -d $(LIBBPF_DIR) ]; then \
 		echo "Error: Need libbpf submodule"; \
-		echo "May need to run git submodule update --init"; \
+		echo "May need to run: git submodule update --init"; \
 		exit 1; \
 	else \
 		cd $(LIBBPF_DIR) && $(MAKE) all; \
