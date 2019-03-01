@@ -137,3 +137,8 @@ XDP program.
  $ sudo ./xdp_pass --dev lo --skb-mode --force
  Success: Loading XDP prog name:xdp_prog_simple(id:231) on device:lo(ifindex:1)
 #+end_example
+
+You can list XDP-prog on the device using different commands, and verify
+that the program ID is the same:
+- ip link list dev lo
+- bpftool net list dev lo
