@@ -43,4 +43,27 @@ store it in an ELF-object file, named =xdp_pass_kern.o=.
 
 ** Looking into the BPF-ELF object
 
+You can inspect the contents of the =xdp_pass_kern.o= file with different
+tools like =readelf= or =llvm-objdump=. As the Makefile compiled with debug
+options =-g=, llvm-objdump tool can annotate assembler output with the
+original C code:
+
+Run: =llvm-objdump -S xdp_pass_kern.o=
+#+begin_example sh
+$ llvm-objdump -S xdp_pass_kern.o 
+
+xdp_pass_kern.o:	file format ELF64-BPF
+
+Disassembly of section xdp:
+xdp_prog_simple:
+; {
+       0:	b7 00 00 00 02 00 00 00 	r0 = 2
+; return XDP_PASS;
+       1:	95 00 00 00 00 00 00 00 	exit
+#+end_example
+
+If you don't care to see the raw-BPF instrutions add: =-no-show-raw-insn=.
+The define/enum XDP_PASS have value 2, as can be seen in the dump. The
+section name "xdp" was defined by =SEC("xdp")=, and the =xdp_prog_simple:=
+is our C-function name.
 
