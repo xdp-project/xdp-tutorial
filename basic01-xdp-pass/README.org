@@ -6,7 +6,7 @@ Welcome to the first step in this XDP-tutorial.
 
 The programming language for XDP is eBPF (Extended Berkeley Packet Filter) which
 we will just refer to as BPF. Thus, this tutorial will also be relevant for
-learning how to write other BPF program.  The focus is on eBPF programs
+learning how to write other BPF program.  The focus is on BPF programs
 that can be used in the XDP-hook.
 
 * First step: setup dependencies
@@ -45,13 +45,11 @@ store it in an ELF-object file, named =xdp_pass_kern.o=.
 
 You can inspect the contents of the =xdp_pass_kern.o= file with different
 tools like =readelf= or =llvm-objdump=. As the Makefile compiled with debug
-options =-g=, llvm-objdump tool can annotate assembler output with the
-original C code:
+options =-g= (LLVM version >= 4.0), llvm-objdump tool can annotate
+assembler output with the original C code:
 
 Run: =llvm-objdump -S xdp_pass_kern.o=
 #+begin_example asm
-$ llvm-objdump -S xdp_pass_kern.o 
-
 xdp_pass_kern.o:	file format ELF64-BPF
 
 Disassembly of section xdp:
