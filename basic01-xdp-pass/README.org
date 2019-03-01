@@ -4,3 +4,8 @@
 
 Welcome to the first step in this XDP-tutorial.
 
+The programming language for XDP is eBPF (Extended Berkeley Packet Filter) which
+we will just refer to as BPF. Thus, this tutorial will also be relevant for
+learning how to write other BPF program.  The focus is on eBPF programs
+that can be used in the XDP-hook.
+
