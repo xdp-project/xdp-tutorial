@@ -9,3 +9,12 @@ we will just refer to as BPF. Thus, this tutorial will also be relevant for
 learning how to write other BPF program.  The focus is on eBPF programs
 that can be used in the XDP-hook.
 
+* First step: setup dependencies
+
+There are a number of setup dependencies, that need to in-order to compile the
+source code in this git-repository. Please go read and complete the
+[[file:../setup_dependencies.org]] guide.
+
+Return here, and see if the next step compiles.
+
+* Compiling example code
