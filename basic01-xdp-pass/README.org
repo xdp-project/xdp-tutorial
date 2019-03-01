@@ -65,3 +65,48 @@ The define/enum XDP_PASS have value 2, as can be seen in the dump. The
 section name "xdp" was defined by =SEC("xdp")=, and the =xdp_prog_simple:=
 is our C-function name.
 
+* Loading and XDP-hook
+
+As you should understand by now, the BPF-byte-code is stored in an ELF-file.
+Thus, to loaded this into the kernel, userspace first need to have an
+ELF-loader, which is where our libelf-devel dependency comes from,
+
+This is where *libbpf* comes into the picture, as it both provide an
+ELF-loader and XDP-hook helper functions.  In this tutorial you will learn
+how to write C-code using this library.
+
+The C-code in [[file:xdp_pass_kern.c]] (which gets compiled to program
+=xdp_pass=) shows howto write a BPF-loader specifically for our
+=xdp_pass_kern.o= ELF-file, that XDP-attach to a network device.
+
+** Loading via iproute2 ip
+
+It does seem overkill to write a C-program to simply load and XDP-attach a
+specific BPF-program.  This is part of the tutorial and will help you
+integrate BPF into different Open Source projects.
+
+The standard iproute2 tool that most distros provide, also contains a BPF
+ELF-loader (not based on libbpf, which unfortunately makes it incompatible
+when starting to use BPF-maps).
+
+Thus, with the standard =ip= tool, you can actually load our ELF-file
+=xdp_pass_kern.o=, where we named our ELF-section "xdp".
+
+#+begin_example sh
+ ip link set dev lo xdpgeneric obj xdp_pass_kern.o sec xdp
+#+end_example
+
+Listing the device via =ip link show= also show the XDP info:
+
+#+begin_example sh
+$ ip link show dev lo
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    prog/xdp id 220 tag 3b185187f1855c4c jited
+#+end_example
+
+Removing the XDP program again from the device:
+#+begin_example
+ ip link set dev lo xdp off
+#+end_example
+
