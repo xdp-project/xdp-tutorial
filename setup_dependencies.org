@@ -2,19 +2,19 @@
 #+TITLE: Setup dependencies
 #+OPTIONS: ^:nil
 
-Before you can start completing step in this XDP-tutorial, go though this
-document and install the needed software packages.
+Before you can start completing the steps in this XDP-tutorial, go though
+this document and install the needed software packages.
 
 * Based on libbpf
 
-This XDP-tutorial leverage [[https://github.com/libbpf/libbpf/][libbpf]] to ease development and loading of
+This XDP-tutorial leverages [[https://github.com/libbpf/libbpf/][libbpf]] to ease development and loading of
 BPF-programs. The library libbpf is part of the kernel tree under
-[[https://github.com/torvalds/linux/blob/master/tools/lib/bpf/README.rst][tools/lib/bpf]], but Facebook engineers maintains a stand-alone build on
+[[https://github.com/torvalds/linux/blob/master/tools/lib/bpf/README.rst][tools/lib/bpf]], but Facebook engineers maintain a stand-alone build on
 GitHub under https://github.com/libbpf/libbpf.
 
 ** libbpf as git-submodule
 
-This repository use [[https://github.com/libbpf/libbpf][libbpf]] as a git-submodule.
+This repository uses [[https://github.com/libbpf/libbpf][libbpf]] as a git-submodule.
 
 If you need to add this to your own project, you can use the the command:
 
@@ -38,8 +38,8 @@ git clone --recurse-submodules https://github.com/xdp-project/xdp-tutorial
 
 The main dependencies are =libbpf=, =llvm=, =clang= and =libelf=. LLVM+clang
 compiles our restricted-C programs into BPF-byte-code, which is stored in an
-ELF-object file (=libelf=), that is loaded by =libbpf= into the kernel via
-the bpf-syscall.
+ELF object file (=libelf=), that is loaded by =libbpf= into the kernel via
+the =bpf= syscall.
 
 The Makefiles in this repo will try to detect if you are missing some
 dependencies, and give you some pointers.
@@ -53,21 +53,29 @@ On a machine running the Fedora Linux distribution, install the packages:
  $ sudo dnf install elfutils-libelf-devel
 #+end_example
 
+** Packages on Debian/Ubuntu
+
+On Debian and Ubuntu installations, install the dependencies like this:
+
+#+begin_example
+ $ sudo apt install clang llvm libelf-dev
+#+end_example
+
 * Kernel headers dependency
 
 The Linux kernel provides a number of header files, which are usually installed
 in =/usr/include/linux=. The different Linux distributions usually provide a
-software package with this.
+software package with these headers.
 
 Some of the header files (we depend on) are located in the kernel tree under
 include/uapi/linux/ (e.g. include/uapi/linux/bpf.h), but you should not include
 those files as they go through a conversion process when exported/installed into
-distros =/usr/include/linux= directory. In the kernel git tree you can run the
+distros' =/usr/include/linux= directory. In the kernel git tree you can run the
 command: =make headers_install= which will create a lot of headers files in
 directory "usr/".
 
-For now, this XDP-tutorial depend on Linux distro installing the kernel-headers
-package.  We might choose to shadow some of these later.
+For now, this tutorial depends on kernel headers package provided by your
+distro. We may choose to shadow some of these later.
 
 ** Packages on Fedora
 
@@ -75,6 +83,15 @@ On a machine running the Fedora Linux distribution, install the package:
 #+begin_example
  $ sudo dnf install kernel-headers
 #+end_example
+
+** Packages on Debian/Ubuntu
+
+On Debian and Ubuntu installations, install the headers like this
+
+#+begin_example
+ $ sudo apt install linux-headers-$(uname -r)
+#+end_example
+
 
 * Recommended tools
 
@@ -90,3 +107,7 @@ On a machine running the Fedora Linux distribution, install package:
 #+begin_example
  $ sudo dnf install bpftool
 #+end_example
+
+** Packages on Debian/Ubuntu
+
+Unfortunately, bpftool is not currently packaged for Debian/Ubuntu.
