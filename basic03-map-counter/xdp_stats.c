@@ -19,6 +19,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
 #include "common_user.h"
+#include "common_kern_user.h"
 
 static const char *default_filename = "xdp_prog_kern.o";
 static const char *default_progsec = "xdp_stats1";
@@ -220,14 +221,9 @@ static __u64 gettime(void)
 	return (__u64) t.tv_sec * NANOSEC_PER_SEC + t.tv_nsec;
 }
 
-/* TODO: Move this into common_kern_user.h */
-struct datarec {
-        __u64 rx_packets;
-};
-
 struct record {
 	__u64 timestamp;
-	struct datarec total;
+	struct datarec total; /* defined in common_kern_user.h */
 };
 
 struct stats_record {
