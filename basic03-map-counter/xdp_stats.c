@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-static const char *__doc__ = "XDP loader\n"
-	" - Specify BPF-object --filename to load \n"
-	" - and select BPF section --progsec name to XDP-attach to --dev\n";
+static const char *__doc__ = "XDP loader and stats program\n"
+	" - Allows selecting BPF section --progsec name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +17,7 @@ static const char *__doc__ = "XDP loader\n"
 #include "common_user.h"
 
 static const char *default_filename = "xdp_prog_kern.o";
-static const char *default_progsec = "xdp_pass";
+static const char *default_progsec = "xdp_stats1";
 
 static const struct option long_options[] = {
 	{"help",        no_argument,		NULL, 'h' },
@@ -29,7 +28,6 @@ static const struct option long_options[] = {
 	{"force",       no_argument,		NULL, 'F' },
 	{"unload",      no_argument,		NULL, 'U' },
 	{"quiet",       no_argument,		NULL, 'q' },
-	{"filename",    required_argument,	NULL,  1  },
 	{"progsec",    required_argument,	NULL,  2  },
 	{0, 0, NULL,  0 }
 };
@@ -132,7 +130,7 @@ int main(int argc, char **argv)
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
 	strncpy(cfg.progsec,  default_progsec,  sizeof(cfg.progsec));
-	/* Cmdline options can change these */
+	/* Cmdline options can change progsec */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	/* Required option */
