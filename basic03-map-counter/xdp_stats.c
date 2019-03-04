@@ -96,7 +96,7 @@ static int xdp_load(struct config *cfg, int prog_fd)
 	return EXIT_OK;
 }
 
-static void print_fd_info(int prog_fd)
+static void print_prog_fd_info(int prog_fd)
 {
 	struct bpf_prog_info info = {};
 	__u32 info_len = sizeof(info);
@@ -112,7 +112,29 @@ static void print_fd_info(int prog_fd)
 			strerror(errno));
 		exit(EXIT_FAIL_BPF) ;
 	}
-	printf(" - BPF prog id:%d name:%s\n", info.id, info.name);
+	printf(" - BPF prog (bpf_prog_type:%d) id:%d name:%s\n",
+	       info.type, info.id, info.name);
+}
+
+static void print_map_fd_info(int map_fd)
+{
+	struct bpf_map_info info = {};
+	__u32 info_len = sizeof(info);
+	int err;
+
+	if (map_fd < 0)
+		return;
+
+        /* BPF-info via bpf-syscall */
+	err = bpf_obj_get_info_by_fd(map_fd, &info, &info_len);
+	if (err) {
+		fprintf(stderr, "ERR: %s() can't get info - %s\n",
+			__func__,  strerror(errno));
+		exit(EXIT_FAIL_BPF) ;
+	}
+	if (verbose)
+		printf("Info: BPF map (bpf_map_type:%d) id:%d name:%s\n",
+		       info.type, info.id, info.name);
 }
 
 struct bpf_object *load_and_attach(struct config *cfg)
@@ -164,14 +186,26 @@ struct bpf_object *load_and_attach(struct config *cfg)
 		       cfg->filename, cfg->progsec);
 		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
 		       cfg->ifname, cfg->ifindex);
-		print_fd_info(prog_fd);
+		print_prog_fd_info(prog_fd);
 	}
 	return bpf_obj;
+}
+
+int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
+{
+	int map_fd;
+
+	map_fd = bpf_object__find_map_fd_by_name(bpf_obj, mapname);
+        if (map_fd < 0) {
+		fprintf(stderr, "ERR: cannot find map by name: %s\n", mapname);
+	}
+	return map_fd;
 }
 
 int main(int argc, char **argv)
 {
 	struct bpf_object *bpf_obj;
+	int stats_map_fd;
 
 	struct config cfg = {
 		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
@@ -197,6 +231,11 @@ int main(int argc, char **argv)
 	if (!bpf_obj)
 		return EXIT_FAIL_BPF;
 
-	/* Other BPF section programs will get freed on exit */
+	stats_map_fd = find_map_fd(bpf_obj, "stats_map");
+	if (stats_map_fd < 0)
+		return EXIT_FAIL_BPF;
+
+	print_map_fd_info(stats_map_fd);
+
 	return EXIT_OK;
 }
