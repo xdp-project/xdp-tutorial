@@ -2,39 +2,44 @@
 #include <linux/bpf.h>
 #include "bpf_helpers.h"
 
-/* Notice how this XDP/BPF-program contains several programs in the same source
- * file. These will each get their own section in the ELF file, and via libbpf
- * they can be selected individually, and via their file-descriptor attached to
- * a given kernel BPF-hook.
- *
- * The libbpf bpf_object__find_program_by_title() refers to SEC names below.
- * The iproute2 utility also use section name.
- *
- * Slightly confusing, the names that gets listed by "bpftool prog" are the
- * C-function names (below the SEC define).
- */
+/* Common stats data record (shared with userspace)
+ * TODO: Move this into common_kern_user.h
+*/
+struct datarec {
+        __u64 rx_packets;
+};
 
-SEC("xdp_pass")
-int  xdp_pass_func(struct xdp_md *ctx)
+struct bpf_map_def SEC("maps") stats_map = {
+        .type           = BPF_MAP_TYPE_ARRAY,
+        .key_size       = sizeof(__u32),
+        .value_size     = sizeof(struct datarec),
+        .max_entries    = 1,
+};
+
+/* LLVM maps __sync_fetch_and_add() as a built-in function to the BPF atomic add
+ * instruction (that is BPF_STX | BPF_XADD | BPF_W for word sizes)
+ */
+#ifndef lock_xadd
+#define lock_xadd(ptr, val)	((void) __sync_fetch_and_add(ptr, val))
+#endif
+
+SEC("xdp_stats1")
+int  xdp_stats1_func(struct xdp_md *ctx)
 {
+	struct datarec *rec;
+	__u32 key = 0;
+
+	/* Lookup in kernel BPF-side return pointer to actual data record */
+	rec = bpf_map_lookup_elem(&stats_map, &key);
+	if (!rec)
+		return XDP_ABORTED;
+
+	/* Multiple CPUs can access data record. Thus, the accounting needs to
+	 * use an atomic operation.
+	 */
+	lock_xadd(&rec->rx_packets, 1);
+
 	return XDP_PASS;
 }
 
-SEC("xdp_drop")
-int  xdp_drop_func(struct xdp_md *ctx)
-{
-	return XDP_DROP;
-}
-
 char _license[] SEC("license") = "GPL";
-
-/* Hint the avail XDP action return codes are:
-
-enum xdp_action {
-        XDP_ABORTED = 0,
-        XDP_DROP,
-        XDP_PASS,
-        XDP_TX,
-        XDP_REDIRECT,
-};
-*/
