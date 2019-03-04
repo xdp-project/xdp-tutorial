@@ -11,9 +11,9 @@ that can be used in the XDP-hook.
 
 * First step: setup dependencies
 
-There are a number of setup dependencies, that need to in-order to compile the
-source code in this git-repository. Please go read and complete the
-[[file:../setup_dependencies.org]] guide.
+There are a number of setup dependencies, that are needed in order to
+compile the source code in this git-repository. Please go read and complete
+the [[file:../setup_dependencies.org]] guide.
 
 Return here, and see if the next step compiles.
 
@@ -39,14 +39,14 @@ int  xdp_prog_simple(struct xdp_md *ctx)
 ** Compiling process
 
 The LLVM+clang compiler turns this restricted-C code into BPF-byte-code and
-store it in an ELF-object file, named =xdp_pass_kern.o=.
+stores it in an ELF-object file, named =xdp_pass_kern.o=.
 
 ** Looking into the BPF-ELF object
 
 You can inspect the contents of the =xdp_pass_kern.o= file with different
-tools like =readelf= or =llvm-objdump=. As the Makefile compiled with debug
-options =-g= (LLVM version >= 4.0), llvm-objdump tool can annotate
-assembler output with the original C code:
+tools like =readelf= or =llvm-objdump=. As the Makefile enables the debug
+option =-g= (LLVM version >= 4.0), llvm-objdump tool can annotate assembler
+output with the original C code:
 
 Run: =llvm-objdump -S xdp_pass_kern.o=
 #+begin_example asm
@@ -60,37 +60,37 @@ xdp_prog_simple:
        1:	95 00 00 00 00 00 00 00 	exit
 #+end_example
 
-If you don't care to see the raw-BPF instrutions add: =-no-show-raw-insn=.
-The define/enum XDP_PASS have value 2, as can be seen in the dump. The
+If you don't want to see the raw-BPF instrutions add: =-no-show-raw-insn=.
+The define/enum XDP_PASS has a value of 2, as can be seen in the dump. The
 section name "xdp" was defined by =SEC("xdp")=, and the =xdp_prog_simple:=
 is our C-function name.
 
 * Loading and XDP-hook
 
-As you should understand by now, the BPF-byte-code is stored in an ELF-file.
-Thus, to loaded this into the kernel, userspace first need to have an
-ELF-loader, which is where our libelf-devel dependency comes from,
+As you should understand by now, the BPF-byte-code is stored in an ELF file.
+To load this into the kernel, userspace needs an ELF loader. The *libbpf*
+library provides both an ELF loader and several XDP helper functions. In
+this tutorial you will learn how to write C-code using this library, which
+is where our libelf-devel dependency comes from.
 
-This is where *libbpf* comes into the picture, as it both provide an
-ELF-loader and XDP-hook helper functions.  In this tutorial you will learn
-how to write C-code using this library.
-
-The C-code in [[file:xdp_pass_user.c]] (which gets compiled to program
-=xdp_pass=) shows howto write a BPF-loader specifically for our
-=xdp_pass_kern.o= ELF-file, that XDP-attach to a network device.
+The C-code in [[file:xdp_pass_user.c]] (which gets compiled to the program
+=xdp_pass=) shows how to write a BPF loader specifically for our
+=xdp_pass_kern.o= ELF file. This loader attached the program in the ELF file
+as an XDP hook on a network device.
 
 ** Loading via iproute2 ip
 
-It does seem overkill to write a C-program to simply load and XDP-attach a
-specific BPF-program.  This is part of the tutorial and will help you
-integrate BPF into different Open Source projects.
+It does seem overkill to write a C program to simply load and attach a
+specific BPF-program. However, we still include this in the the tutorial
+since it will help you integrate BPF into other Open Source projects.
 
-The standard iproute2 tool that most distros provide, also contains a BPF
-ELF-loader (not based on libbpf, which unfortunately makes it incompatible
-when starting to use BPF-maps).
+As an alternative to writing a new loader, the standard iproute2 tool, also
+contains a BPF ELF loader, although it is not based on libbpf, which
+unfortunately makes it incompatible when starting to use BPF-maps.
 
-Thus, with the standard =ip= tool, you can actually load our ELF-file
-=xdp_pass_kern.o=, where we named our ELF-section "xdp".
+The iproute2 loader can be used with the standard =ip= tool; so in this case
+you can actually load our ELF-file =xdp_pass_kern.o= (where we named our
+ELF section "xdp") like this:
 
 #+begin_example sh
  ip link set dev lo xdpgeneric obj xdp_pass_kern.o sec xdp
@@ -112,17 +112,16 @@ Removing the XDP program again from the device:
 
 ** Loading using xdp_pass
 
-Also try loading, using our own program: =xdp_pass=.
+To load the program using our own loader, simply issue this command:
 
 #+begin_example sh
  $ sudo ./xdp_pass --dev lo --skb-mode
  Success: Loading XDP prog name:xdp_prog_simple(id:225) on device:lo(ifindex:1)
 #+end_example
 
-Loading it again will fail, as there is already loaded a program. This is
-because we use the xdp_flag =XDP_FLAGS_UPDATE_IF_NOEXIST=. This to
-illustrate that you should be careful not to automatically unload someone
-elses XDP program.
+Loading it again will fail, as there is already a program loaded. This is
+because we use the xdp_flag =XDP_FLAGS_UPDATE_IF_NOEXIST=. This is good
+practice to avoid accidentally unloading an unrelated XDP program.
 
 #+begin_example sh
  $ sudo ./xdp_pass --dev lo --skb-mode
@@ -138,7 +137,7 @@ XDP program.
  Success: Loading XDP prog name:xdp_prog_simple(id:231) on device:lo(ifindex:1)
 #+end_example
 
-You can list XDP-prog on the device using different commands, and verify
+You can list XDP programs  on the device using different commands, and verify
 that the program ID is the same:
-- ip link list dev lo
-- bpftool net list dev lo
+- =ip link list dev lo=
+- =bpftool net list dev lo=
