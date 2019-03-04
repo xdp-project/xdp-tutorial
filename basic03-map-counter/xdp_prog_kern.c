@@ -31,6 +31,10 @@ int  xdp_stats1_func(struct xdp_md *ctx)
 
 	/* Lookup in kernel BPF-side return pointer to actual data record */
 	rec = bpf_map_lookup_elem(&stats_map, &key);
+	/* BPF kernel-side verifier will reject program if the NULL pointer
+	 * check isn't performed here. Even-though this is a static array where
+	 * we know key lookup 0 always will succeed.
+	 */
 	if (!rec)
 		return XDP_ABORTED;
 
