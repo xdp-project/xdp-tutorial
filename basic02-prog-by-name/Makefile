@@ -17,7 +17,12 @@ USER_OBJ = ${USER_C:.c=.o}
 
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
-COMMON_USER_OBJ := common_user.o
+COMMON_OBJS := ../common/common_params.o
+# Supports adding more COMMON_OBJS
+# COMMON_OBJS += ../common/common_bpf.o
+
+# Create expansions for dependencies
+COMMON_H := ${COMMON_OBJS:.o=.h}
 
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
@@ -55,11 +60,17 @@ $(OBJECT_LIBBPF):
 		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
 	fi
 
-$(COMMON_USER_OBJ): common_user.c common_user.h
-	$(CC) -c -o $@ $< $(CFLAGS)
+# Create dependency: detect if C-file change and touch H-file, to trigger
+# target $(COMMON_OBJS)
+$(COMMON_H): %.h: %.c
+	touch $@
 
-$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ)
-	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_USER_OBJ) \
+# Detect if any of common obj changed and create dependency on .h-files
+$(COMMON_OBJS): %.o: %.h
+	make -C ../common/
+
+$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_OBJS)
+	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
 	 $< $(LIBS)
 
 $(XDP_OBJ): %.o: %.c
