@@ -2,11 +2,91 @@
 #+TITLE: XDP Hands-On Tutorial
 #+OPTIONS: ^:nil
 
-This GitHub repository aim to take you through the different steps of writing
-XDP programs.
+This repository contains a tutorial that aims to introduce you to the basic
+steps needed to effectively write programs for the eXpress Data Path (XDP)
+system in the Linux kernel, which offers high-performance programmable
+packet processing integrated with the kernel.
+
+The tutorial is composed of a number of lessons, each of which has its own
+repository. Start with the lessons starting with "basicXX", and read the
+README.org file in each repository for instructions for that lesson.
+
+Keep reading below for an introduction to XDP and an overview of what you
+will learn in this tutorial, or jump [[file:basic01-xdp-pass/README.org][straight to the first lesson]].
+
+* Table of Contents                                                     :TOC:
+- [[#introduction][Introduction]]
+- [[#first-step-setup-dependencies][First step: Setup dependencies]]
+- [[#how-the-lessons-are-organised][How the lessons are organised]]
+  - [[#basic-setup-lessons][Basic setup lessons]]
+  - [[#packet-processing-lessons][Packet processing lessons]]
+  - [[#advanced-lessons][Advanced lessons]]
+
+* Introduction
+
+XDP is a part of the upstream Linux kernel, and enables users to install
+packet processing programs into the kernel, that will be executed for each
+arriving packet, before the kernel does any other processing on the data.
+The programs are written in restricted C, and compiled into the eBPF byte
+code format that is executed and JIT-compiled in the kernel, after being
+verified for safety. This approach offers great flexibility and high
+performance, and integrates well with the rest of the system. For a general
+introduction to XDP, read [[https://github.com/xdp-project/xdp-paper/blob/master/xdp-the-express-data-path.pdf][the academic paper (pdf)]], or the [[https://cilium.readthedocs.io/en/latest/bpf/][Cilium BPF
+reference guide]].
+
+This tutorial aims to be a practical introduction to the different steps
+needed to successfully write useful programs using the XDP system. We assume
+you have a basic understanding of Linux networking and how to configure it
+with the =iproute2= suite of tools, but assume no prior experience with eBPF
+or XDP.
+
+The tutorial is a work in progress, and will be trial-run at the [[https://www.netdevconf.org/0x13/session.html?tutorial-XDP-hands-on][Netdev
+Conference]] in Prague i March 2019. However, we intend for it to (eventually)
+be self-contained and something that anyone can go through to learn the XDP
+basics. Input and contributions to advance towards this goal are very
+welcome; just open issues or pull requests in the [[https://github.com/xdp-project/xdp-tutorial/][Github repository]].
 
 * First step: Setup dependencies
 
-Before you can start completing step in this XDP-tutorial, there are some
-setup dependencies that are described in [[file:setup_dependencies.org]].
+Before you can start completing step in this tutorial, you will need to
+install a few dependencies on your system. These are are described in
+[[file:setup_dependencies.org]].
 
+* How the lessons are organised
+The tutorial is organised into a number of lessons; each lesson has its own
+subdirectory, and the lessons are grouped by category:
+
+- Basic setup (directories starting with basicXX)
+- Packet processing (directories starting with packetXX)
+- Advanced topics (directories starting with advancedXX)
+
+We recommend you start with the "basic" lessons, and follow the lessons in
+each category in numerical order. Read the README.org file in each lesson
+directory for instructions on how to complete the lesson.
+
+** Basic setup lessons
+We recommend you start with these lessons, as they will teach you how to
+compile and inspect the eBPF programs that will implement your packet
+processing code, how to load them into the kernel, and how to inspect the
+state afterwards. As part of the basic lessons you will also be writing an
+eBPF program loader that you will need in subsequent lessons.
+
+** Packet processing lessons
+Once you have the basics figured out and know how to load programs into the
+kernel, you are ready to start processing some packets. The lessons in the
+packet progressing category will teach you about the different steps needed
+to process data packets, including parsing, rewriting, instructing the
+kernel about what to do with the packet after processing, and how to use
+helpers to access existing kernel functionality.
+
+** Advanced lessons
+After having completed the lessons in the basic and packet processing
+categories, you should be all set to write your first real XDP program that
+will do useful processing of the packets coming into the system. However,
+there are some slightly more advanced topics that will probably be useful
+once you start expanding your program to do more things.
+
+The topics covered in the advanced lessons include how to make eBPF programs
+in other parts of the kernel interact with your XDP program, passing
+metadata between programs, best practices for interacting with userspace and
+kernel features, and how to run multiple XDP programs on a single interface.
