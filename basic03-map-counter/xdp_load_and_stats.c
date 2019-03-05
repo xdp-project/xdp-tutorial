@@ -19,6 +19,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
 #include "../common/common_params.h"
+#include "../common/common_user_bpf_xdp.h"
 #include "common_kern_user.h"
 
 static const char *default_filename = "xdp_prog_kern.o";
@@ -59,18 +60,6 @@ struct bpf_object *load_bpf_object_file(const char *filename)
 	}
 
 	return obj;
-}
-
-static int xdp_unload(int ifindex, __u32 xdp_flags)
-{
-	int err;
-
-	if ((err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags)) < 0) {
-		fprintf(stderr, "ERR: link set xdp unload failed (err=%d):%s\n",
-			err, strerror(-err));
-		return EXIT_FAIL_XDP;
-	}
-	return EXIT_OK;
 }
 
 static int xdp_load(struct config *cfg, int prog_fd)
@@ -334,15 +323,17 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_unload(cfg.ifindex, cfg.xdp_flags);
+		return xdp_unload(cfg.ifindex, cfg.xdp_flags, 0);
 
 	bpf_obj = load_and_attach(&cfg);
 	if (!bpf_obj)
 		return EXIT_FAIL_BPF;
 
-	stats_map_fd = find_map_fd(bpf_obj, "stats_map");
-	if (stats_map_fd < 0)
+	stats_map_fd = find_map_fd(bpf_obj, "stats_array_map");
+	if (stats_map_fd < 0) {
+		xdp_unload(cfg.ifindex, cfg.xdp_flags, 0);
 		return EXIT_FAIL_BPF;
+	}
 
 	stats_poll(stats_map_fd, interval);
 

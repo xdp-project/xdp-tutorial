@@ -4,11 +4,11 @@
 
 #include "common_kern_user.h" /* defines: struct datarec; */
 
-struct bpf_map_def SEC("maps") stats_map = {
-        .type           = BPF_MAP_TYPE_ARRAY,
-        .key_size       = sizeof(__u32),
-        .value_size     = sizeof(struct datarec),
-        .max_entries    = 1,
+struct bpf_map_def SEC("maps") stats_array_map = {
+	.type        = BPF_MAP_TYPE_ARRAY,
+	.key_size    = sizeof(__u32),
+	.value_size  = sizeof(struct datarec),
+	.max_entries = 1,
 };
 
 /* LLVM maps __sync_fetch_and_add() as a built-in function to the BPF atomic add
@@ -25,7 +25,7 @@ int  xdp_stats1_func(struct xdp_md *ctx)
 	__u32 key = 0;
 
 	/* Lookup in kernel BPF-side return pointer to actual data record */
-	rec = bpf_map_lookup_elem(&stats_map, &key);
+	rec = bpf_map_lookup_elem(&stats_array_map, &key);
 	/* BPF kernel-side verifier will reject program if the NULL pointer
 	 * check isn't performed here. Even-though this is a static array where
 	 * we know key lookup 0 always will succeed.
