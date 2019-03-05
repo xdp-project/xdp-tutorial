@@ -15,7 +15,7 @@ static const char *__doc__ = "XDP loader\n"
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
-#include "common_user.h"
+#include "../common/common_params.h"
 
 static const char *default_filename = "xdp_prog_kern.o";
 static const char *default_progsec = "xdp_pass";

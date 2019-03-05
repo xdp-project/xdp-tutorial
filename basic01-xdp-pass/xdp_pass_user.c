@@ -13,7 +13,7 @@ static const char *__doc__ = "Simple XDP prog doing XDP_PASS\n";
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
-#include "common_user.h"
+#include "../common/common_params.h"
 
 static const struct option long_options[] = {
 	{"help",        no_argument,		NULL, 'h' },

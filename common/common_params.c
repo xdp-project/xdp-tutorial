@@ -9,7 +9,9 @@
 #include <net/if.h>
 #include <linux/if_link.h> /* XDP_FLAGS_* depend on kernel-headers installed */
 
-#include "common_user.h"
+#include "common_params.h"
+
+int verbose = 1;
 
 void usage(const char *prog_name, const char *doc,
            const struct option *long_options)
@@ -21,12 +23,8 @@ void usage(const char *prog_name, const char *doc,
 	printf(" Listing options:\n");
 	for (i = 0; long_options[i].name != 0; i++) {
 		printf(" --%-12s", long_options[i].name);
-		if (long_options[i].flag != NULL)
-			printf(" flag (internal value:%d)",
-				*long_options[i].flag);
-		else
-			printf(" short-option: -%c",
-				long_options[i].val);
+		if (long_options[i].val > 64) /* ord('A') = 65 */
+			printf(" short-option: -%c", long_options[i].val);
 		printf("\n");
 	}
 	printf("\n");
@@ -37,10 +35,11 @@ void parse_cmdline_args(int argc, char **argv,
                         struct config *cfg, const char *doc)
 {
 	int longindex = 0;
+	char *dest;
 	int opt;
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:SNFU",
+	while ((opt = getopt_long(argc, argv, "hd:SNFUq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
@@ -75,6 +74,17 @@ void parse_cmdline_args(int argc, char **argv,
 			break;
 		case 'U':
 			cfg->do_unload = true;
+			break;
+		case 'q':
+			verbose = false;
+			break;
+		case 1: /* --filename */
+			dest  = (char *)&cfg->filename;
+			strncpy(dest, optarg, sizeof(cfg->filename));
+			break;
+		case 2: /* --progsec */
+			dest  = (char *)&cfg->progsec;
+			strncpy(dest, optarg, sizeof(cfg->progsec));
 			break;
 		case 'h':
 		error:
