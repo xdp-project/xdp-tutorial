@@ -1,6 +1,6 @@
 /* This common_user.h is used by userspace programs */
-#ifndef __COMMON_USER_H
-#define __COMMON_USER_H
+#ifndef __COMMON_PARAMS_H
+#define __COMMON_PARAMS_H
 
 struct config {
 	__u32 xdp_flags;
@@ -28,4 +28,4 @@ void parse_cmdline_args(int argc, char **argv,
 			const struct option *long_options,
                         struct config *cfg, const char *doc);
 
-#endif /* __COMMON_USER_H */
+#endif /* __COMMON_PARAMS_H */
