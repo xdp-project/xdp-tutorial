@@ -19,7 +19,11 @@ OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
 COMMON_OBJS := ../common/common_params.o
 # Supports adding more COMMON_OBJS
-# COMMON_OBJS += ../common/common_xxx.o
+# COMMON_OBJS += ../common/common_bpf.o
+
+# Create expansions for .h and .h dependencies
+COMMON_H := ${COMMON_OBJS:.o=.h}
+COMMON_C := ${COMMON_OBJS:.o=.c}
 
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
@@ -48,13 +52,9 @@ llvm-check: $(CLANG) $(LLC)
 		else true; fi; \
 	done
 
-# Add dependency for .h
-$(COMMON_OBJS): %.o: %.h
-	@make -C ../common/
-
-# Add dependency for .c
-$(COMMON_OBJS): %.o: %.c
-	@make -C ../common/
+# Detect if any of the common files change
+common: $(COMMON_H) $(COMMON_C)
+	make -C ../common/
 
 $(OBJECT_LIBBPF):
 	@if [ ! -d $(LIBBPF_DIR) ]; then \
@@ -66,7 +66,7 @@ $(OBJECT_LIBBPF):
 		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
 	fi
 
-$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_OBJS) common_kern_user.h
+$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile common common_kern_user.h
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
 	 $< $(LIBS)
 
