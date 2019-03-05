@@ -5,6 +5,19 @@
 Before you can start completing the steps in this XDP-tutorial, go though
 this document and install the needed software packages.
 
+* Table of Contents                                                     :TOC:
+- [[#based-on-libbpf][Based on libbpf]]
+  - [[#libbpf-as-git-submodule][libbpf as git-submodule]]
+- [[#dependencies][Dependencies]]
+  - [[#packages-on-fedora][Packages on Fedora]]
+  - [[#packages-on-debianubuntu][Packages on Debian/Ubuntu]]
+- [[#kernel-headers-dependency][Kernel headers dependency]]
+  - [[#packages-on-fedora-1][Packages on Fedora]]
+  - [[#packages-on-debianubuntu-1][Packages on Debian/Ubuntu]]
+- [[#recommended-tools][Recommended tools]]
+  - [[#packages-on-fedora-2][Packages on Fedora]]
+  - [[#packages-on-debianubuntu-2][Packages on Debian/Ubuntu]]
+
 * Based on libbpf
 
 This XDP-tutorial leverages [[https://github.com/libbpf/libbpf/][libbpf]] to ease development and loading of

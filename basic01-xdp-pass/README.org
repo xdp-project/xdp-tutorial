@@ -9,6 +9,16 @@ we will just refer to as BPF. Thus, this tutorial will also be relevant for
 learning how to write other BPF program.  The focus is on BPF programs
 that can be used in the XDP-hook.
 
+* Table of Contents                                                     :TOC:
+- [[#first-step-setup-dependencies][First step: setup dependencies]]
+- [[#compiling-example-code][Compiling example code]]
+  - [[#simple-xdp-code][Simple XDP code]]
+  - [[#compiling-process][Compiling process]]
+  - [[#looking-into-the-bpf-elf-object][Looking into the BPF-ELF object]]
+- [[#loading-and-xdp-hook][Loading and XDP-hook]]
+  - [[#loading-via-iproute2-ip][Loading via iproute2 ip]]
+  - [[#loading-using-xdp_pass][Loading using xdp_pass]]
+
 * First step: setup dependencies
 
 There are a number of setup dependencies, that are needed in order to
