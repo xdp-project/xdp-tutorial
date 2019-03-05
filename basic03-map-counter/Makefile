@@ -18,9 +18,7 @@ USER_OBJ = ${USER_C:.c=.o}
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
 COMMON_OBJS := ../common/common_params.o
-# Supports adding more COMMON_OBJS
-# COMMON_OBJS += ../common/common_bpf.o
-
+COMMON_OBJS += ../common/common_user_bpf_xdp.o
 # Create expansions for dependencies
 COMMON_H := ${COMMON_OBJS:.o=.h}
 
