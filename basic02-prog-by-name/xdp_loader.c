@@ -70,15 +70,18 @@ static int xdp_unload(int ifindex, __u32 xdp_flags)
 	return EXIT_OK;
 }
 
-static int xdp_load(struct config cfg, int prog_fd)
+static int xdp_load(struct config *cfg, int prog_fd)
 {
 	int err;
 
+	if (!cfg)
+		return EXIT_FAIL;
+
 	/* libbpf provide the XDP net_device link-level hook attach helper */
-	err = bpf_set_link_xdp_fd(cfg.ifindex, prog_fd, cfg.xdp_flags);
+	err = bpf_set_link_xdp_fd(cfg->ifindex, prog_fd, cfg->xdp_flags);
 	if (err < 0) {
 		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
-			cfg.ifname, -err, strerror(-err));
+			cfg->ifname, -err, strerror(-err));
 
 		switch (-err) {
 		case EBUSY:
@@ -189,7 +192,7 @@ int main(int argc, char **argv)
 	 * is our select file-descriptor handle. Next step is attaching this FD
 	 * to a kernel hook point, in this case XDP net_device link-level hook.
 	 */
-	err = xdp_load(cfg, prog_fd);
+	err = xdp_load(&cfg, prog_fd);
 	if (err)
 		return err;
 
