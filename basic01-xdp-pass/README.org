@@ -26,7 +26,7 @@ be nice and detect if you didn't complete the setup steps).
 ** Simple XDP code
 
 The very simple XDP code used in this step is located in
-file:xdp_pass_kern.c, and displayed below:
+[[file:xdp_pass_kern.c]], and displayed below:
 
 #+begin_src C
 SEC("xdp")
@@ -129,8 +129,8 @@ practice to avoid accidentally unloading an unrelated XDP program.
  Hint: XDP already loaded on device use --force to swap/replace
 #+end_example
 
-As the hint suggest, the option --force can be used to replace the existing
-XDP program.
+As the hint suggest, the option =--force= can be used to replace the
+existing XDP program.
 
 #+begin_example
  $ sudo ./xdp_pass --dev lo --skb-mode --force
