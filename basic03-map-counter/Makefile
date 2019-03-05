@@ -51,15 +51,6 @@ llvm-check: $(CLANG) $(LLC)
 		else true; fi; \
 	done
 
-# Create dependency: detect if C-file change and touch H-file, to trigger
-# target $(COMMON_OBJS)
-$(COMMON_H): %.h: %.c
-	touch $@
-
-# Detect if any of common obj changed and create dependency on .h-files
-$(COMMON_OBJS): %.o: %.h
-	make -C ../common/
-
 $(OBJECT_LIBBPF):
 	@if [ ! -d $(LIBBPF_DIR) ]; then \
 		echo "Error: Need libbpf submodule"; \
@@ -69,6 +60,15 @@ $(OBJECT_LIBBPF):
 		cd $(LIBBPF_DIR) && $(MAKE) all; \
 		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
 	fi
+
+# Create dependency: detect if C-file change and touch H-file, to trigger
+# target $(COMMON_OBJS)
+$(COMMON_H): %.h: %.c
+	touch $@
+
+# Detect if any of common obj changed and create dependency on .h-files
+$(COMMON_OBJS): %.o: %.h
+	make -C ../common/
 
 $(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_OBJS) common_kern_user.h
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
