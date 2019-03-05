@@ -16,6 +16,7 @@ static const char *__doc__ = "XDP loader\n"
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
 #include "../common/common_params.h"
+#include "../common/common_user_bpf_xdp.h"
 
 static const char *default_filename = "xdp_prog_kern.o";
 static const char *default_progsec = "xdp_pass";
@@ -56,18 +57,6 @@ struct bpf_object *load_bpf_object_file(const char *filename)
 	}
 
 	return obj;
-}
-
-static int xdp_unload(int ifindex, __u32 xdp_flags)
-{
-	int err;
-
-	if ((err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags)) < 0) {
-		fprintf(stderr, "ERR: link set xdp unload failed (err=%d):%s\n",
-			err, strerror(-err));
-		return EXIT_FAIL_XDP;
-	}
-	return EXIT_OK;
 }
 
 static int xdp_load(struct config *cfg, int prog_fd)
@@ -155,7 +144,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_unload(cfg.ifindex, cfg.xdp_flags);
+		return xdp_unload(cfg.ifindex, cfg.xdp_flags, 0);
 
 	/* Load the BPF-ELF object file and get back libbpf bpf_object */
 	bpf_obj = load_bpf_object_file(cfg.filename);
