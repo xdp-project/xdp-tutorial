@@ -18,7 +18,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
-#include "common_user.h"
+#include "../common/common_params.h"
 #include "common_kern_user.h"
 
 static const char *default_filename = "xdp_prog_kern.o";

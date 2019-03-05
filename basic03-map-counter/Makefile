@@ -17,7 +17,9 @@ USER_OBJ = ${USER_C:.c=.o}
 
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
-COMMON_USER_OBJ := common_user.o
+COMMON_OBJS := ../common/common_params.o
+# Supports adding more COMMON_OBJS
+# COMMON_OBJS += ../common/common_xxx.o
 
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
@@ -31,6 +33,7 @@ all: llvm-check $(USER_TARGETS) $(XDP_OBJ)
 
 clean:
 	cd $(LIBBPF_DIR) && $(MAKE) clean;
+	make -C ../common/ clean
 	rm -f $(USER_TARGETS)
 	rm -f $(XDP_OBJ)
 	rm -f $(USER_OBJ)
@@ -45,6 +48,14 @@ llvm-check: $(CLANG) $(LLC)
 		else true; fi; \
 	done
 
+# Add dependency for .h
+$(COMMON_OBJS): %.o: %.h
+	@make -C ../common/
+
+# Add dependency for .c
+$(COMMON_OBJS): %.o: %.c
+	@make -C ../common/
+
 $(OBJECT_LIBBPF):
 	@if [ ! -d $(LIBBPF_DIR) ]; then \
 		echo "Error: Need libbpf submodule"; \
@@ -55,11 +66,8 @@ $(OBJECT_LIBBPF):
 		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
 	fi
 
-$(COMMON_USER_OBJ): common_user.c common_user.h
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ) common_kern_user.h
-	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_USER_OBJ) \
+$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_OBJS) common_kern_user.h
+	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
 	 $< $(LIBS)
 
 $(XDP_OBJ): %.o: %.c  common_kern_user.h
