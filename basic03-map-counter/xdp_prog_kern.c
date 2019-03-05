@@ -5,10 +5,10 @@
 #include "common_kern_user.h" /* defines: struct datarec; */
 
 struct bpf_map_def SEC("maps") stats_map = {
-        .type           = BPF_MAP_TYPE_ARRAY,
-        .key_size       = sizeof(__u32),
-        .value_size     = sizeof(struct datarec),
-        .max_entries    = 1,
+	.type        = BPF_MAP_TYPE_ARRAY,
+	.key_size    = sizeof(__u32),
+	.value_size  = sizeof(struct datarec),
+	.max_entries = 1,
 };
 
 /* LLVM maps __sync_fetch_and_add() as a built-in function to the BPF atomic add
