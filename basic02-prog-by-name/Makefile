@@ -36,6 +36,7 @@ all: llvm-check $(USER_TARGETS) $(XDP_OBJ)
 
 clean:
 	cd $(LIBBPF_DIR) && $(MAKE) clean;
+	make -C ../common/ clean
 	rm -f $(USER_TARGETS)
 	rm -f $(XDP_OBJ)
 	rm -f $(USER_OBJ)
