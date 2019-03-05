@@ -2,7 +2,7 @@
 
 # Departing from the implicit _user.c scheme
 XDP_TARGETS  := xdp_prog_kern
-USER_TARGETS := xdp_stats
+USER_TARGETS := xdp_load_and_stats
 
 LLC ?= llc
 CLANG ?= clang
