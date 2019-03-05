@@ -2,12 +2,7 @@
 #include <linux/bpf.h>
 #include "bpf_helpers.h"
 
-/* Common stats data record (shared with userspace)
- * TODO: Move this into common_kern_user.h
-*/
-struct datarec {
-        __u64 rx_packets;
-};
+#include "common_kern_user.h" /* defines: struct datarec; */
 
 struct bpf_map_def SEC("maps") stats_map = {
         .type           = BPF_MAP_TYPE_ARRAY,

@@ -2,7 +2,7 @@
 
 # Departing from the implicit _user.c scheme
 XDP_TARGETS  := xdp_prog_kern
-#USER_TARGETS := xdp_loader
+USER_TARGETS := xdp_stats
 
 LLC ?= llc
 CLANG ?= clang
@@ -58,11 +58,11 @@ $(OBJECT_LIBBPF):
 $(COMMON_USER_OBJ): common_user.c common_user.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ)
+$(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_USER_OBJ) common_kern_user.h
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_USER_OBJ) \
 	 $< $(LIBS)
 
-$(XDP_OBJ): %.o: %.c
+$(XDP_OBJ): %.o: %.c  common_kern_user.h
 	$(CLANG) -S \
 	    -D __BPF_TRACING__ \
 	    $(CFLAGS) \
