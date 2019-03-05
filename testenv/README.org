@@ -1,0 +1,24 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Test environment script
+#+OPTIONS: ^:nil
+
+This directory contains a test environment setup script that you can use to
+create test environments for testing your XDP programs. It works by creating
+virtual ethernet (veth) interface pairs and moving one end of each pair to
+another namespace. You can load the XDP program in the other namespace and
+send traffic to it through the interface that is visible in the root
+namespace.
+
+Examples:
+
+Setup new environment named "test":
+=./testenv.sh create test=
+
+Enter the environment:
+=./testenv.sh enter test=
+
+Execute a command inside the environment:
+=./testenv ns_exec test ip a=
+
+Teardown the environment:
+=./testenv teardown test=
