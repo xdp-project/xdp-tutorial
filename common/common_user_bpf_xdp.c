@@ -6,15 +6,16 @@
 struct option;
 #include "common_params.h"
 
-int xdp_link_attach(struct config *cfg, int prog_fd)
+int xdp_link_attach(int ifindex, __u32 xdp_flags, int prog_fd)
 {
 	int err;
 
 	/* libbpf provide the XDP net_device link-level hook attach helper */
-	err = bpf_set_link_xdp_fd(cfg->ifindex, prog_fd, cfg->xdp_flags);
+	err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags);
 	if (err < 0) {
-		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
-			cfg->ifname, -err, strerror(-err));
+		fprintf(stderr, "ERR: "
+			"ifindex(%d) link set xdp fd failed (%d): %s\n",
+			ifindex, -err, strerror(-err));
 
 		switch (-err) {
 		case EBUSY:

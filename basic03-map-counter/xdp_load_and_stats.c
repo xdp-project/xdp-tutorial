@@ -143,7 +143,7 @@ struct bpf_object *load_and_attach(struct config *cfg)
 	 * is our select file-descriptor handle. Next step is attaching this FD
 	 * to a kernel hook point, in this case XDP net_device link-level hook.
 	 */
-	err = xdp_link_attach(cfg, prog_fd);
+	err = xdp_link_attach(cfg->ifindex, cfg->xdp_flags, prog_fd);
 	if (err)
 		exit(err);
 
