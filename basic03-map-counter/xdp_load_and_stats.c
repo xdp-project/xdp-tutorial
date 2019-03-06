@@ -59,26 +59,6 @@ static void print_map_fd_info(int map_fd)
 		       info.type, info.id, info.name);
 }
 
-static void print_prog_fd_info(int prog_fd)
-{
-	struct bpf_prog_info info = {};
-	__u32 info_len = sizeof(info);
-	int err;
-
-	if (prog_fd < 0)
-		return;
-
-        /* BPF-info via bpf-syscall */
-	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
-	if (err) {
-		fprintf(stderr, "ERR: can't get prog info - %s\n",
-			strerror(errno));
-		exit(EXIT_FAIL_BPF) ;
-	}
-	printf(" - BPF prog (bpf_prog_type:%d) id:%d name:%s\n",
-	       info.type, info.id, info.name);
-}
-
 int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
 {
 	int map_fd;
