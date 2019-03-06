@@ -59,7 +59,7 @@ struct bpf_object *load_bpf_object_file(const char *filename)
 	return obj;
 }
 
-static int xdp_load(struct config *cfg, int prog_fd)
+static int xdp_link_attach(struct config *cfg, int prog_fd)
 {
 	int err;
 
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 	 * is our select file-descriptor handle. Next step is attaching this FD
 	 * to a kernel hook point, in this case XDP net_device link-level hook.
 	 */
-	err = xdp_load(&cfg, prog_fd);
+	err = xdp_link_attach(&cfg, prog_fd);
 	if (err)
 		return err;
 

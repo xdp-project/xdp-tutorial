@@ -62,7 +62,7 @@ static int xdp_link_detach(int ifindex, __u32 xdp_flags)
 	return EXIT_OK;
 }
 
-static int xdp_load(struct config cfg, int prog_fd)
+static int xdp_link_attach(struct config cfg, int prog_fd)
 {
 	int err;
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	 * kernel hook point, in this case XDP net_device link-level hook.
 	 * Fortunately libbpf have a helper for this:
 	 */
-	err = xdp_load(cfg, prog_fd);
+	err = xdp_link_attach(cfg, prog_fd);
 	if (err)
 		return err;
 
