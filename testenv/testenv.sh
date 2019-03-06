@@ -122,11 +122,18 @@ create()
     echo "$NS" > "$STATEDIR/current"
 }
 
+warn_teardown()
+{
+    echo "Warning: Errors during teardown, partial environment may be left" >&2
+}
+
 teardown()
 {
     get_nsname && ensure_nsname "$NS"
 
     echo "Tearing down environment '$NS'"
+
+    trap warn_teardown EXIT
 
     ip link del dev "$NS"
     ip netns del "$NS"
@@ -136,6 +143,8 @@ teardown()
         local CUR=$(< "$STATEDIR/current" )
         [[ "$CUR" == "$NS" ]] && rm -f "$STATEDIR/current"
     fi
+
+    trap - EXIT
 }
 
 ns_exec()
