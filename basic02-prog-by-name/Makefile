@@ -72,8 +72,9 @@ $(USER_TARGETS): %: %.c $(OBJECT_LIBBPF) Makefile $(COMMON_OBJS)
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
 	 $< $(LIBS)
 
-$(XDP_OBJ): %.o: %.c
+$(XDP_OBJ): %.o: %.c  Makefile
 	$(CLANG) -S \
+	    -target bpf \
 	    -D __BPF_TRACING__ \
 	    $(CFLAGS) \
 	    -Wall \
