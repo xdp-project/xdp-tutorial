@@ -64,7 +64,7 @@ struct bpf_object *__load_bpf_object_file(const char *filename)
 	return obj;
 }
 
-static void print_avail_progs(struct bpf_object *obj)
+static void list_avail_progs(struct bpf_object *obj)
 {
 	struct bpf_program *pos;
 
@@ -74,7 +74,7 @@ static void print_avail_progs(struct bpf_object *obj)
 	}
 }
 
-static void print_fd_info(int prog_fd)
+static void print_prog_fd_info(int prog_fd)
 {
 	struct bpf_prog_info info = {};
 	__u32 info_len = sizeof(info);
@@ -90,15 +90,72 @@ static void print_fd_info(int prog_fd)
 			strerror(errno));
 		exit(EXIT_FAIL_BPF) ;
 	}
-	printf(" - BPF prog id:%d name:%s\n", info.id, info.name);
+	printf(" - BPF prog (bpf_prog_type:%d) id:%d name:%s\n",
+	       info.type, info.id, info.name);
 }
 
-int main(int argc, char **argv)
+/* This is the central piece of this lesson:
+ * - Notice how BPF-ELF obj can have several programs
+ * - Find by sec name via: bpf_object__find_program_by_title()
+ */
+struct bpf_object *__load_bpf_and_xdp_attach(struct config *cfg)
 {
+	/* In next assignment this will be moved into ../common/ */
 	struct bpf_program *bpf_prog;
 	struct bpf_object *bpf_obj;
 	int prog_fd = -1;
 	int err;
+
+	/* Load the BPF-ELF object file and get back libbpf bpf_object */
+	bpf_obj = load_bpf_object_file(cfg->filename);
+	if (!bpf_obj) {
+		fprintf(stderr, "ERR: loading file: %s\n", cfg->filename);
+		exit(EXIT_FAIL_BPF);
+	}
+	/* At this point: All XDP/BPF programs from the cfg->filename have been
+	 * loaded into the kernel, and evaluated by the verifier. Only one of
+	 * these gets attached to XDP hook, the others will get freed once this
+	 * process exit.
+	 */
+
+	if (verbose)
+		printf("Loaded (%s) BPF object using --procsec %s\n",
+		       bpf_object__name(bpf_obj), cfg->progsec);
+
+	/* Find a matching BPF prog section name */
+	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg->progsec);
+	if (!bpf_prog) {
+		fprintf(stderr, "ERR: finding progsec: %s\n", cfg->progsec);
+		exit(EXIT_FAIL_BPF);
+	}
+
+	prog_fd = bpf_program__fd(bpf_prog);
+	if (prog_fd <= 0) {
+		fprintf(stderr, "ERR: bpf_program__fd failed\n");
+		exit(EXIT_FAIL_BPF);
+	}
+
+	/* At this point: BPF-progs are (only) loaded by the kernel, and prog_fd
+	 * is our select file-descriptor handle. Next step is attaching this FD
+	 * to a kernel hook point, in this case XDP net_device link-level hook.
+	 */
+	err = xdp_link_attach(cfg->ifindex, cfg->xdp_flags, prog_fd);
+	if (err)
+		exit(err);
+
+	if (verbose) {
+		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
+		       cfg->filename, cfg->progsec);
+		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
+		       cfg->ifname, cfg->ifindex);
+		print_prog_fd_info(prog_fd);
+	}
+	return bpf_obj;
+}
+
+int main(int argc, char **argv)
+{
+	struct bpf_object *bpf_obj;
 
 	struct config cfg = {
 		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
@@ -120,52 +177,9 @@ int main(int argc, char **argv)
 	if (cfg.do_unload)
 		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 
-	/* Load the BPF-ELF object file and get back libbpf bpf_object */
-	bpf_obj = __load_bpf_object_file(cfg.filename);
-	if (!bpf_obj) {
-		fprintf(stderr, "ERR: loading file: %s\n", cfg.filename);
+	bpf_obj = __load_bpf_and_xdp_attach(&cfg);
+	if (!bpf_obj)
 		return EXIT_FAIL_BPF;
-	}
-	/* At this point: All XDP/BPF programs from the cfg.filename have been
-	 * loaded into the kernel, and evaluated by the verifier. Only one of
-	 * these gets attached to XDP hook, the others will get freed once this
-	 * process exit.
-	 */
-
-	if (verbose) {
-		printf("Loaded (%s) BPF object with avail --procsec names\n",
-		       bpf_object__name(bpf_obj));
-		print_avail_progs(bpf_obj);
-	}
-
-	/* Find a matching BPF prog section name */
-	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg.progsec);
-	if (!bpf_prog) {
-		fprintf(stderr, "ERR: finding progsec: %s\n", cfg.progsec);
-		return EXIT_FAIL_BPF;
-	}
-
-	prog_fd = bpf_program__fd(bpf_prog);
-	if (prog_fd <= 0) {
-		fprintf(stderr, "ERR: bpf_program__fd failed\n");
-		return EXIT_FAIL_BPF;
-	}
-
-	/* At this point: BPF-progs are (only) loaded by the kernel, and prog_fd
-	 * is our select file-descriptor handle. Next step is attaching this FD
-	 * to a kernel hook point, in this case XDP net_device link-level hook.
-	 */
-	err = xdp_link_attach(cfg.ifindex, cfg.xdp_flags, prog_fd);
-	if (err)
-		return err;
-
-	if (verbose) {
-		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
-		       cfg.filename, cfg.progsec);
-		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
-		       cfg.ifname, cfg.ifindex);
-		print_fd_info(prog_fd);
-	}
 
 	/* Other BPF section programs will get freed on exit */
 	return EXIT_OK;
