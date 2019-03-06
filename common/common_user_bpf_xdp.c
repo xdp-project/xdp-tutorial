@@ -3,8 +3,7 @@
 #include <net/if.h>     /* IF_NAMESIZE */
 #include <errno.h>
 
-struct option;
-#include "common_params.h"
+#include "common_defines.h"
 
 int xdp_link_attach(int ifindex, __u32 xdp_flags, int prog_fd)
 {
