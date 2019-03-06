@@ -1,6 +1,16 @@
 #ifndef __COMMON_DEFINES_H
 #define __COMMON_DEFINES_H
 
+struct config {
+	__u32 xdp_flags;
+	int ifindex;
+	char *ifname;
+	char ifname_buf[IF_NAMESIZE];
+	bool do_unload;
+	char filename[512];
+	char progsec[32];
+};
+
 /* Defined in common_params.o */
 extern int verbose;
 

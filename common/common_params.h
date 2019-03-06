@@ -4,16 +4,6 @@
 
 #include "common_defines.h"
 
-struct config {
-	__u32 xdp_flags;
-	int ifindex;
-	char *ifname;
-	char ifname_buf[IF_NAMESIZE];
-	bool do_unload;
-	char filename[512];
-	char progsec[32];
-};
-
 void usage(const char *prog_name, const char *doc,
            const struct option *long_options);
 
