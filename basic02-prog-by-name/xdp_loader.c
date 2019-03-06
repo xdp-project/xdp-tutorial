@@ -35,6 +35,7 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
+/* Lesson#1: More advanced load_bpf_object_file and bpf_object */
 struct bpf_object *__load_bpf_object_file(const char *filename)
 {
 	/* In next assignment this will be moved into ../common/ */
@@ -64,37 +65,7 @@ struct bpf_object *__load_bpf_object_file(const char *filename)
 	return obj;
 }
 
-static void list_avail_progs(struct bpf_object *obj)
-{
-	struct bpf_program *pos;
-
-	bpf_object__for_each_program(pos, obj) {
-		if (bpf_program__is_xdp(pos))
-			printf(" %s\n", bpf_program__title(pos, false));
-	}
-}
-
-static void print_prog_fd_info(int prog_fd)
-{
-	struct bpf_prog_info info = {};
-	__u32 info_len = sizeof(info);
-	int err;
-
-	if (prog_fd < 0)
-		return;
-
-        /* BPF-info via bpf-syscall */
-	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
-	if (err) {
-		fprintf(stderr, "ERR: can't get prog info - %s\n",
-			strerror(errno));
-		exit(EXIT_FAIL_BPF) ;
-	}
-	printf(" - BPF prog (bpf_prog_type:%d) id:%d name:%s\n",
-	       info.type, info.id, info.name);
-}
-
-/* This is the central piece of this lesson:
+/* Lesson#2: This is a central piece of this lesson:
  * - Notice how BPF-ELF obj can have several programs
  * - Find by sec name via: bpf_object__find_program_by_title()
  */
@@ -118,10 +89,6 @@ struct bpf_object *__load_bpf_and_xdp_attach(struct config *cfg)
 	 * process exit.
 	 */
 
-	if (verbose)
-		printf("Loaded (%s) BPF object using --procsec %s\n",
-		       bpf_object__name(bpf_obj), cfg->progsec);
-
 	/* Find a matching BPF prog section name */
 	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg->progsec);
 	if (!bpf_prog) {
@@ -143,14 +110,20 @@ struct bpf_object *__load_bpf_and_xdp_attach(struct config *cfg)
 	if (err)
 		exit(err);
 
-	if (verbose) {
-		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
-		       cfg->filename, cfg->progsec);
-		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
-		       cfg->ifname, cfg->ifindex);
-		print_prog_fd_info(prog_fd);
-	}
 	return bpf_obj;
+}
+
+static void list_avail_progs(struct bpf_object *obj)
+{
+	struct bpf_program *pos;
+
+	printf("BPF object (%s) listing avail --progsec names\n",
+	       bpf_object__name(obj));
+
+	bpf_object__for_each_program(pos, obj) {
+		if (bpf_program__is_xdp(pos))
+			printf(" %s\n", bpf_program__title(pos, false));
+	}
 }
 
 int main(int argc, char **argv)
@@ -181,6 +154,15 @@ int main(int argc, char **argv)
 	if (!bpf_obj)
 		return EXIT_FAIL_BPF;
 
+	if (verbose)
+		list_avail_progs(bpf_obj);
+
+	if (verbose) {
+		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
+		       cfg.filename, cfg.progsec);
+		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
+		       cfg.ifname, cfg.ifindex);
+	}
 	/* Other BPF section programs will get freed on exit */
 	return EXIT_OK;
 }

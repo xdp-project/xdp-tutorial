@@ -59,6 +59,26 @@ static void print_map_fd_info(int map_fd)
 		       info.type, info.id, info.name);
 }
 
+static void print_prog_fd_info(int prog_fd)
+{
+	struct bpf_prog_info info = {};
+	__u32 info_len = sizeof(info);
+	int err;
+
+	if (prog_fd < 0)
+		return;
+
+        /* BPF-info via bpf-syscall */
+	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
+	if (err) {
+		fprintf(stderr, "ERR: can't get prog info - %s\n",
+			strerror(errno));
+		exit(EXIT_FAIL_BPF) ;
+	}
+	printf(" - BPF prog (bpf_prog_type:%d) id:%d name:%s\n",
+	       info.type, info.id, info.name);
+}
+
 int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
 {
 	int map_fd;
@@ -203,6 +223,14 @@ int main(int argc, char **argv)
 	if (!bpf_obj)
 		return EXIT_FAIL_BPF;
 
+	if (verbose) {
+		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
+		       cfg.filename, cfg.progsec);
+		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
+		       cfg.ifname, cfg.ifindex);
+	}
+
+	/* Lesson: Locate map file descriptor */
 	stats_map_fd = find_map_fd(bpf_obj, "stats_array_map");
 	if (stats_map_fd < 0) {
 		xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);

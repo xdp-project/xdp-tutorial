@@ -105,26 +105,6 @@ struct bpf_object *load_bpf_object_file(const char *filename)
 	return obj;
 }
 
-static void print_prog_fd_info(int prog_fd)
-{
-	struct bpf_prog_info info = {};
-	__u32 info_len = sizeof(info);
-	int err;
-
-	if (prog_fd < 0)
-		return;
-
-        /* BPF-info via bpf-syscall */
-	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
-	if (err) {
-		fprintf(stderr, "ERR: can't get prog info - %s\n",
-			strerror(errno));
-		exit(EXIT_FAIL_BPF) ;
-	}
-	printf(" - BPF prog (bpf_prog_type:%d) id:%d name:%s\n",
-	       info.type, info.id, info.name);
-}
-
 struct bpf_object *load_bpf_and_xdp_attach(struct config *cfg)
 {
 	struct bpf_program *bpf_prog;
@@ -143,10 +123,6 @@ struct bpf_object *load_bpf_and_xdp_attach(struct config *cfg)
 	 * these gets attached to XDP hook, the others will get freed once this
 	 * process exit.
 	 */
-
-	if (verbose)
-		printf("Loaded (%s) BPF object using --procsec %s\n",
-		       bpf_object__name(bpf_obj), cfg->progsec);
 
 	/* Find a matching BPF prog section name */
 	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg->progsec);
@@ -169,12 +145,5 @@ struct bpf_object *load_bpf_and_xdp_attach(struct config *cfg)
 	if (err)
 		exit(err);
 
-	if (verbose) {
-		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
-		       cfg->filename, cfg->progsec);
-		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
-		       cfg->ifname, cfg->ifindex);
-		print_prog_fd_info(prog_fd);
-	}
 	return bpf_obj;
 }
