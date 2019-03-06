@@ -17,8 +17,11 @@ NEEDED_TOOLS="ethtool ip tc"
 MAX_NAMELEN=15
 
 
-# Variables that will be set by options on script invocation
-NS_NAME=
+# Global state variables that will be set by options etc below
+GENERATE_NEW=0
+STATEFILE=
+CMD=
+NS=
 
 die()
 {
@@ -41,24 +44,29 @@ check_prereq()
 
 get_nsname()
 {
-    local NAME=
-    local SET_CURRENT=${1:-1}
-    local GENERATE=${2:-0}
+    local GENERATE=${1:-0}
 
-    if [ -n "$NS_NAME" ]; then
-        NAME="$NS_NAME"
-    else
-        if [ -f "$STATEDIR/current" ]; then
-            NAME=$(< "$STATEDIR/current")
-        else
-            if [ "$GENERATE" -eq "1" ]; then
-                NAME=$(printf "%s-%04x" "$GENERATED_NAME_PREFIX" $RANDOM)
-            fi
+    if [ -z "$NS" ]; then
+        [ -f "$STATEDIR/current" ] && NS=$(< "$STATEDIR/current")
+
+        if [ "$GENERATE" -eq "1" ] && [ -z "$NS" -o "$GENERATE_NEW" -eq "1" ]; then
+            NS=$(printf "%s-%04x" "$GENERATED_NAME_PREFIX" $RANDOM)
         fi
     fi
 
-    [ "$SET_CURRENT" -eq "1" -a -n "$NAME" ] && echo "$NAME" > "$STATEDIR/current"
-    echo "$NAME"
+    if [ "${#NS}" -gt "$MAX_NAMELEN" ]; then
+        die "Environment name '$NS' is too long (max $MAX_NAMELEN)"
+    fi
+
+    STATEFILE="$STATEDIR/${NS}.state"
+}
+
+ensure_nsname()
+{
+    [ -z "$NS" ] && die "No environment selected; use --name to select one"
+    [ -e "$STATEFILE" ] || die "Environment for $NS doesn't seem to exist"
+
+    echo "$NS" > "$STATEDIR/current"
 }
 
 get_num()
@@ -66,19 +74,28 @@ get_num()
     echo 1
 }
 
+cleanup_create()
+{
+    echo "Error during setup, removing partially-configured environment '$NS'" >&2
+    set +o errexit
+    ip netns del "$NS" 2>/dev/null
+    ip link del dev "$NS" 2>/dev/null
+    rm -f "$STATEFILE"
+}
+
 create()
 {
-    local NS="$(get_nsname 1 1)"
-    local STATEFILE="$STATEDIR/$NS.state"
+    get_nsname 1
+
+    echo "Setting up new environment '$NS'"
 
     [ -e "$STATEFILE" ] && die "Environment for '$NS' already exists"
-    [ "${#NS}" -gt "$MAX_NAMELEN" ] && die "Environment name '$NS' is too long (max $MAX_NAMELEN)"
 
     local NUM=$(get_num "$NS")
     local PEERNAME="testl-ve-$NUM"
     local PREFIX="${IP_SUBNET}:${NUM}::"
 
-    touch "$STATEFILE"
+    trap cleanup_create EXIT
 
     ip netns add "$NS"
     ip link add dev "$NS" type veth peer name "$PEERNAME"
@@ -95,21 +112,19 @@ create()
     ip netns exec "$NS" sysctl -w net.ipv6.conf.veth0.accept_dad=0 >/dev/null
     ip -n "$NS" addr add dev veth0 "${PREFIX}1/64"
 
-    echo "Setup environment '$NS'. Testing ping:"
+    trap - EXIT
+
+    echo "Setup environment '$NS' with peer ip ${PREFIX}1. Testing ping:"
     echo ""
     ping -c 1 "${PREFIX}1"
 
     echo "NUM=$NUM" > "$STATEFILE"
-
+    echo "$NS" > "$STATEDIR/current"
 }
 
 teardown()
 {
-    local NS="$(get_nsname 0)"
-    STATEFILE="$STATEDIR/$NS.state"
-
-    [ -z "$NS" ] && die "No environment selected; use --name to select one"
-    [ -e "$STATEFILE" ] || die "Environment for $NS doesn't seem to exist"
+    get_nsname && ensure_nsname "$NS"
 
     echo "Tearing down environment '$NS'"
 
@@ -125,11 +140,7 @@ teardown()
 
 ns_exec()
 {
-    local NS="$(get_nsname)"
-    STATEFILE="$STATEDIR/$NS.state"
-
-    [ -z "$NS" ] && die "No environment selected; use --name to select one"
-    [ -e "$STATEFILE" ] || die "Environment for $NS doesn't seem to exist"
+    get_nsname && ensure_nsname "$NS"
 
     ip netns exec "$NS" "$@"
 }
@@ -141,7 +152,7 @@ enter()
 
 status()
 {
-    local NS=$(get_nsname 0)
+    get_nsname
 
     echo "Currently selected environment: ${NS:-None}"
     echo ""
@@ -180,12 +191,14 @@ usage()
     echo "-h, --help          Show this usage text"
     echo "-n, --name <name>   Set name of test environment. If not set, the last used"
     echo "                    name will be used, or a new one generated."
+    echo "-g, --gen-new       Generate a new test environment name even though an existing"
+    echo "                    environment is selected as the current one."
     exit 1
 }
 
 
-OPTS="hn:"
-LONGOPTS="help,name:"
+OPTS="hn:g"
+LONGOPTS="help,name:,gen-new"
 
 OPTIONS=$(getopt -o "$OPTS" --long "$LONGOPTS" -- "$@")
 [ "$?" -ne "0" ] && usage >&2 || true
@@ -202,8 +215,11 @@ while true; do
             usage full >&2
             ;;
         -n | --name)
-            NS_NAME="$1"
+            NS="$1"
             shift
+            ;;
+        -g | --gen-new)
+            GENERATE_NEW=1
             ;;
         -- )
             break
