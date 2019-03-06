@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_unload(cfg.ifindex, cfg.xdp_flags, 0);
+		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 
 	/* Load the BPF-ELF object file and get back libbpf bpf_object */
 	bpf_obj = load_bpf_object_file(cfg.filename);

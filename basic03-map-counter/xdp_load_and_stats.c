@@ -323,7 +323,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_unload(cfg.ifindex, cfg.xdp_flags, 0);
+		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 
 	bpf_obj = load_and_attach(&cfg);
 	if (!bpf_obj)
@@ -331,7 +331,7 @@ int main(int argc, char **argv)
 
 	stats_map_fd = find_map_fd(bpf_obj, "stats_array_map");
 	if (stats_map_fd < 0) {
-		xdp_unload(cfg.ifindex, cfg.xdp_flags, 0);
+		xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 		return EXIT_FAIL_BPF;
 	}
 

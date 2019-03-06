@@ -5,7 +5,7 @@
 struct option;
 #include "common_params.h"
 
-int xdp_unload(int ifindex, __u32 xdp_flags, __u32 expected_prog_id)
+int xdp_link_detach(int ifindex, __u32 xdp_flags, __u32 expected_prog_id)
 {
 	__u32 curr_prog_id;
 	int err;

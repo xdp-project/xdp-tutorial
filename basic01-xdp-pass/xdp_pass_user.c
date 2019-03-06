@@ -50,7 +50,7 @@ int load_bpf_object_file(const char *filename)
 	return first_prog_fd;
 }
 
-static int xdp_unload(int ifindex, __u32 xdp_flags)
+static int xdp_link_detach(int ifindex, __u32 xdp_flags)
 {
 	int err;
 
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_unload(cfg.ifindex, cfg.xdp_flags);
+		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags);
 
 	/* Locate BPF-ELF object file:  xdp_pass_kern.o */
 	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
