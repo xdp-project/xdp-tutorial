@@ -59,37 +59,6 @@ struct bpf_object *load_bpf_object_file(const char *filename)
 	return obj;
 }
 
-static int xdp_link_attach(struct config *cfg, int prog_fd)
-{
-	int err;
-
-	if (!cfg)
-		return EXIT_FAIL;
-
-	/* libbpf provide the XDP net_device link-level hook attach helper */
-	err = bpf_set_link_xdp_fd(cfg->ifindex, prog_fd, cfg->xdp_flags);
-	if (err < 0) {
-		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
-			cfg->ifname, -err, strerror(-err));
-
-		switch (-err) {
-		case EBUSY:
-			fprintf(stderr, "Hint: XDP already loaded on device"
-				" use --force to swap/replace\n");
-			break;
-		case EOPNOTSUPP:
-			fprintf(stderr, "Hint: Native-XDP not supported"
-				" use --skb-mode or --auto-mode\n");
-			break;
-		default:
-			break;
-		}
-		return EXIT_FAIL_XDP;
-	}
-
-	return EXIT_OK;
-}
-
 static void print_avail_progs(struct bpf_object *obj)
 {
 	struct bpf_program *pos;
