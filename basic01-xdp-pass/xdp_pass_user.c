@@ -50,8 +50,11 @@ int load_bpf_object_file(const char *filename)
 	return first_prog_fd;
 }
 
-static int xdp_unload(int ifindex, __u32 xdp_flags)
+static int xdp_link_detach(int ifindex, __u32 xdp_flags)
 {
+	/* Next assignment this will moved into ../common/
+	 * (in more generic version)
+	 */
 	int err;
 
 	if ((err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags)) < 0) {
@@ -62,14 +65,17 @@ static int xdp_unload(int ifindex, __u32 xdp_flags)
 	return EXIT_OK;
 }
 
-static int xdp_load(struct config cfg, int prog_fd)
+int xdp_link_attach(int ifindex, __u32 xdp_flags, int prog_fd)
 {
+	/* Next assignment this will moved into ../common/ */
 	int err;
 
-	err = bpf_set_link_xdp_fd(cfg.ifindex, prog_fd, cfg.xdp_flags);
+	/* libbpf provide the XDP net_device link-level hook attach helper */
+	err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags);
 	if (err < 0) {
-		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
-			cfg.ifname, -err, strerror(-err));
+		fprintf(stderr, "ERR: "
+			"ifindex(%d) link set xdp fd failed (%d): %s\n",
+			ifindex, -err, strerror(-err));
 
 		switch (-err) {
 		case EBUSY:
@@ -110,7 +116,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_unload(cfg.ifindex, cfg.xdp_flags);
+		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags);
 
 	/* Locate BPF-ELF object file:  xdp_pass_kern.o */
 	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
@@ -127,7 +133,7 @@ int main(int argc, char **argv)
 	 * kernel hook point, in this case XDP net_device link-level hook.
 	 * Fortunately libbpf have a helper for this:
 	 */
-	err = xdp_load(cfg, prog_fd);
+	err = xdp_link_attach(cfg.ifindex, cfg.xdp_flags, prog_fd);
 	if (err)
 		return err;
 

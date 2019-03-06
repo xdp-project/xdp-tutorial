@@ -62,34 +62,6 @@ struct bpf_object *load_bpf_object_file(const char *filename)
 	return obj;
 }
 
-static int xdp_load(struct config *cfg, int prog_fd)
-{
-	int err;
-
-	/* libbpf provide the XDP net_device link-level hook attach helper */
-	err = bpf_set_link_xdp_fd(cfg->ifindex, prog_fd, cfg->xdp_flags);
-	if (err < 0) {
-		fprintf(stderr, "ERR: dev:%s link set xdp fd failed (%d): %s\n",
-			cfg->ifname, -err, strerror(-err));
-
-		switch (-err) {
-		case EBUSY:
-			fprintf(stderr, "Hint: XDP already loaded on device"
-				" use --force to swap/replace\n");
-			break;
-		case EOPNOTSUPP:
-			fprintf(stderr, "Hint: Native-XDP not supported"
-				" use --skb-mode or --auto-mode\n");
-			break;
-		default:
-			break;
-		}
-		return EXIT_FAIL_XDP;
-	}
-
-	return EXIT_OK;
-}
-
 static void print_prog_fd_info(int prog_fd)
 {
 	struct bpf_prog_info info = {};
@@ -171,7 +143,7 @@ struct bpf_object *load_and_attach(struct config *cfg)
 	 * is our select file-descriptor handle. Next step is attaching this FD
 	 * to a kernel hook point, in this case XDP net_device link-level hook.
 	 */
-	err = xdp_load(cfg, prog_fd);
+	err = xdp_link_attach(cfg->ifindex, cfg->xdp_flags, prog_fd);
 	if (err)
 		exit(err);
 
@@ -323,7 +295,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_unload(cfg.ifindex, cfg.xdp_flags, 0);
+		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 
 	bpf_obj = load_and_attach(&cfg);
 	if (!bpf_obj)
@@ -331,7 +303,7 @@ int main(int argc, char **argv)
 
 	stats_map_fd = find_map_fd(bpf_obj, "stats_array_map");
 	if (stats_map_fd < 0) {
-		xdp_unload(cfg.ifindex, cfg.xdp_flags, 0);
+		xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 		return EXIT_FAIL_BPF;
 	}
 

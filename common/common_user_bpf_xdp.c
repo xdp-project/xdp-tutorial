@@ -1,11 +1,40 @@
 #include <bpf/libbpf.h> /* bpf_get_link_xdp_id + bpf_set_link_xdp_id */
 #include <string.h>     /* strerror */
 #include <net/if.h>     /* IF_NAMESIZE */
+#include <errno.h>
 
-struct option;
-#include "common_params.h"
+#include "common_defines.h"
 
-int xdp_unload(int ifindex, __u32 xdp_flags, __u32 expected_prog_id)
+int xdp_link_attach(int ifindex, __u32 xdp_flags, int prog_fd)
+{
+	int err;
+
+	/* libbpf provide the XDP net_device link-level hook attach helper */
+	err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags);
+	if (err < 0) {
+		fprintf(stderr, "ERR: "
+			"ifindex(%d) link set xdp fd failed (%d): %s\n",
+			ifindex, -err, strerror(-err));
+
+		switch (-err) {
+		case EBUSY:
+			fprintf(stderr, "Hint: XDP already loaded on device"
+				" use --force to swap/replace\n");
+			break;
+		case EOPNOTSUPP:
+			fprintf(stderr, "Hint: Native-XDP not supported"
+				" use --skb-mode or --auto-mode\n");
+			break;
+		default:
+			break;
+		}
+		return EXIT_FAIL_XDP;
+	}
+
+	return EXIT_OK;
+}
+
+int xdp_link_detach(int ifindex, __u32 xdp_flags, __u32 expected_prog_id)
 {
 	__u32 curr_prog_id;
 	int err;
