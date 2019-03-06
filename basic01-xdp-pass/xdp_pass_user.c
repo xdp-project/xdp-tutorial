@@ -26,27 +26,25 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
-int load_bpf_object_file(const char *filename)
+int load_bpf_object_file__simple(const char *filename)
 {
 	int first_prog_fd = -1;
 	struct bpf_object *obj;
 	int err;
 
-	struct bpf_prog_load_attr prog_load_attr = {
-		.prog_type      = BPF_PROG_TYPE_XDP,
-	};
-	prog_load_attr.file = filename;
-
 	/* Use libbpf for extracting BPF byte-code from BPF-ELF object, and
 	 * loading this into the kernel via bpf-syscall
 	 */
-	err = bpf_prog_load_xattr(&prog_load_attr, &obj, &first_prog_fd);
+	err = bpf_prog_load(filename, BPF_PROG_TYPE_XDP, &obj, &first_prog_fd);
 	if (err) {
 		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
 			filename, err, strerror(-err));
 		return -1;
 	}
 
+	/* Simply return the first program file descriptor.
+	 * (Hint: This will get more advance later)
+	 */
 	return first_prog_fd;
 }
 
@@ -122,7 +120,7 @@ int main(int argc, char **argv)
 	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
 
 	/* Load the BPF-ELF object file and get back first BPF_prog FD */
-	prog_fd = load_bpf_object_file(filename);
+	prog_fd = load_bpf_object_file__simple(filename);
 	if (prog_fd <= 0) {
 		fprintf(stderr, "ERR: loading file: %s\n", filename);
 		return EXIT_FAIL_BPF;
