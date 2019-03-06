@@ -74,7 +74,7 @@ get_num()
     echo 1
 }
 
-cleanup_create()
+cleanup_setup()
 {
     echo "Error during setup, removing partially-configured environment '$NS'" >&2
     set +o errexit
@@ -83,7 +83,7 @@ cleanup_create()
     rm -f "$STATEFILE"
 }
 
-create()
+setup()
 {
     get_nsname 1
 
@@ -95,7 +95,7 @@ create()
     local PEERNAME="testl-ve-$NUM"
     local PREFIX="${IP_SUBNET}:${NUM}::"
 
-    trap cleanup_create EXIT
+    trap cleanup_setup EXIT
 
     ip netns add "$NS"
     ip link add dev "$NS" type veth peer name "$PEERNAME"
@@ -147,6 +147,11 @@ teardown()
     trap - EXIT
 }
 
+reset()
+{
+    teardown && setup
+}
+
 ns_exec()
 {
     get_nsname && ensure_nsname "$NS"
@@ -186,6 +191,7 @@ usage()
     echo "Commands:"
     echo "setup               Setup and initialise new environment"
     echo "teardown            Tear down existing environment"
+    echo "reset               Reset environment to original state"
     echo "exec <command>      Exec <command> inside test environment"
     echo "enter               Execute shell inside test environment"
     echo "status              Show status of test environment"
@@ -239,24 +245,12 @@ done
 [ "$#" -eq 0 ] && usage >&2
 
 case "$1" in
-    "setup")
-        CMD=create
-        shift
-        ;;
-    "teardown")
-        CMD=teardown
+    "setup"|"teardown"|"reset"|"enter"|"status")
+        CMD="$1"
         shift
         ;;
     "exec")
         CMD=ns_exec
-        shift
-        ;;
-    "enter")
-        CMD=enter
-        shift
-        ;;
-    "status")
-        CMD=status
         shift
         ;;
     *)
