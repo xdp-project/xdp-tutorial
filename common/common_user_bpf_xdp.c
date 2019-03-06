@@ -72,3 +72,31 @@ int xdp_link_detach(int ifindex, __u32 xdp_flags, __u32 expected_prog_id)
 
 	return EXIT_OK;
 }
+
+struct bpf_object *load_bpf_object_file(const char *filename)
+{
+	int first_prog_fd = -1;
+	struct bpf_object *obj;
+	int err;
+
+	/* This struct allow us to set ifindex, but we currently don't use
+	 * features (like hardware offload) that requires setting ifindex.
+	 */
+	struct bpf_prog_load_attr prog_load_attr = {
+		.prog_type      = BPF_PROG_TYPE_XDP,
+	};
+	prog_load_attr.file = filename;
+
+	/* Use libbpf for extracting BPF byte-code from BPF-ELF object, and
+	 * loading this into the kernel via bpf-syscall
+	 */
+	err = bpf_prog_load_xattr(&prog_load_attr, &obj, &first_prog_fd);
+	if (err) {
+		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
+			filename, err, strerror(-err));
+		return NULL;
+	}
+
+	/* Notice how a pointer to a libbpf bpf_object is returned */
+	return obj;
+}

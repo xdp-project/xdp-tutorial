@@ -35,12 +35,16 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
-struct bpf_object *load_bpf_object_file(const char *filename)
+struct bpf_object *__load_bpf_object_file(const char *filename)
 {
+	/* In next assignment this will be moved into ../common/ */
 	int first_prog_fd = -1;
 	struct bpf_object *obj;
 	int err;
 
+	/* This struct allow us to set ifindex, but we currently don't use
+	 * features (like hardware offload) that requires setting ifindex.
+	 */
 	struct bpf_prog_load_attr prog_load_attr = {
 		.prog_type      = BPF_PROG_TYPE_XDP,
 	};
@@ -56,6 +60,7 @@ struct bpf_object *load_bpf_object_file(const char *filename)
 		return NULL;
 	}
 
+	/* Notice how a pointer to a libbpf bpf_object is returned */
 	return obj;
 }
 
@@ -116,7 +121,7 @@ int main(int argc, char **argv)
 		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 
 	/* Load the BPF-ELF object file and get back libbpf bpf_object */
-	bpf_obj = load_bpf_object_file(cfg.filename);
+	bpf_obj = __load_bpf_object_file(cfg.filename);
 	if (!bpf_obj) {
 		fprintf(stderr, "ERR: loading file: %s\n", cfg.filename);
 		return EXIT_FAIL_BPF;

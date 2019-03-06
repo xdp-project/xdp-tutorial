@@ -38,30 +38,6 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
-struct bpf_object *load_bpf_object_file(const char *filename)
-{
-	int first_prog_fd = -1;
-	struct bpf_object *obj;
-	int err;
-
-	struct bpf_prog_load_attr prog_load_attr = {
-		.prog_type      = BPF_PROG_TYPE_XDP,
-	};
-	prog_load_attr.file = filename;
-
-	/* Use libbpf for extracting BPF byte-code from BPF-ELF object, and
-	 * loading this into the kernel via bpf-syscall
-	 */
-	err = bpf_prog_load_xattr(&prog_load_attr, &obj, &first_prog_fd);
-	if (err) {
-		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
-			filename, err, strerror(-err));
-		return NULL;
-	}
-
-	return obj;
-}
-
 static void print_prog_fd_info(int prog_fd)
 {
 	struct bpf_prog_info info = {};
