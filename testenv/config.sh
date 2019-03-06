@@ -5,3 +5,4 @@
 
 STATEDIR="${TMPDIR:-/tmp}/xdp-tutorial-testlab"
 IP_SUBNET=fc00:dead:cafe
+GENERATED_NAME_PREFIX="xdptut"
