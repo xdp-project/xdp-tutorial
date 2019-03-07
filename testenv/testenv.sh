@@ -314,7 +314,9 @@ usage()
     echo "reset               Reset environment to original state"
     echo "exec <command>      Exec <command> inside test environment"
     echo "enter               Execute shell inside test environment"
-    echo "status              Show status of test environment"
+    echo "ping                Run ping inside test environment"
+    echo "alias               Print shell alias for easy access to this script"
+    echo "status (or st)      Show status of test environment"
     echo ""
 
     if [ -z "$FULL" ] ; then
