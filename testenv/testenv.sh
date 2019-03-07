@@ -290,6 +290,18 @@ status()
     done
 }
 
+print_alias()
+{
+    local scriptname="$(readlink -e "$0")"
+    local sudo=
+
+    [ "$EUID" -ne "0" ] && sudo="sudo "
+
+    echo "Eval this with \`eval \$($0 alias)\` to create shell alias" >&2
+
+    echo "alias t='$sudo$scriptname'"
+}
+
 usage()
 {
     local FULL=${1:-}
@@ -353,7 +365,7 @@ done
 [ "$#" -eq 0 ] && usage >&2
 
 case "$1" in
-    "setup"|"teardown"|"reset"|"enter"|"status")
+    setup|teardown|reset|enter|status)
         CMD="$1"
         shift
         ;;
@@ -364,6 +376,10 @@ case "$1" in
     "ping")
         CMD=run_ping
         shift
+        ;;
+    "alias")
+        print_alias
+        exit 0
         ;;
     *)
         usage >&2
