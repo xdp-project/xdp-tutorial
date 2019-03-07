@@ -10,6 +10,7 @@
 
 set -o errexit
 set -o nounset
+umask 077
 
 source $(dirname $0)/config.sh
 
@@ -22,6 +23,10 @@ GENERATE_NEW=0
 STATEFILE=
 CMD=
 NS=
+
+# State variables that are written to and read from statefile
+STATEVARS="PREFIX"
+PREFIX=
 
 die()
 {
@@ -67,6 +72,8 @@ ensure_nsname()
     [ -e "$STATEFILE" ] || die "Environment for $NS doesn't seem to exist"
 
     echo "$NS" > "$STATEDIR/current"
+
+    read_statefile
 }
 
 get_num()
@@ -78,6 +85,24 @@ get_num()
 
     echo $num > "$STATEDIR/highest_num"
     printf "%x" $num
+}
+
+write_statefile()
+{
+    [ -z "$STATEFILE" ] && return 1
+    echo > "$STATEFILE"
+    for var in $STATEVARS; do
+        echo "${var}='$(eval echo '$'$var)'" >> "$STATEFILE"
+    done
+}
+
+read_statefile()
+{
+    local value
+    for var in $STATEVARS; do
+        value=$(source "$STATEFILE"; eval echo '$'$var)
+        eval "$var=\"$value\""
+    done
 }
 
 cleanup_setup()
@@ -99,7 +124,7 @@ setup()
 
     local NUM=$(get_num "$NS")
     local PEERNAME="testl-ve-$NUM"
-    local PREFIX="${IP_SUBNET}:${NUM}::"
+    [ -z "$PREFIX" ] && PREFIX="${IP_SUBNET}:${NUM}::"
 
     trap cleanup_setup EXIT
 
@@ -117,6 +142,7 @@ setup()
     ip -n "$NS" link set dev veth0 up
     ip netns exec "$NS" sysctl -w net.ipv6.conf.veth0.accept_dad=0 >/dev/null
     ip -n "$NS" addr add dev veth0 "${PREFIX}1/64"
+    write_statefile
 
     trap - EXIT
 
@@ -124,7 +150,6 @@ setup()
     echo ""
     ping -c 1 "${PREFIX}1"
 
-    echo "NUM=$NUM" > "$STATEFILE"
     echo "$NS" > "$STATEDIR/current"
 }
 
