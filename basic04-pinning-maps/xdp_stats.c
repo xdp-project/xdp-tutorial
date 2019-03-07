@@ -13,7 +13,9 @@ static const char *__doc__ = "XDP stats program\n"
 #include <time.h>
 
 #include <bpf/bpf.h>
-#include <bpf/libbpf.h>
+/* Lesson: this prog does not need to #include <bpf/libbpf.h> as it only uses
+ * the simple bpf-syscall wrappers, defined in libbpf #include<bpf/bpf.h>
+ */
 
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
@@ -50,17 +52,6 @@ static __u32 get_map_fd_type(int map_fd)
 		       info.type, info.id, info.name);
 
 	return info.type;
-}
-
-int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
-{
-	int map_fd;
-
-	map_fd = bpf_object__find_map_fd_by_name(bpf_obj, mapname);
-        if (map_fd < 0) {
-		fprintf(stderr, "ERR: cannot find map by name: %s\n", mapname);
-	}
-	return map_fd;
 }
 
 #define NANOSEC_PER_SEC 1000000000 /* 10^9 */
@@ -197,6 +188,10 @@ static void stats_poll(int map_fd, int interval)
 	}
 }
 
+#ifndef PATH_MAX
+#define PATH_MAX	4096
+#endif
+
 int open_bpf_map_file(const char *pin_dir, const char *mapname)
 {
 	char filename[PATH_MAX];
@@ -221,19 +216,14 @@ int open_bpf_map_file(const char *pin_dir, const char *mapname)
 	return fd;
 }
 
-#ifndef PATH_MAX
-#define PATH_MAX	4096
-#endif
-
 const char *pin_basedir =  "/sys/fs/bpf";
 
 int main(int argc, char **argv)
 {
-	struct bpf_object *bpf_obj;
 	char pin_dir[PATH_MAX];
 	int stats_map_fd;
 	int interval = 2;
-	int err, len;
+	int len;
 
 	struct config cfg = {
 		.ifindex   = -1,
