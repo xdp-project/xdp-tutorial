@@ -1,0 +1,18 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Basic03
+#+OPTIONS: ^:nil
+
+
+* Assignments
+
+The assignments are have "hint" marks in the code via =Assignment#num=
+comments.
+
+** Assignment#1: Add byte counters
+
+** Assignment#2: Handle other XDP actions stats
+
+** Assignment#3: Per CPU stats
+
+Avoid the atomic stats counter, by using another per-CPU array type, and
+move the burden of summing to userspace.
