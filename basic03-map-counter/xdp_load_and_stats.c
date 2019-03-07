@@ -34,6 +34,7 @@ static const struct option long_options[] = {
 	{"force",       no_argument,		NULL, 'F' },
 	{"unload",      no_argument,		NULL, 'U' },
 	{"quiet",       no_argument,		NULL, 'q' },
+	{"filename",    required_argument,	NULL,  1  },
 	{"progsec",    required_argument,	NULL,  2  },
 	{0, 0, NULL,  0 }
 };
