@@ -365,27 +365,31 @@ done
 [ "$#" -eq 0 ] && usage >&2
 
 case "$1" in
-    setup|teardown|reset|enter|status)
+    st|sta|status)
+        CMD=status
+        ;;
+    setup|teardown|reset|enter)
         CMD="$1"
-        shift
         ;;
     "exec")
         CMD=ns_exec
-        shift
         ;;
     "ping")
         CMD=run_ping
-        shift
         ;;
     "alias")
         print_alias
         exit 0
+        ;;
+    "help")
+        usage full >&2
         ;;
     *)
         usage >&2
         ;;
 esac
 
+shift
 trap cleanup EXIT
 check_prereq
 $CMD "$@"
