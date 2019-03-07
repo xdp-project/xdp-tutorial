@@ -200,6 +200,12 @@ status()
     get_nsname
 
     echo "Currently selected environment: ${NS:-None}"
+    if [ -n "$NS" ] && [ -e "$STATEFILE" ]; then
+        read_statefile
+        echo -n "  Namespace: "; ip netns | grep "^$NS"
+        echo    "  Prefix:    ${PREFIX}/${IP_PREFIX_SIZE}"
+        echo -n "  Iface:     "; ip -br a show dev "$NS" | sed 's/\s\+/ /g'
+    fi
     echo ""
 
     echo "All existing environments:"
