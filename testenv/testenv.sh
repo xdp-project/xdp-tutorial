@@ -26,8 +26,10 @@ CMD=
 NS=
 
 # State variables that are written to and read from statefile
-STATEVARS="PREFIX"
+STATEVARS="PREFIX INSIDE_IP OUTSIDE_IP"
 PREFIX=
+INSIDE_IP=
+OUTSIDE_IP=
 
 die()
 {
@@ -154,6 +156,9 @@ setup()
     local PEERNAME="testl-ve-$NUM"
     [ -z "$PREFIX" ] && PREFIX="${IP_SUBNET}:${NUM}::"
 
+    INSIDE_IP="${PREFIX}2"
+    OUTSIDE_IP="${PREFIX}1"
+
     NEEDS_CLEANUP=1
 
     ip netns add "$NS"
@@ -163,20 +168,20 @@ setup()
     ip link set dev "$PEERNAME" netns "$NS"
     ip link set dev "$NS" up
     sysctl -w net.ipv6.conf.$NS.accept_dad=0 >/dev/null
-    ip addr add dev "$NS" "${PREFIX}2/${IP_PREFIX_SIZE}"
+    ip addr add dev "$NS" "${OUTSIDE_IP}/${IP_PREFIX_SIZE}"
 
     ip -n "$NS" link set dev "$PEERNAME" name veth0
     ip -n "$NS" link set dev lo up
     ip -n "$NS" link set dev veth0 up
     ip netns exec "$NS" sysctl -w net.ipv6.conf.veth0.accept_dad=0 >/dev/null
-    ip -n "$NS" addr add dev veth0 "${PREFIX}1/${IP_PREFIX_SIZE}"
+    ip -n "$NS" addr add dev veth0 "${INSIDE_IP}/${IP_PREFIX_SIZE}"
     write_statefile
 
     NEEDS_CLEANUP=0
 
-    echo "Setup environment '$NS' with peer ip ${PREFIX}1. Testing ping:"
+    echo "Setup environment '$NS' with peer ip ${INSIDE_IP}."
     echo ""
-    ping -c 1 "${PREFIX}1"
+    run_ping -c 1
 
     echo "$NS" > "$STATEDIR/current"
 }
@@ -225,7 +230,7 @@ run_ping()
     echo "Running ping from inside test environment:"
     echo ""
 
-    ns_exec ping "${PREFIX}2" "$@"
+    ns_exec ping "${OUTSIDE_IP}" "$@"
 }
 
 status()
