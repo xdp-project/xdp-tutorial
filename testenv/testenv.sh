@@ -135,13 +135,13 @@ setup()
     ip link set dev "$PEERNAME" netns "$NS"
     ip link set dev "$NS" up
     sysctl -w net.ipv6.conf.$NS.accept_dad=0 >/dev/null
-    ip addr add dev "$NS" "${PREFIX}2/64"
+    ip addr add dev "$NS" "${PREFIX}2/${IP_PREFIX_SIZE}"
 
     ip -n "$NS" link set dev "$PEERNAME" name veth0
     ip -n "$NS" link set dev lo up
     ip -n "$NS" link set dev veth0 up
     ip netns exec "$NS" sysctl -w net.ipv6.conf.veth0.accept_dad=0 >/dev/null
-    ip -n "$NS" addr add dev veth0 "${PREFIX}1/64"
+    ip -n "$NS" addr add dev veth0 "${PREFIX}1/${IP_PREFIX_SIZE}"
     write_statefile
 
     trap - EXIT
