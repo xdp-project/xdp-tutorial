@@ -71,7 +71,13 @@ ensure_nsname()
 
 get_num()
 {
-    echo 1
+    local num=1
+    if [ -f "$STATEDIR/highest_num" ]; then
+        num=$(( 1 + $(< "$STATEDIR/highest_num" )))
+    fi
+
+    echo $num > "$STATEDIR/highest_num"
+    printf "%x" $num
 }
 
 cleanup_setup()
