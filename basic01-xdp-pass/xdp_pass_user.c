@@ -43,14 +43,14 @@ int load_bpf_object_file__simple(const char *filename)
 	}
 
 	/* Simply return the first program file descriptor.
-	 * (Hint: This will get more advance later)
+	 * (Hint: This will get more advanced later)
 	 */
 	return first_prog_fd;
 }
 
 static int xdp_link_detach(int ifindex, __u32 xdp_flags)
 {
-	/* Next assignment this will moved into ../common/
+	/* Next assignment this will move into ../common/
 	 * (in more generic version)
 	 */
 	int err;
@@ -65,7 +65,7 @@ static int xdp_link_detach(int ifindex, __u32 xdp_flags)
 
 int xdp_link_attach(int ifindex, __u32 xdp_flags, int prog_fd)
 {
-	/* Next assignment this will moved into ../common/ */
+	/* Next assignment this will move into ../common/ */
 	int err;
 
 	/* libbpf provide the XDP net_device link-level hook attach helper */
