@@ -38,9 +38,17 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
+#ifndef PATH_MAX
+#define PATH_MAX	4096
+#endif
+
+const char *pin_basedir =  "/sys/fs/bpf";
+
 int main(int argc, char **argv)
 {
 	struct bpf_object *bpf_obj;
+	char pin_dir[PATH_MAX];
+	int err, len;
 
 	struct config cfg = {
 		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
@@ -62,6 +70,13 @@ int main(int argc, char **argv)
 	if (cfg.do_unload)
 		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 
+	/* Use the --dev name as subdir for exporting/pinning maps */
+	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, cfg.ifname);
+	if (len < 0) {
+		fprintf(stderr, "ERR: creating pin dirname\n");
+		return EXIT_FAIL_OPTION;
+	}
+
 	bpf_obj = load_bpf_and_xdp_attach(&cfg);
 	if (!bpf_obj)
 		return EXIT_FAIL_BPF;
@@ -71,6 +86,15 @@ int main(int argc, char **argv)
 		       cfg.filename, cfg.progsec);
 		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
 		       cfg.ifname, cfg.ifindex);
+		printf(" - Pinning maps in %s/\n", pin_dir);
 	}
+
+	/* This will pin all maps in our bpf_object */
+	err = bpf_object__pin_maps(bpf_obj, pin_dir);
+	if (err) {
+		fprintf(stderr, "ERR: pinning maps in %s\n", pin_dir);
+		return EXIT_FAIL_BPF;
+	}
+
 	return EXIT_OK;
 }
