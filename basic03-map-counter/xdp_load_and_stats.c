@@ -124,7 +124,7 @@ static void stats_print(struct stats_record *stats_rec,
 	pps     = packets / period;
 
 	printf("XDP stats: %-7s RX-pkts:%'-10lld pps:%'-11.0f period:%f\n",
-	       "total", packets, pps, period);
+	       "XDP_PASS", rec->total.rx_packets, pps, period);
 }
 
 static bool map_collect(int fd, __u32 key, struct record *rec)
