@@ -12,7 +12,7 @@ set -o errexit
 set -o nounset
 umask 077
 
-source $(dirname $0)/config.sh
+source "$(dirname "$0")/config.sh"
 
 NEEDED_TOOLS="ethtool ip tc"
 MAX_NAMELEN=15
@@ -248,7 +248,7 @@ ns_exec()
 {
     get_nsname && ensure_nsname "$NS"
 
-    ip netns exec "$NS" "$@"
+    ip netns exec "$NS" env TESTENV_NAME="$NS" "$SETUP_SCRIPT" "$@"
 }
 
 enter()
