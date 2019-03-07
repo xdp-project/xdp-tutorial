@@ -1,0 +1,14 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Basic03
+#+OPTIONS: ^:nil
+
+
+* Assignments
+
+The assignments are have "hint" marks in the code via =Assignment#num=
+comments.
+
+** Assignment#1: Add byte counters
+
+** Assignment#2: Handle other XDP actions stats
+
