@@ -20,6 +20,7 @@ MAX_NAMELEN=15
 
 # Global state variables that will be set by options etc below
 GENERATE_NEW=0
+NEEDS_CLEANUP=0 # triggers cleanup if 1 when cleanup function runs
 STATEFILE=
 CMD=
 NS=
@@ -114,6 +115,33 @@ cleanup_setup()
     rm -f "$STATEFILE"
 }
 
+cleanup_teardown()
+{
+    echo "Warning: Errors during teardown, partial environment may be left" >&2
+}
+
+
+cleanup()
+{
+    local cleanup_func=
+    if [ "$NEEDS_CLEANUP" -eq 1 ]; then
+        case "$CMD" in
+            setup|teardown)
+                cleanup_func="cleanup_${CMD}"
+                ;;
+        esac
+    fi
+
+    [ -n "$cleanup_func" ] && $cleanup_func
+
+    local statefiles=("$STATEDIR"/*.state)
+
+    if [ "${#statefiles[*]}" -eq 1 ] && [ ! -e "${statefiles[0]}" ]; then
+        rm -f "${STATEDIR}/highest_num" "${STATEDIR}/current"
+        rmdir "$STATEDIR"
+    fi
+}
+
 setup()
 {
     get_nsname 1
@@ -126,7 +154,7 @@ setup()
     local PEERNAME="testl-ve-$NUM"
     [ -z "$PREFIX" ] && PREFIX="${IP_SUBNET}:${NUM}::"
 
-    trap cleanup_setup EXIT
+    NEEDS_CLEANUP=1
 
     ip netns add "$NS"
     ip link add dev "$NS" type veth peer name "$PEERNAME"
@@ -144,7 +172,7 @@ setup()
     ip -n "$NS" addr add dev veth0 "${PREFIX}1/${IP_PREFIX_SIZE}"
     write_statefile
 
-    trap - EXIT
+    NEEDS_CLEANUP=0
 
     echo "Setup environment '$NS' with peer ip ${PREFIX}1. Testing ping:"
     echo ""
@@ -153,18 +181,13 @@ setup()
     echo "$NS" > "$STATEDIR/current"
 }
 
-warn_teardown()
-{
-    echo "Warning: Errors during teardown, partial environment may be left" >&2
-}
-
 teardown()
 {
     get_nsname && ensure_nsname "$NS"
 
     echo "Tearing down environment '$NS'"
 
-    trap warn_teardown EXIT
+    NEEDS_CLEANUP=1
 
     ip link del dev "$NS"
     ip netns del "$NS"
@@ -175,7 +198,7 @@ teardown()
         [[ "$CUR" == "$NS" ]] && rm -f "$STATEDIR/current"
     fi
 
-    trap - EXIT
+    NEEDS_CLEANUP=0
 }
 
 reset()
@@ -295,5 +318,6 @@ case "$1" in
         ;;
 esac
 
+trap cleanup EXIT
 check_prereq
 $CMD "$@"
