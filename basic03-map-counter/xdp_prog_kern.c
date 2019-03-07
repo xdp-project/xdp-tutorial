@@ -41,6 +41,9 @@ int  xdp_stats1_func(struct xdp_md *ctx)
 	 * use an atomic operation.
 	 */
 	lock_xadd(&rec->rx_packets, 1);
+        /* Assignment#1: Add byte counters
+         * - Hint look at struct xdp_md *ctx (copied below)
+         */
 
 	return XDP_PASS;
 }
@@ -60,5 +63,18 @@ enum xdp_action {
 	XDP_PASS,
 	XDP_TX,
 	XDP_REDIRECT,
+};
+
+ * user accessible metadata for XDP packet hook
+ * new fields must be added to the end of this structure
+ *
+struct xdp_md {
+	// (Note: type __u32 is NOT the real-type)
+	__u32 data;
+	__u32 data_end;
+	__u32 data_meta;
+	// Below access go through struct xdp_rxq_info
+	__u32 ingress_ifindex; // rxq->dev->ifindex
+	__u32 rx_queue_index;  // rxq->queue_index
 };
 */
