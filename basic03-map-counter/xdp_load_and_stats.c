@@ -145,7 +145,7 @@ static bool map_collect(int fd, __u32 key, struct record *rec)
 
 static void stats_collect(int map_fd, struct stats_record *stats_rec)
 {
-	map_collect(map_fd, 0, &stats_rec->stats);
+	map_collect(map_fd, XDP_PASS, &stats_rec->stats);
 }
 
 static void stats_poll(int map_fd, int interval)
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Lesson: Locate map file descriptor */
-	stats_map_fd = find_map_fd(bpf_obj, "stats_array_map");
+	stats_map_fd = find_map_fd(bpf_obj, "xdp_stats_map");
 	if (stats_map_fd < 0) {
 		xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 		return EXIT_FAIL_BPF;
