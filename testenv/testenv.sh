@@ -26,10 +26,12 @@ CMD=
 NS=
 
 # State variables that are written to and read from statefile
-STATEVARS="PREFIX INSIDE_IP OUTSIDE_IP"
+STATEVARS="PREFIX INSIDE_IP INSIDE_MAC OUTSIDE_IP OUTSIDE_MAC"
 PREFIX=
 INSIDE_IP=
+INSIDE_MAC=
 OUTSIDE_IP=
+OUTSIDE_MAC=
 
 die()
 {
@@ -144,6 +146,29 @@ cleanup()
     fi
 }
 
+iface_macaddr()
+{
+    local iface="$1"
+    ip -br link show dev "$iface" | awk '{print $3}'
+}
+
+set_sysctls()
+{
+    local iface="$1"
+    local in_ns="${2:-}"
+    local nscmd=
+
+    [ -n "$in_ns" ] && nscmd="ip netns exec $in_ns"
+    local sysctls=(accept_dad
+                   accept_ra
+                   mldv1_unsolicited_report_interval
+                   mldv2_unsolicited_report_interval)
+
+    for s in ${sysctls[*]}; do
+        $nscmd sysctl -w net.ipv6.conf.$iface.${s}=0 >/dev/null
+    done
+}
+
 setup()
 {
     get_nsname 1
@@ -163,18 +188,26 @@ setup()
 
     ip netns add "$NS"
     ip link add dev "$NS" type veth peer name "$PEERNAME"
+    OUTSIDE_MAC=$(iface_macaddr "$NS")
+    INSIDE_MAC=$(iface_macaddr "$PEERNAME")
+    set_sysctls $NS
+
     ethtool -K "$NS" rxvlan off txvlan off
     ethtool -K "$PEERNAME" rxvlan off txvlan off
     ip link set dev "$PEERNAME" netns "$NS"
     ip link set dev "$NS" up
-    sysctl -w net.ipv6.conf.$NS.accept_dad=0 >/dev/null
     ip addr add dev "$NS" "${OUTSIDE_IP}/${IP_PREFIX_SIZE}"
 
     ip -n "$NS" link set dev "$PEERNAME" name veth0
     ip -n "$NS" link set dev lo up
     ip -n "$NS" link set dev veth0 up
-    ip netns exec "$NS" sysctl -w net.ipv6.conf.veth0.accept_dad=0 >/dev/null
+    set_sysctls veth0 "$NS"
     ip -n "$NS" addr add dev veth0 "${INSIDE_IP}/${IP_PREFIX_SIZE}"
+
+    # Prevent neighbour queries on the link
+    ip neigh add "$INSIDE_IP" lladdr "$INSIDE_MAC" dev "$NS" nud permanent
+    ip -n "$NS" neigh add "$OUTSIDE_IP" lladdr "$OUTSIDE_MAC" dev veth0 nud permanent
+
     write_statefile
 
     NEEDS_CLEANUP=0
