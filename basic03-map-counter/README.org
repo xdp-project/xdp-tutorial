@@ -12,3 +12,7 @@ comments.
 
 ** Assignment#2: Handle other XDP actions stats
 
+** Assignment#3: Per CPU stats
+
+Avoid the atomic stats counter, by using another per-CPU array type, and
+move the burden of summing to userspace.

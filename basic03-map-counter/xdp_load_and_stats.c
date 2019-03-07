@@ -38,14 +38,14 @@ static const struct option long_options[] = {
 	{0, 0, NULL,  0 }
 };
 
-static void print_map_fd_info(int map_fd)
+static __u32 get_map_fd_type(int map_fd)
 {
 	struct bpf_map_info info = {};
 	__u32 info_len = sizeof(info);
 	int err;
 
 	if (map_fd < 0)
-		return;
+		return BPF_MAP_TYPE_UNSPEC;
 
         /* BPF-info via bpf-syscall */
 	err = bpf_obj_get_info_by_fd(map_fd, &info, &info_len);
@@ -57,6 +57,8 @@ static void print_map_fd_info(int map_fd)
 	if (verbose)
 		printf(" - BPF map (bpf_map_type:%d) id:%d name:%s\n",
 		       info.type, info.id, info.name);
+
+	return info.type;
 }
 
 int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
@@ -131,53 +133,74 @@ static void stats_print(struct stats_record *stats_rec,
 	}
 }
 
-static bool map_collect(int fd, __u32 key, struct record *rec)
+void map_get_value_array(int fd, __u32 key, struct datarec *value)
+{
+	if ((bpf_map_lookup_elem(fd, &key, value)) != 0) {
+		fprintf(stderr,
+			"ERR: bpf_map_lookup_elem failed key:0x%X\n", key);
+	}
+}
+
+static bool map_collect(int fd, __u32 map_type, __u32 key, struct record *rec)
 {
 	struct datarec value;
 
-	if ((bpf_map_lookup_elem(fd, &key, &value)) != 0) {
-		fprintf(stderr,
-			"ERR: bpf_map_lookup_elem failed key:0x%X\n", key);
-		return false;
-	}
 	/* Get time as close as possible to reading map contents */
 	rec->timestamp = gettime();
+
+	switch (map_type) {
+	case BPF_MAP_TYPE_ARRAY:
+		map_get_value_array(fd, key, &value);
+		break;
+	case BPF_MAP_TYPE_PERCPU_ARRAY:
+		/* fall-through */
+	default:
+		fprintf(stderr, "ERR: Unknown map_type(%u) cannot handle\n",
+			map_type);
+		return false;
+		break;
+	}
 
 	/* Assignment#1: Add byte counters */
 	rec->total.rx_packets = value.rx_packets;
 	return true;
 }
 
-static void stats_collect(int map_fd, struct stats_record *stats_rec)
+static void stats_collect(int map_fd, __u32 map_type,
+			  struct stats_record *stats_rec)
 {
 	/* Assignment#2: Collect other XDP actions stats  */
 	__u32 key = XDP_PASS;
 
-	map_collect(map_fd, key, &stats_rec->stats);
+	map_collect(map_fd, map_type, key, &stats_rec->stats);
 }
 
 static void stats_poll(int map_fd, int interval)
 {
 	struct stats_record prev, record = { 0 };
+	__u32 map_type;
 
 	/* Trick to pretty printf with thousands separators use %' */
 	setlocale(LC_NUMERIC, "en_US");
 
-	/* Print stats "header" */
 	if (verbose) {
 		printf("\nCollecting stats from BPF map\n");
-		print_map_fd_info(map_fd);
+	}
+	map_type = get_map_fd_type(map_fd);
+
+	/* Print stats "header" */
+	if (verbose) {
 		printf("\n");
 		printf("%-12s\n", "XDP-action");
 	}
 
 	/* Get initial reading quickly */
-	stats_collect(map_fd, &record);
+	stats_collect(map_fd, map_type, &record);
 	usleep(1000000/4);
 
 	while (1) {
 		prev = record; /* struct copy */
-		stats_collect(map_fd, &record);
+		stats_collect(map_fd, map_type, &record);
 		stats_print(&record, &prev);
 		sleep(interval);
 	}

@@ -43,6 +43,9 @@ int  xdp_stats1_func(struct xdp_md *ctx)
 	lock_xadd(&rec->rx_packets, 1);
         /* Assignment#1: Add byte counters
          * - Hint look at struct xdp_md *ctx (copied below)
+         *
+         * Assignment#3: Avoid the atomic operation
+         * - Hint there is a map type named BPF_MAP_TYPE_PERCPU_ARRAY
          */
 
 	return XDP_PASS;
