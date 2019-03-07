@@ -197,11 +197,43 @@ static void stats_poll(int map_fd, int interval)
 	}
 }
 
+int open_bpf_map_file(const char *pin_dir, const char *mapname)
+{
+	char filename[PATH_MAX];
+	int len, fd;
+
+	len = snprintf(filename, PATH_MAX, "%s/%s", pin_dir, mapname);
+	if (len < 0) {
+		fprintf(stderr, "ERR: constructing full mapname path\n");
+		return -1;
+	}
+
+	/* Lesson: There is only a weak dependency to libbpf here as bpf_obj_get
+	 * is a simple wrapper around the bpf-syscall
+	 */
+	fd = bpf_obj_get(filename);
+	if (fd < 0) {
+		fprintf(stderr,
+			"WARN: Failed to open bpf map file:%s err(%d):%s\n",
+			filename, errno, strerror(errno));
+		return fd;
+	}
+	return fd;
+}
+
+#ifndef PATH_MAX
+#define PATH_MAX	4096
+#endif
+
+const char *pin_basedir =  "/sys/fs/bpf";
+
 int main(int argc, char **argv)
 {
 	struct bpf_object *bpf_obj;
+	char pin_dir[PATH_MAX];
 	int stats_map_fd;
 	int interval = 2;
+	int err, len;
 
 	struct config cfg = {
 		.ifindex   = -1,
@@ -218,10 +250,15 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
-	/* Lesson: Locate map file descriptor */
-	stats_map_fd = find_map_fd(bpf_obj, "xdp_stats_map");
+	/* Use the --dev name as subdir for finding pinned maps */
+	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, cfg.ifname);
+	if (len < 0) {
+		fprintf(stderr, "ERR: creating pin dirname\n");
+		return EXIT_FAIL_OPTION;
+	}
+
+	stats_map_fd = open_bpf_map_file(pin_dir, "xdp_stats_map");
 	if (stats_map_fd < 0) {
-		xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 		return EXIT_FAIL_BPF;
 	}
 
