@@ -218,6 +218,16 @@ enter()
     ns_exec "${SHELL:-bash}"
 }
 
+run_ping()
+{
+    get_nsname && ensure_nsname "$NS"
+
+    echo "Running ping from inside test environment:"
+    echo ""
+
+    ns_exec ping "${PREFIX}2" "$@"
+}
+
 status()
 {
     get_nsname
@@ -311,6 +321,10 @@ case "$1" in
         ;;
     "exec")
         CMD=ns_exec
+        shift
+        ;;
+    "ping")
+        CMD=run_ping
         shift
         ;;
     *)
