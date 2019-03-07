@@ -39,7 +39,7 @@ void parse_cmdline_args(int argc, char **argv,
 	int opt;
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:SNFUq",
+	while ((opt = getopt_long(argc, argv, "hd:ASNFUq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
