@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 	/* Required option */
 	if (cfg.ifindex == -1) {
 		fprintf(stderr, "ERR: required option --dev missing\n");
-		usage(argv[0], __doc__, long_options);
+		usage(argv[0], __doc__, long_options, (argc == 1));
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)

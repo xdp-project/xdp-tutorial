@@ -14,12 +14,18 @@
 int verbose = 1;
 
 void usage(const char *prog_name, const char *doc,
-           const struct option *long_options)
+           const struct option *long_options, bool full)
 {
 	int i;
 
+	printf("Usage: %s [options]\n", prog_name);
+
+	if (!full) {
+		printf("Use --help (or -h) to see full option list.\n");
+		return;
+	}
+
 	printf("\nDOCUMENTATION:\n %s\n", doc);
-	printf(" Usage: %s (options-see-below)\n", prog_name);
 	printf(" Listing options:\n");
 	for (i = 0; long_options[i].name != 0; i++) {
 		printf(" --%-12s", long_options[i].name);
@@ -34,6 +40,7 @@ void parse_cmdline_args(int argc, char **argv,
 			const struct option *long_options,
                         struct config *cfg, const char *doc)
 {
+	bool full_help = false;
 	int longindex = 0;
 	char *dest;
 	int opt;
@@ -87,9 +94,11 @@ void parse_cmdline_args(int argc, char **argv,
 			strncpy(dest, optarg, sizeof(cfg->progsec));
 			break;
 		case 'h':
+			full_help = true;
+			/* fall-through */
 		error:
 		default:
-			usage(argv[0], doc, long_options);
+			usage(argv[0], doc, long_options, full_help);
 			exit(EXIT_FAIL_OPTION);
 		}
 	}
