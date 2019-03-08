@@ -24,6 +24,7 @@ NEEDS_CLEANUP=0 # triggers cleanup if 1 when cleanup function runs
 STATEFILE=
 CMD=
 NS=
+XDP_LOADER=./xdp_loader
 
 # State variables that are written to and read from statefile
 STATEVARS="PREFIX INSIDE_IP INSIDE_MAC OUTSIDE_IP OUTSIDE_MAC"
@@ -303,6 +304,22 @@ print_alias()
     echo "alias t='$sudo$scriptname'"
 }
 
+xdp_load()
+{
+    get_nsname && ensure_nsname
+
+    [ -x "$XDP_LOADER" ] || die "Loader '$XDP_LOADER' is not executable"
+    $XDP_LOADER --dev "$NS" "$@"
+}
+
+xdp_unload()
+{
+    get_nsname && ensure_nsname
+
+    [ -x "$XDP_LOADER" ] || die "Loader '$XDP_LOADER' is not executable"
+    $XDP_LOADER --dev "$NS" --unload "$@"
+}
+
 usage()
 {
     local FULL=${1:-}
@@ -318,6 +335,8 @@ usage()
     echo "ping                Run ping inside test environment"
     echo "alias               Print shell alias for easy access to this script"
     echo "status (or st)      Show status of test environment"
+    echo "load                Load XDP program on outer interface"
+    echo "unload              Unload XDP program on outer interface"
     echo ""
 
     if [ -z "$FULL" ] ; then
@@ -327,16 +346,23 @@ usage()
 
     echo "Options:"
     echo "-h, --help          Show this usage text"
+    echo ""
     echo "-n, --name <name>   Set name of test environment. If not set, the last used"
     echo "                    name will be used, or a new one generated."
+    echo ""
     echo "-g, --gen-new       Generate a new test environment name even though an existing"
     echo "                    environment is selected as the current one."
+    echo ""
+    echo "-l, --loader <prog> Specify program to use for loading XDP programs."
+    echo "                    Device name will be passed to it, along with any additional"
+    echo "                    command line options passed after --."
+    echo "                    Default: '$XDP_LOADER'"
     exit 1
 }
 
 
-OPTS="hn:g"
-LONGOPTS="help,name:,gen-new"
+OPTS="hn:gl:"
+LONGOPTS="help,name:,gen-new,loader:"
 
 OPTIONS=$(getopt -o "$OPTS" --long "$LONGOPTS" -- "$@")
 [ "$?" -ne "0" ] && usage >&2 || true
@@ -356,6 +382,10 @@ while true; do
             NS="$1"
             shift
             ;;
+        -l | --loader)
+            XDP_LOADER="$1"
+            shift
+            ;;
         -g | --gen-new)
             GENERATE_NEW=1
             ;;
@@ -373,6 +403,9 @@ case "$1" in
         ;;
     setup|teardown|reset|enter)
         CMD="$1"
+        ;;
+    load|unload)
+        CMD="xdp_$1"
         ;;
     "exec")
         CMD=ns_exec
