@@ -36,7 +36,7 @@ clean:
 	rm -f *~
 
 ifdef COPY_LOADER
-$(COPY_LOADER): $(LOADER_DIR)/${COPY_LOADER:=.c}
+$(COPY_LOADER): $(LOADER_DIR)/${COPY_LOADER:=.c} $(COMMON_H)
 	make -C $(LOADER_DIR) $(COPY_LOADER)
 	cp $(LOADER_DIR)/$(COPY_LOADER) $(COPY_LOADER)
 endif
