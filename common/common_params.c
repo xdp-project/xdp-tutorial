@@ -26,11 +26,13 @@ void usage(const char *prog_name, const char *doc,
 	}
 
 	printf("\nDOCUMENTATION:\n %s\n", doc);
-	printf(" Listing options:\n");
+	printf("Options:\n");
 	for (i = 0; long_options[i].name != 0; i++) {
-		printf(" --%-12s", long_options[i].name);
 		if (long_options[i].val > 64) /* ord('A') = 65 */
-			printf(" short-option: -%c", long_options[i].val);
+			printf(" -%c,", long_options[i].val);
+		else
+			printf("    ");
+		printf(" --%-12s", long_options[i].name);
 		printf("\n");
 	}
 	printf("\n");
