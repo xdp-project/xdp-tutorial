@@ -23,7 +23,6 @@ static const char *__doc__ = "XDP loader\n"
 #include "common_kern_user.h"
 
 static const char *default_filename = "xdp_prog_kern.o";
-static const char *default_progsec = "xdp_stats1";
 
 static const struct option_wrapper long_options[] = {
 
@@ -79,7 +78,6 @@ int main(int argc, char **argv)
 	};
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
-	strncpy(cfg.progsec,  default_progsec,  sizeof(cfg.progsec));
 	/* Cmdline options can change progsec */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
