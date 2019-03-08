@@ -4,6 +4,8 @@ XDP_TARGETS  := xdp_prog_kern
 USER_TARGETS :=
 
 LIBBPF_DIR = ../libbpf/src/
-COMMON_DIR = ../common/
+COMMON_DIR = ../common
+
+COPY_LOADER := xdp_loader
 
 include $(COMMON_DIR)/common.mk
