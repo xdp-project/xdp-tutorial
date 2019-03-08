@@ -13,11 +13,33 @@
 
 int verbose = 1;
 
-void usage(const char *prog_name, const char *doc,
-           const struct option *long_options, bool full)
-{
-	int i;
+#define BUFSIZE 30
 
+void _print_options(const struct option_wrapper *long_options, bool required)
+{
+	int i, pos;
+	char buf[BUFSIZE];
+
+	for (i = 0; long_options[i].option.name != 0; i++) {
+		if (long_options[i].required != required)
+			continue;
+
+		if (long_options[i].option.val > 64) /* ord('A') = 65 */
+			printf(" -%c,", long_options[i].option.val);
+		else
+			printf("    ");
+		pos = snprintf(buf, BUFSIZE, " --%s", long_options[i].option.name);
+		if (long_options[i].metavar)
+			snprintf(&buf[pos], BUFSIZE-pos, " %s", long_options[i].metavar);
+		printf("%-22s", buf);
+		printf("  %s", long_options[i].help);
+		printf("\n");
+	}
+}
+
+void usage(const char *prog_name, const char *doc,
+           const struct option_wrapper *long_options, bool full)
+{
 	printf("Usage: %s [options]\n", prog_name);
 
 	if (!full) {
@@ -26,26 +48,47 @@ void usage(const char *prog_name, const char *doc,
 	}
 
 	printf("\nDOCUMENTATION:\n %s\n", doc);
-	printf("Options:\n");
-	for (i = 0; long_options[i].name != 0; i++) {
-		if (long_options[i].val > 64) /* ord('A') = 65 */
-			printf(" -%c,", long_options[i].val);
-		else
-			printf("    ");
-		printf(" --%-12s", long_options[i].name);
-		printf("\n");
-	}
+	printf("Required options:\n");
+	_print_options(long_options, true);
+	printf("\n");
+	printf("Other options:\n");
+	_print_options(long_options, false);
 	printf("\n");
 }
 
+int option_wrappers_to_options(const struct option_wrapper *wrapper,
+				struct option **options)
+{
+	int i, num;
+	struct option *new_options;
+	for (i = 0; wrapper[i].option.name != 0; i++) {}
+	num = i;
+
+	new_options = malloc(sizeof(struct option) * num);
+	if (!new_options)
+		return -1;
+	for (i = 0; i < num; i++) {
+		memcpy(&new_options[i], &wrapper[i], sizeof(struct option));
+	}
+
+	*options = new_options;
+	return 0;
+}
+
 void parse_cmdline_args(int argc, char **argv,
-			const struct option *long_options,
+			const struct option_wrapper *options_wrapper,
                         struct config *cfg, const char *doc)
 {
+	struct option *long_options;
 	bool full_help = false;
 	int longindex = 0;
 	char *dest;
 	int opt;
+
+	if (option_wrappers_to_options(options_wrapper, &long_options)) {
+		fprintf(stderr, "Unable to malloc()\n");
+		exit(EXIT_FAIL_OPTION);
+	}
 
 	/* Parse commands line args */
 	while ((opt = getopt_long(argc, argv, "hd:ASNFUq",
@@ -100,8 +143,10 @@ void parse_cmdline_args(int argc, char **argv,
 			/* fall-through */
 		error:
 		default:
-			usage(argv[0], doc, long_options, full_help);
+			usage(argv[0], doc, options_wrapper, full_help);
+			free(long_options);
 			exit(EXIT_FAIL_OPTION);
 		}
 	}
+	free(long_options);
 }

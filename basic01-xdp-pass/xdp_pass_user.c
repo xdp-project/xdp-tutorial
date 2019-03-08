@@ -15,15 +15,29 @@ static const char *__doc__ = "Simple XDP prog doing XDP_PASS\n";
 
 #include "../common/common_params.h"
 
-static const struct option long_options[] = {
-	{"help",        no_argument,		NULL, 'h' },
-	{"dev",         required_argument,	NULL, 'd' },
-	{"skb-mode",    no_argument,		NULL, 'S' },
-	{"native-mode", no_argument,		NULL, 'N' },
-	{"auto-mode",   no_argument,		NULL, 'A' },
-	{"force",       no_argument,		NULL, 'F' },
-	{"unload",      no_argument,		NULL, 'U' },
-	{0, 0, NULL,  0 }
+static const struct option_wrapper long_options[] = {
+	{{"help",        no_argument,		NULL, 'h' },
+	 "Show help", false},
+
+	{{"dev",         required_argument,	NULL, 'd' },
+	 "Operate on device <ifname>", "<ifname>", true},
+
+	{{"skb-mode",    no_argument,		NULL, 'S' },
+	 "Install XDP program in SKB (AKA generic) mode"},
+
+	{{"native-mode", no_argument,		NULL, 'N' },
+	 "Install XDP program in native mode"},
+
+	{{"auto-mode",   no_argument,		NULL, 'A' },
+	 "Auto-detect SKB or native mode"},
+
+	{{"force",       no_argument,		NULL, 'F' },
+	 "Force install, replacing existing program on interface"},
+
+	{{"unload",      no_argument,		NULL, 'U' },
+	 "Unload XDP program instead of loading"},
+
+	{{0, 0, NULL,  0 }, NULL, false}
 };
 
 int load_bpf_object_file__simple(const char *filename)
