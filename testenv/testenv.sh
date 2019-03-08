@@ -73,7 +73,7 @@ get_nsname()
 
 ensure_nsname()
 {
-    [ -z "$NS" ] && die "No environment selected; use --name to select one"
+    [ -z "$NS" ] && die "No environment selected; use --name to select one or 'setup' to create one"
     [ -e "$STATEFILE" ] || die "Environment for $NS doesn't seem to exist"
 
     echo "$NS" > "$STATEDIR/current"
