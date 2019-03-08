@@ -24,11 +24,17 @@ static const char *__doc__ = "XDP stats program\n"
 #include "../common/common_user_bpf_xdp.h"
 #include "common_kern_user.h"
 
-static const struct option long_options[] = {
-	{"help",        no_argument,		NULL, 'h' },
-	{"dev",         required_argument,	NULL, 'd' },
-	{"quiet",       no_argument,		NULL, 'q' },
-	{0, 0, NULL,  0 }
+static const struct option_wrapper long_options[] = {
+	{{"help",        no_argument,		NULL, 'h' },
+	 "Show help", false},
+
+	{{"dev",         required_argument,	NULL, 'd' },
+	 "Operate on device <ifname>", "<ifname>", true},
+
+	{{"quiet",       no_argument,		NULL, 'q' },
+	 "Quiet mode (no output)"},
+
+	{{0, 0, NULL,  0 }}
 };
 
 static __u32 get_map_fd_type(int map_fd)
@@ -235,8 +241,8 @@ int main(int argc, char **argv)
 
 	/* Required option */
 	if (cfg.ifindex == -1) {
-		fprintf(stderr, "ERR: required option --dev missing\n");
-		usage(argv[0], __doc__, long_options);
+		fprintf(stderr, "ERR: required option --dev missing\n\n");
+		usage(argv[0], __doc__, long_options, (argc == 1));
 		return EXIT_FAIL_OPTION;
 	}
 
