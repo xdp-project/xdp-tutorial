@@ -297,9 +297,15 @@ print_alias()
     local scriptname="$(readlink -e "$0")"
     local sudo=
 
-    [ "$EUID" -ne "0" ] && sudo="sudo "
+    [ -t 1 ] && echo "Eval this with \`eval \$($0 alias)\` to create shell alias" >&2
 
-    echo "Eval this with \`eval \$($0 alias)\` to create shell alias" >&2
+    if [ "$EUID" -ne "0" ]; then
+        sudo="sudo "
+        echo "WARNING: Creating sudo alias; be careful, this script WILL execute arbitrary programs" >&2
+    fi
+
+    echo "" >&2
+
 
     echo "alias t='$sudo$scriptname'"
 }
