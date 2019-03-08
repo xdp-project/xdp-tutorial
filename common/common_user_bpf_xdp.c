@@ -124,10 +124,15 @@ struct bpf_object *load_bpf_and_xdp_attach(struct config *cfg)
 	 * process exit.
 	 */
 
-	/* Find a matching BPF prog section name */
-	bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg->progsec);
+	if (cfg->progsec[0])
+		/* Find a matching BPF prog section name */
+		bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg->progsec);
+	else
+		/* Find the first program */
+		bpf_prog = bpf_program__next(NULL, bpf_obj);
+
 	if (!bpf_prog) {
-		fprintf(stderr, "ERR: finding progsec: %s\n", cfg->progsec);
+		fprintf(stderr, "ERR: couldn't find a program in ELF section '%s'\n", cfg->progsec);
 		exit(EXIT_FAIL_BPF);
 	}
 
