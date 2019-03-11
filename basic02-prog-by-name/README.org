@@ -1,0 +1,42 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Basic02
+#+OPTIONS: ^:nil
+
+In this assignment you will see that an BPF-ELF file produced by LLVM can
+contain more than one XDP program, and how you can select between them using
+the *libbpf API*.
+
+* Lessons
+
+The libbpf API provides more than the basic system call wrappers (which are
+defined in libbpf [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]]). The libbpf API provides "[[https://github.com/libbpf/libbpf/blob/master/src/README.rst#objects][objects]]" and functions to
+work with them (defined in include [[https://github.com/libbpf/libbpf/blob/master/src/libbpf.h][libbpf.h]]).
+
+The corresponding structs are:
+ - struct bpf_object
+ - struct bpf_program
+ - struct bpf_map
+
+These structs are for libbpf internal use, and you must use the API
+functions to interact with the objects. Function that work with an object
+have the struct name plus double underscore, and then part that describes
+function purpose.
+
+Lets look at a practical usage of =bpf_object= and =bpf_program=.
+
+** Lesson#1: bpf_object
+
+In [[file:xdp_loader.c]] the function =__load_bpf_object_file= now returns a
+libbpf =struct bpf_object= pointer (while basic01 assignment returned the
+file-descriptor to the first BPF-prog).
+
+The =struct bpf_object= represents ELF object itself.
+
+** Lesson#2: bpf_object to bpf_program
+
+In [[file:xdp_loader.c]] the function =__load_bpf_and_xdp_attach= use
+=bpf_object__find_program_by_title= on the bpf_object, which is the "SEC"
+name, not the C-function name. This returns an struct bpf_program object,
+and we use the function =bpf_program__fd= is used for getting the
+file-descriptor that we want to attach to the XDP hook.
+
