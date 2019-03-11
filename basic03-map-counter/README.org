@@ -31,6 +31,23 @@ BPF-maps are basically a generic *key-value* stores (see =key_size= and
 =max_entries=. Here we focus on the simple =BPF_MAP_TYPE_ARRAY=, which means
 =max_entries= gets allocated when map is created.
 
+The BPF-map is both accessible from BPF-prog (kernel) side and userspace.
+How this is done and how they differ is part of this lesson.
+
+** Lesson#2: libbpf map ELF relocation
+
+The libbpf library (fortunately) handles ELF-object decoding and map
+references relocation, when the map is referenced from the BPF code.
+
+It is worth pointing out that everything goes through the bpf-syscall. This
+means that libbpf /must/ create the maps and programs with separate
+invocations of the bpf-syscall. Then how can a BPF-prog reference a BPF-map?
+This happen via first loading all the BPF-maps, and get back their
+corresponding file-descriptor (FD). Then the ELF-relocation table is used
+for identifying when the BPF-prog reference a given map, and then rewrite
+those BPF-byte-code instructions to use the map FD, before loading BPF-prog
+into the kernel.
+
 
 
 * Assignments
