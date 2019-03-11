@@ -62,6 +62,21 @@ obtaining the map file-descriptor (FD) via =bpf_map__fd()=. There is also a
 libbpf function that wrap these two steps, which is called
 =bpf_object__find_map_fd_by_name()=.
 
+** Lesson#4: read map-value from userspace
+
+The contents of the map is read from userspace via the function
+=bpf_map_lookup_elem()=, which is a simple syscall-wrapper, that operate on
+the map file-descriptor (FD), lookup the =key= and store the value into the
+memory area supplied by the value pointer. It is userspace own
+responsibility to known what map it is reading and know the value size, and
+thus have allocated memory large enough to store the value. In our example
+we demonstrate how userspace can query the map-FD and get back some info in
+struct =bpf_map_info= via syscall-wrapper =bpf_obj_get_info_by_fd()=.
+
+The program =xdp_load_and_stats= will periodically read the xdp_stats_map
+value and produce some stats.
+
+
 * Assignments
 
 The assignments are have "hint" marks in the code via =Assignment#num=
