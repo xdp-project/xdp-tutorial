@@ -12,6 +12,7 @@ the *libbpf API*.
   - [[#lesson2-bpf_object-to-bpf_program][Lesson#2: bpf_object to bpf_program]]
 - [[#assignments][Assignments]]
   - [[#assignment1-setup-testlab][Assignment#1: Setup testlab]]
+  - [[#assignment2-add-xdp_abort-program][Assignment#2: Add xdp_abort program]]
 
 * Lessons using libbpf
 
@@ -67,10 +68,11 @@ This result in the creation of an (outer) interface named: =veth-basic02=.
 You can test that the environment network is operational by pinging the IPv6
 address =fc00:dead:cafe:1::2=.
 
-The assignment is to manually load the compiled xdp program in ELF-OBJ file
+The *assignment* is to manually load the compiled xdp program in ELF-OBJ file
 =xdp_prog_kern.o=, using the =xdp_loader= program in this directory. Observe
 the available options you can give the xdp_loader via =--help=. Try to
-select the program section named =xdp_drop= via =--progsec=.
+select the program section named =xdp_drop= via =--progsec=, and observe via
+ping that packets gets dropped.
 
 Here are some example commands:
 #+begin_example sh
@@ -80,4 +82,24 @@ sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_drop
 sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_pass
 #+end_example
 
+** Assignment#2: Add xdp_abort program
+
+Add a new program section "xdp_abort" in [[file:xdp_prog_kern.c]] that
+use/return the XDP action =XDP_ABORTED= (and compile via =make=).
+Load this new program, e.g. similar to above:
+
+#+begin_example sh
+sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_abort
+#+end_example
+
+*Lesson*: XDP_ABORTED is different from XDP_DROP, because it trigger the
+tracepoint named =xdp:xdp_exception=.
+
+*Exercise*: while e.g. ping the namespace, record this tracepoint and
+observe these records. E.g with perf like this:
+
+#+begin_example sh
+sudo perf record -a -e xdp:xdp_exception sleep 4
+sudo perf script
+#+end_example
 
