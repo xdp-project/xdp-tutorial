@@ -6,7 +6,12 @@ In this assignment you will see that an BPF-ELF file produced by LLVM can
 contain more than one XDP program, and how you can select between them using
 the *libbpf API*.
 
-* Lessons
+* Table of Contents                                                     :TOC:
+- [[#lessons-using-libbpf][Lessons using libbpf]]
+  - [[#lesson1-bpf_object][Lesson#1: bpf_object]]
+  - [[#lesson2-bpf_object-to-bpf_program][Lesson#2: bpf_object to bpf_program]]
+
+* Lessons using libbpf
 
 The libbpf API provides more than the basic system call wrappers (which are
 defined in libbpf [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]]). The libbpf API provides "[[https://github.com/libbpf/libbpf/blob/master/src/README.rst#objects][objects]]" and functions to
