@@ -2,6 +2,36 @@
 #+TITLE: Tutorial: Basic03
 #+OPTIONS: ^:nil
 
+In this lesson you will learn about BPF-maps, and in the assignment get
+hands-on experience with extending the "value" size/content, and reading the
+contents from userspace.
+
+We will only cover two simple maps types:
+ - =BPF_MAP_TYPE_ARRAY= and
+ - =BPF_MAP_TYPE_PERCPU_ARRAY=.
+
+* Lesson
+
+** Lesson#1: defining a map
+
+Creating a BPF-map is done by defining a global struct =bpf_map_def= (in
+[[file:xdp_prog_kern.c]]), with a special =SEC("maps")= as below:
+
+#+begin_src C
+struct bpf_map_def SEC("maps") xdp_stats_map = {
+	.type        = BPF_MAP_TYPE_ARRAY,
+	.key_size    = sizeof(__u32),
+	.value_size  = sizeof(struct datarec),
+	.max_entries = XDP_ACTION_MAX,
+};
+#+end_src
+
+BPF-maps are basically a generic *key-value* stores (see =key_size= and
+=value_size=), with a given =type=, and maximum allowed entries
+=max_entries=. Here we focus on the simple =BPF_MAP_TYPE_ARRAY=, which means
+=max_entries= gets allocated when map is created.
+
+
 
 * Assignments
 
