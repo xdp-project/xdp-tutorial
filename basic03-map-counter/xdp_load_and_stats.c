@@ -84,12 +84,18 @@ static __u32 get_map_fd_type(int map_fd)
 
 int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
 {
-	int map_fd;
+	struct bpf_map *map;
+	int map_fd = -1;
 
-	map_fd = bpf_object__find_map_fd_by_name(bpf_obj, mapname);
-        if (map_fd < 0) {
+	/* Lesson#3: bpf_object to bpf_map */
+	map = bpf_object__find_map_by_name(bpf_obj, mapname);
+        if (!map) {
 		fprintf(stderr, "ERR: cannot find map by name: %s\n", mapname);
+		goto out;
 	}
+
+	map_fd = bpf_map__fd(map);
+ out:
 	return map_fd;
 }
 
@@ -264,7 +270,7 @@ int main(int argc, char **argv)
 		       cfg.ifname, cfg.ifindex);
 	}
 
-	/* Lesson: Locate map file descriptor */
+	/* Lesson#3: Locate map file descriptor */
 	stats_map_fd = find_map_fd(bpf_obj, "xdp_stats_map");
 	if (stats_map_fd < 0) {
 		xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);

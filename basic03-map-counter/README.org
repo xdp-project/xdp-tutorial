@@ -48,7 +48,19 @@ for identifying when the BPF-prog reference a given map, and then rewrite
 those BPF-byte-code instructions to use the map FD, before loading BPF-prog
 into the kernel.
 
+** Lesson#3: bpf_object to bpf_map
 
+As you learned in [[file:../basic02-prog-by-name/][basic02]] the libbpf API have "objects" and functions
+working on/with these objects. The struct =bpf_object= represents ELF object
+itself (which is returned from our =load_bpf_and_xdp_attach()= function).
+
+In our function find_map_fd() (in [[file:xdp_load_and_stats.c]]) the function
+=bpf_object__find_map_by_name()= is used for finding the =bpf_map= object
+with a given name. (Note, the length of the map name is provided by ELF and
+is longer than what the name kernel stores, after loading it). Next step is
+obtaining the map file-descriptor (FD) via =bpf_map__fd()=. There is also a
+libbpf function that wrap these two steps, which is called
+=bpf_object__find_map_fd_by_name()=.
 
 * Assignments
 
