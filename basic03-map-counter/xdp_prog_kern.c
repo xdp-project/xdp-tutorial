@@ -4,7 +4,7 @@
 
 #include "common_kern_user.h" /* defines: struct datarec; */
 
-/* Lesson: See how a map is defined.
+/* Lesson#1: See how a map is defined.
  * - Here an array with XDP_ACTION_MAX (max_)entries are created.
  * - The idea is to keep stats per (enum) xdp_action
  */

@@ -2,6 +2,80 @@
 #+TITLE: Tutorial: Basic03
 #+OPTIONS: ^:nil
 
+In this lesson you will learn about BPF-maps, and in the assignment get
+hands-on experience with extending the "value" size/content, and reading the
+contents from userspace.
+
+We will only cover two simple maps types:
+ - =BPF_MAP_TYPE_ARRAY= and
+ - =BPF_MAP_TYPE_PERCPU_ARRAY=.
+
+* Lesson
+
+** Lesson#1: defining a map
+
+Creating a BPF-map is done by defining a global struct =bpf_map_def= (in
+[[file:xdp_prog_kern.c]]), with a special =SEC("maps")= as below:
+
+#+begin_src C
+struct bpf_map_def SEC("maps") xdp_stats_map = {
+	.type        = BPF_MAP_TYPE_ARRAY,
+	.key_size    = sizeof(__u32),
+	.value_size  = sizeof(struct datarec),
+	.max_entries = XDP_ACTION_MAX,
+};
+#+end_src
+
+BPF-maps are basically a generic *key-value* stores (see =key_size= and
+=value_size=), with a given =type=, and maximum allowed entries
+=max_entries=. Here we focus on the simple =BPF_MAP_TYPE_ARRAY=, which means
+=max_entries= gets allocated when map is created.
+
+The BPF-map is both accessible from BPF-prog (kernel) side and userspace.
+How this is done and how they differ is part of this lesson.
+
+** Lesson#2: libbpf map ELF relocation
+
+The libbpf library (fortunately) handles ELF-object decoding and map
+references relocation, when the map is referenced from the BPF code.
+
+It is worth pointing out that everything goes through the bpf-syscall. This
+means that libbpf /must/ create the maps and programs with separate
+invocations of the bpf-syscall. Then how can a BPF-prog reference a BPF-map?
+This happen via first loading all the BPF-maps, and get back their
+corresponding file-descriptor (FD). Then the ELF-relocation table is used
+for identifying when the BPF-prog reference a given map, and then rewrite
+those BPF-byte-code instructions to use the map FD, before loading BPF-prog
+into the kernel.
+
+** Lesson#3: bpf_object to bpf_map
+
+As you learned in [[file:../basic02-prog-by-name/][basic02]] the libbpf API have "objects" and functions
+working on/with these objects. The struct =bpf_object= represents ELF object
+itself (which is returned from our =load_bpf_and_xdp_attach()= function).
+
+In our function find_map_fd() (in [[file:xdp_load_and_stats.c]]) the function
+=bpf_object__find_map_by_name()= is used for finding the =bpf_map= object
+with a given name. (Note, the length of the map name is provided by ELF and
+is longer than what the name kernel stores, after loading it). Next step is
+obtaining the map file-descriptor (FD) via =bpf_map__fd()=. There is also a
+libbpf function that wrap these two steps, which is called
+=bpf_object__find_map_fd_by_name()=.
+
+** Lesson#4: read map-value from userspace
+
+The contents of the map is read from userspace via the function
+=bpf_map_lookup_elem()=, which is a simple syscall-wrapper, that operate on
+the map file-descriptor (FD), lookup the =key= and store the value into the
+memory area supplied by the value pointer. It is userspace own
+responsibility to known what map it is reading and know the value size, and
+thus have allocated memory large enough to store the value. In our example
+we demonstrate how userspace can query the map-FD and get back some info in
+struct =bpf_map_info= via syscall-wrapper =bpf_obj_get_info_by_fd()=.
+
+The program =xdp_load_and_stats= will periodically read the xdp_stats_map
+value and produce some stats.
+
 
 * Assignments
 
