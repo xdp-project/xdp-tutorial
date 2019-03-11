@@ -10,6 +10,8 @@ the *libbpf API*.
 - [[#lessons-using-libbpf][Lessons using libbpf]]
   - [[#lesson1-bpf_object][Lesson#1: bpf_object]]
   - [[#lesson2-bpf_object-to-bpf_program][Lesson#2: bpf_object to bpf_program]]
+- [[#assignments][Assignments]]
+  - [[#assignment1-setup-testlab][Assignment#1: Setup testlab]]
 
 * Lessons using libbpf
 
@@ -23,7 +25,7 @@ The corresponding object struct's are:
  - struct =bpf_map=
 
 These structs are for libbpf internal use, and you must use the API
-functions to interact with the objects. Functionz that work with an object
+functions to interact with the objects. Functions that work with an object
 have the struct name plus double underscore, and then part that describes
 function purpose.
 
@@ -44,4 +46,38 @@ In [[file:xdp_loader.c]] the function =__load_bpf_and_xdp_attach()= use
 name, not the C-function name. This returns an struct =bpf_program= object,
 and we use the function =bpf_program__fd()= is used for getting the
 file-descriptor that we want to attach to the XDP hook.
+
+* Assignments
+
+** Assignment#1: Setup testlab
+
+As this lesson involves loading and selecting an XDP program that simply
+drops all packets (via action =XDP_DROP=), you need to establish a testlab
+environment. In the directory [[file:../testenv/][testenv/]] there is a script =testenv.sh= that
+helps you setup a testlab based on =veth= and network namespaces.
+
+E.g. run the script like:
+#+begin_example sh
+$ sudo ./testenv.sh --name veth-basic0 setup
+Setting up new environment 'veth-basic02'
+Setup environment 'veth-basic02' with peer ip fc00:dead:cafe:1::2.
+#+end_example
+
+This result in the creation of an (outer) interface named: =veth-basic02=.
+You can test that the environment network is operational by pinging the IPv6
+address =fc00:dead:cafe:1::2=.
+
+The assignment is to manually load the compiled xdp program in ELF-OBJ file
+=xdp_prog_kern.o=, using the =xdp_loader= program in this directory. Observe
+the available options you can give the xdp_loader via =--help=. Try to
+select the program section named =xdp_drop= via =--progsec=.
+
+Here are some example commands:
+#+begin_example sh
+sudo ./xdp_loader --help
+sudo ./xdp_loader --dev veth-basic02
+sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_drop
+sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_pass
+#+end_example
+
 
