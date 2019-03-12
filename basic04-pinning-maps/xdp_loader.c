@@ -64,12 +64,56 @@ static const struct option_wrapper long_options[] = {
 #endif
 
 const char *pin_basedir =  "/sys/fs/bpf";
+const char *map_name    =  "xdp_stats_map";
+
+/* Pinning maps under /sys/fs/bpf in subdir */
+int pin_maps_in_bpf_object(struct bpf_object *bpf_obj, const char *subdir)
+{
+	char map_filename[PATH_MAX];
+	char pin_dir[PATH_MAX];
+	int err, len;
+
+	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, subdir);
+	if (len < 0) {
+		fprintf(stderr, "ERR: creating pin dirname\n");
+		return EXIT_FAIL_OPTION;
+	}
+
+	len = snprintf(map_filename, PATH_MAX, "%s/%s/%s",
+		       pin_basedir, subdir, map_name);
+	if (len < 0) {
+		fprintf(stderr, "ERR: creating map_name\n");
+		return EXIT_FAIL_OPTION;
+	}
+
+	/* Existing/previous XDP prog might not have cleaned up */
+	if (access(map_filename, F_OK ) != -1 ) {
+		if (verbose)
+			printf(" - Unpinning (remove) prev maps in %s/\n",
+			       pin_dir);
+
+		/* Basically calls unlink(3) on map_filename */
+		err = bpf_object__unpin_maps(bpf_obj, pin_dir);
+		if (err) {
+			fprintf(stderr, "ERR: UNpinning maps in %s\n", pin_dir);
+			return EXIT_FAIL_BPF;
+		}
+	}
+	if (verbose)
+		printf(" - Pinning maps in %s/\n", pin_dir);
+
+	/* This will pin all maps in our bpf_object */
+	err = bpf_object__pin_maps(bpf_obj, pin_dir);
+	if (err)
+		return EXIT_FAIL_BPF;
+
+	return 0;
+}
 
 int main(int argc, char **argv)
 {
 	struct bpf_object *bpf_obj;
-	char pin_dir[PATH_MAX];
-	int err, len;
+	int err;
 
 	struct config cfg = {
 		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
@@ -87,14 +131,9 @@ int main(int argc, char **argv)
 		usage(argv[0], __doc__, long_options, (argc == 1));
 		return EXIT_FAIL_OPTION;
 	}
-	if (cfg.do_unload)
+	if (cfg.do_unload) {
+		/* TODO: Miss unpin of maps on unload */
 		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
-
-	/* Use the --dev name as subdir for exporting/pinning maps */
-	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, cfg.ifname);
-	if (len < 0) {
-		fprintf(stderr, "ERR: creating pin dirname\n");
-		return EXIT_FAIL_OPTION;
 	}
 
 	bpf_obj = load_bpf_and_xdp_attach(&cfg);
@@ -106,14 +145,13 @@ int main(int argc, char **argv)
 		       cfg.filename, cfg.progsec);
 		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
 		       cfg.ifname, cfg.ifindex);
-		printf(" - Pinning maps in %s/\n", pin_dir);
 	}
 
-	/* This will pin all maps in our bpf_object */
-	err = bpf_object__pin_maps(bpf_obj, pin_dir);
+	/* Use the --dev name as subdir for exporting/pinning maps */
+	err = pin_maps_in_bpf_object(bpf_obj, cfg.ifname);
 	if (err) {
-		fprintf(stderr, "ERR: pinning maps in %s\n", pin_dir);
-		return EXIT_FAIL_BPF;
+		fprintf(stderr, "ERR: pinning maps\n");
+		return err;
 	}
 
 	return EXIT_OK;
