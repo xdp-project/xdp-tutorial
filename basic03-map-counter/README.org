@@ -160,6 +160,15 @@ from =data_end=, and update the datarec member.
 	lock_xadd(&rec->rx_bytes, bytes);
 #+end_src
 
+*** Assignment#1.2: Update userspace prog
+
+Now it is time to update the userspace program reading stats in
+[[file:xdp_load_and_stats.c]].
+
+Update functions:
+ - =map_collect()= to also collect rx_bytes.
+ - =stats_print()= to also print rx_bytes (adjust fmt string)
+
 ** Assignment#2: Handle other XDP actions stats
 
 ** Assignment#3: Per CPU stats
