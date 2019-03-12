@@ -26,12 +26,13 @@ CMD=
 NS=
 XDP_LOADER=./xdp_loader
 LEGACY_IP=0
+USE_VLAN=0
 
 # State variables that are written to and read from statefile
 STATEVARS=(IP6_PREFIX IP4_PREFIX
            INSIDE_IP6 INSIDE_IP4 INSIDE_MAC
            OUTSIDE_IP6 OUTSIDE_IP4 OUTSIDE_MAC
-           ENABLE_IPV4)
+           ENABLE_IPV4 ENABLE_VLAN)
 IP6_PREFIX=
 IP4_PREFIX=
 INSIDE_IP6=
@@ -41,6 +42,7 @@ OUTSIDE_IP6=
 OUTSIDE_IP4=
 OUTSIDE_MAC=
 ENABLE_IPV4=0
+ENABLE_VLAN=0
 
 die()
 {
@@ -169,6 +171,16 @@ set_sysctls()
     done
 }
 
+get_vlan_prefix()
+{
+    # Split the IPv6 prefix, and add the VLAN ID to the upper byte of the fourth
+    # element in the prefix. This will break if the global prefix config doesn't
+    # have exactly three elements in it.
+    local prefix="$1"
+    local vid="$2"
+    (IFS=:; set -- $prefix; printf "%s:%s:%s:%x::" "$1" "$2" "$3" $(($4 + $vid * 4096)))
+}
+
 setup()
 {
     get_nsname 1
@@ -221,6 +233,26 @@ setup()
         ENABLE_IPV4=0
     fi
 
+    if [ "$USE_VLAN" -eq "1" ]; then
+        ENABLE_VLAN=1
+        for vid in "${VLAN_IDS[@]}"; do
+            local vlpx="$(get_vlan_prefix "$IP6_PREFIX" "$vid")"
+            local inside_ip="${vlpx}2"
+            local outside_ip="${vlpx}1"
+            ip link add dev "${NS}.$vid" link "$NS" type vlan id "$vid"
+            ip link set dev "${NS}.$vid" up
+            ip addr add dev "${NS}.$vid" "${outside_ip}/${IP6_PREFIX_SIZE}"
+            ip neigh add "$inside_ip" lladdr "$INSIDE_MAC" dev "${NS}.$vid" nud permanent
+
+            ip -n "$NS" link add dev "veth0.$vid" link "veth0" type vlan id "$vid"
+            ip -n "$NS" link set dev "veth0.$vid" up
+            ip -n "$NS" addr add dev "veth0.$vid" "${inside_ip}/${IP6_PREFIX_SIZE}"
+            ip -n "$NS" neigh add "$outside_ip" lladdr "$OUTSIDE_MAC" dev "veth0.$vid" nud permanent
+        done
+    else
+        ENABLE_VLAN=0
+    fi
+
     write_statefile
 
     CLEANUP_FUNC=
@@ -228,7 +260,7 @@ setup()
     echo -n "Setup environment '$NS' with peer ip ${INSIDE_IP6}"
     [ "$ENABLE_IPV4" -eq "1" ] && echo " and ${INSIDE_IP4}." || echo "."
     echo ""
-    LEGACY_IP=0 run_ping -c 1
+    LEGACY_IP=0 USE_VLAN=0 run_ping -c 1
 
     echo "$NS" > "$STATEDIR/current"
 }
@@ -284,9 +316,14 @@ run_ping()
     if [ "$LEGACY_IP" -eq "1" ]; then
         PING=$(which ping)
         IP="${OUTSIDE_IP4}"
+        [ "$USE_VLAN" -eq "0" ] || die "Can't use --legacy-ip and --vlan at the same time"
     else
         PING=$(which ping6 2>/dev/null || which ping)
-        IP="${OUTSIDE_IP6}"
+        if [ "$USE_VLAN" -eq "0" ]; then
+            IP="${OUTSIDE_IP6}"
+        else
+            IP="$(get_vlan_prefix "$IP6_PREFIX" "${VLAN_IDS[0]}")1"
+        fi
     fi
 
     ns_exec "$PING" "$IP" "$@"
@@ -393,12 +430,20 @@ usage()
     echo "                    For setup and reset commands this enables configuration of legacy"
     echo "                    IP addresses on the interface, for the ping command it switches to"
     echo "                    legacy ping."
+    echo ""
+    echo "    --vlan          Enable VLAN support."
+    echo "                    When used with the setup and reset commands, these VLAN IDs will"
+    echo "                    be configured: ${VLAN_IDS[*]}. The VLAN interfaces are named as"
+    echo "                    <ifname>.<vlid>."
+    echo "                    When used with the ping command, the pings will be sent on the"
+    echo "                    first VLAN ID (${VLAN_IDS[0]})."
+    echo ""
     exit 1
 }
 
 
 OPTS="hn:gl:"
-LONGOPTS="help,name:,gen-new,loader:,legacy-ip"
+LONGOPTS="help,name:,gen-new,loader:,legacy-ip,vlan"
 
 OPTIONS=$(getopt -o "$OPTS" --long "$LONGOPTS" -- "$@")
 [ "$?" -ne "0" ] && usage >&2 || true
@@ -427,6 +472,9 @@ while true; do
             ;;
         --legacy-ip)
             LEGACY_IP=1
+            ;;
+        --vlan)
+            USE_VLAN=1
             ;;
         -- )
             break
