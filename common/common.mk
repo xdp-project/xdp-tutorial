@@ -19,6 +19,9 @@ XDP_OBJ = ${XDP_C:.c=.o}
 USER_C := ${USER_TARGETS:=.c}
 USER_OBJ := ${USER_C:.c=.o}
 
+# Expect this is defined by including Makefile, but define if not
+COMMON_DIR ?= ../common/
+
 COPY_LOADER ?=
 LOADER_DIR := $(COMMON_DIR)/../basic04-pinning-maps
 
@@ -56,11 +59,7 @@ $(COPY_LOADER): $(LOADER_DIR)/${COPY_LOADER:=.c} $(COMMON_H)
 endif
 
 # For build dependency on this file, if it gets updated
-ifdef COMMON_DIR
 COMMON_MK = $(COMMON_DIR)/common.mk
-else
-COMMON_MK = ../common/common.mk
-endif
 
 llvm-check: $(CLANG) $(LLC)
 	@for TOOL in $^ ; do \
