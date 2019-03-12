@@ -43,16 +43,12 @@ int  xdp_stats1_func(struct xdp_md *ctx)
 	/* Calculate packet length */
 	bytes = data_end - data;
 
-	/* Multiple CPUs can access data record. Thus, the accounting needs to
-	 * use an atomic operation.
+	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
+	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
+	 * without atomic operations.
 	 */
-	lock_xadd(&rec->rx_packets, 1);
-	lock_xadd(&rec->rx_bytes, bytes);
-
-        /*
-         * Assignment#3: Avoid the atomic operation
-         * - Hint there is a map type named BPF_MAP_TYPE_PERCPU_ARRAY
-         */
+	rec->rx_packets++;
+	rec->rx_bytes += bytes;
 
 	return XDP_PASS;
 }
