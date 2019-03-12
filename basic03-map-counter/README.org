@@ -82,7 +82,31 @@ value and produce some stats.
 The assignments are have "hint" marks in the code via =Assignment#num=
 comments.
 
-** Assignment#1: Add byte counters
+** Assignment#1: Add bytes counter
+
+The current assignment code only counts packets.  It is your *assignment* to
+extend this to also count bytes.
+
+Notice how BPF-map =xdp_stats_map= used:
+ - =.value_size = sizeof(struct datarec)=
+
+The BPF-map have no knowledge about the data-structure used for the value
+record, it only knows the size. (The [[https://github.com/torvalds/linux/blob/master/Documentation/bpf/btf.rst][BPF Type Format]] ([[https://www.kernel.org/doc/html/latest/bpf/btf.html][BTF]]) is an advanced
+topic, that allow for associating data-struct knowledge via debug info, but
+we ignore that for now). Thus, it is up-to the two-sides (userspace and
+BPF-prog kernel side) to stay in-sync on the content and structure of
+=value=. The hint here on the data-structure used comes from =sizeof(struct
+datarec)=, which indicate that =struct datarec= is used.
+
+This =struct datarec= is defined in the include [[file:common_kern_user.h]] as:
+
+#+begin_src C
+/* This is the data record stored in the map */
+struct datarec {
+	__u64 rx_packets;
+	/* Assignment#1: Add byte counters */
+};
+#+end_src
 
 ** Assignment#2: Handle other XDP actions stats
 
