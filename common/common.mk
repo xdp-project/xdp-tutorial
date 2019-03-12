@@ -5,7 +5,7 @@ CC ?= gcc
 
 XDP_C = ${XDP_TARGETS:=.c}
 XDP_OBJ = ${XDP_C:.c=.o}
-USER_C ?= ${USER_TARGETS:=.c}
+USER_C := ${USER_TARGETS:=.c}
 USER_OBJ := ${USER_C:.c=.o}
 
 COPY_LOADER ?=
