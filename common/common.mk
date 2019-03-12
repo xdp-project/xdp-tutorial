@@ -18,6 +18,9 @@ COMMON_OBJS ?= $(COMMON_DIR)/common_params.o $(COMMON_DIR)/common_user_bpf_xdp.o
 # Create expansions for dependencies
 COMMON_H := ${COMMON_OBJS:.o=.h}
 
+# BPF-prog kern and userspace shares struct via header file:
+KERN_USER_H ?= $(wildcard "common_kern_user.h")
+
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
 LDFLAGS ?= -L$(LIBBPF_DIR)
@@ -75,11 +78,11 @@ $(COMMON_H): %.h: %.c
 $(COMMON_OBJS): %.o: %.h
 	make -C $(COMMON_DIR)
 
-$(USER_TARGETS): %: %.c  $(OBJECT_LIBBPF) Makefile $(COMMON_MK) $(COMMON_OBJS)
+$(USER_TARGETS): %: %.c  $(OBJECT_LIBBPF) Makefile $(COMMON_MK) $(COMMON_OBJS) $(KERN_USER_H)
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
 	 $< $(LIBS)
 
-$(XDP_OBJ): %.o: %.c  Makefile $(COMMON_MK) $(COMMON_H)
+$(XDP_OBJ): %.o: %.c  Makefile $(COMMON_MK) $(KERN_USER_H)
 	$(CLANG) -S \
 	    -target bpf \
 	    -D __BPF_TRACING__ \
