@@ -6,6 +6,8 @@
 *.ko
 *.obj
 *.elf
+*.s
+*.ll
 
 # Linker output
 *.ilk
@@ -50,3 +52,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# The xdp_loader program
+xdp_loader
