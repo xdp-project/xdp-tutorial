@@ -10,4 +10,7 @@ struct bpf_object *load_bpf_and_xdp_attach(struct config *cfg);
 
 const char *action2str(__u32 action);
 
+int check_map_fd_info(int map_fd, struct bpf_map_info *info,
+                      struct bpf_map_info *exp);
+
 #endif /* __COMMON_USER_BPF_XDP_H */

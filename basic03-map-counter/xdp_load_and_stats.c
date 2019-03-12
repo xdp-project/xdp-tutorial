@@ -222,8 +222,8 @@ static void stats_poll(int map_fd, __u32 map_type, int interval)
  * know the value size. Here get bpf_map_info and check if it match our expected
  * values.
  */
-static int check_map_fd_info(int map_fd, struct bpf_map_info *info,
-			     struct bpf_map_info *exp)
+static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
+			       struct bpf_map_info *exp)
 {
 	__u32 info_len = sizeof(*info);
 	int err;
@@ -318,7 +318,7 @@ int main(int argc, char **argv)
 	map_expect.key_size    = sizeof(__u32);
 	map_expect.value_size  = sizeof(struct datarec);
 	map_expect.max_entries = XDP_ACTION_MAX;
-	err = check_map_fd_info(stats_map_fd, &info, &map_expect);
+	err = __check_map_fd_info(stats_map_fd, &info, &map_expect);
 	if (err) {
 		fprintf(stderr, "ERR: map via FD not compatible\n");
 		return err;
