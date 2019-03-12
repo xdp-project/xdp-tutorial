@@ -20,7 +20,7 @@ MAX_NAMELEN=15
 
 # Global state variables that will be set by options etc below
 GENERATE_NEW=0
-NEEDS_CLEANUP=0 # triggers cleanup if 1 when cleanup function runs
+CLEANUP_FUNC=
 STATEFILE=
 CMD=
 NS=
@@ -136,16 +136,7 @@ cleanup_teardown()
 
 cleanup()
 {
-    local cleanup_func=
-    if [ "$NEEDS_CLEANUP" -eq 1 ]; then
-        case "$CMD" in
-            setup|teardown)
-                cleanup_func="cleanup_${CMD}"
-                ;;
-        esac
-    fi
-
-    [ -n "$cleanup_func" ] && $cleanup_func
+    [ -n "$CLEANUP_FUNC" ] && $CLEANUP_FUNC
 
     local statefiles=("$STATEDIR"/*.state)
 
@@ -196,7 +187,7 @@ setup()
     OUTSIDE_IP6="${IP6_PREFIX}1"
     OUTSIDE_IP4="${IP4_PREFIX}1"
 
-    NEEDS_CLEANUP=1
+    CLEANUP_FUNC=cleanup_setup
 
     ip netns add "$NS"
     ip link add dev "$NS" type veth peer name "$PEERNAME"
@@ -232,7 +223,7 @@ setup()
 
     write_statefile
 
-    NEEDS_CLEANUP=0
+    CLEANUP_FUNC=
 
     echo -n "Setup environment '$NS' with peer ip ${INSIDE_IP6}"
     [ "$ENABLE_IPV4" -eq "1" ] && echo " and ${INSIDE_IP4}." || echo "."
@@ -248,7 +239,7 @@ teardown()
 
     echo "Tearing down environment '$NS'"
 
-    NEEDS_CLEANUP=1
+    CLEANUP_FUNC=cleanup_teardown
 
     ip link del dev "$NS"
     ip netns del "$NS"
@@ -260,7 +251,7 @@ teardown()
         [[ "$CUR" == "$NS" ]] && rm -f "$STATEDIR/current"
     fi
 
-    NEEDS_CLEANUP=0
+    CLEANUP_FUNC=
 }
 
 reset()
