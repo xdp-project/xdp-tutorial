@@ -316,12 +316,14 @@ run_ping()
     if [ "$LEGACY_IP" -eq "1" ]; then
         PING=$(which ping)
         IP="${OUTSIDE_IP4}"
-        [ "$USE_VLAN" -eq "0" ] || die "Can't use --legacy-ip and --vlan at the same time"
+        [ "$USE_VLAN" -eq "0" ] || die "Can't use --legacy-ip and --vlan at the same time."
+        [ "$ENABLE_IPV4" -eq "1" ] || die "No legacy IP addresses configured in environment."
     else
         PING=$(which ping6 2>/dev/null || which ping)
         if [ "$USE_VLAN" -eq "0" ]; then
             IP="${OUTSIDE_IP6}"
         else
+            [ "$ENABLE_VLAN" -eq "1" ] || die "No VLANs configured in environment."
             IP="$(get_vlan_prefix "$IP6_PREFIX" "${VLAN_IDS[0]}")1"
         fi
     fi
