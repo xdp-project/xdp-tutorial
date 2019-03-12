@@ -9,7 +9,17 @@
 #include "bpf_helpers.h"
 #include "bpf_endian.h"
 
-static __always_inline struct ethhdr *get_ethhdr(void **nexthdr, void *data_end)
+/* Packet parsing helpers.
+ *
+ * Each helper parses a packet header, including doing bounds checking, and
+ * returns the type of its contents if successful, and -1 otherwise.
+ *
+ * For Ethernet and IP headers, the content type is the type of the payload
+ * (h_proto for Ethernet, nexthdr for IPv6), for ICMP it is the ICMP type field.
+ * All return values are in host byte order.
+ */
+static __always_inline int parse_ethhdr(void **nexthdr, void *data_end,
+					struct ethhdr **ethhdr)
 {
 	struct ethhdr *eth = *nexthdr;
 	int hdrsize = sizeof(*eth);
@@ -18,55 +28,57 @@ static __always_inline struct ethhdr *get_ethhdr(void **nexthdr, void *data_end)
 	 * is after data_end.
 	 */
 	if (*nexthdr + hdrsize > data_end)
-		return NULL;
+		return -1;
 
 	*nexthdr += hdrsize;
-	return eth;
+	*ethhdr = eth;
+
+	return bpf_ntohs(eth->h_proto);
 }
 
-static __always_inline struct ipv6hdr *get_ip6hdr(struct ethhdr *eth,
-						 void **nexthdr,
-						 void *data_end)
+static __always_inline int parse_ip6hdr(void **nexthdr,
+					void *data_end,
+					struct ipv6hdr **ip6hdr)
 {
 	struct ipv6hdr *ip6h = *nexthdr;
-
-	if (eth->h_proto != bpf_htons(ETH_P_IPV6))
-		return NULL;
 
 	/* Pointer-arithmetic bounds check; pointer +1 points to after end of
 	 * thing being pointed to. We will be using this style in the remainder
 	 * of the tutorial.
 	 */
 	if (ip6h + 1 > data_end)
-		return NULL;
+		return -1;
 
 	*nexthdr = ip6h + 1;
-	return ip6h;
+	*ip6hdr = ip6h;
+
+	return ip6h->nexthdr;
 }
 
-static __always_inline struct icmp6hdr *get_icmp6hdr(struct ipv6hdr *ip6h,
-						    void **nexthdr,
-						    void *data_end)
+static __always_inline int parse_icmp6hdr(void **nexthdr,
+					  void *data_end,
+					  struct icmp6hdr **icmp6hdr)
 {
 	struct icmp6hdr *icmp6h = *nexthdr;
 
-	if (ip6h->nexthdr != IPPROTO_ICMPV6)
-		return NULL;
-
 	if (icmp6h + 1 > data_end)
-		return NULL;
+		return -1;
 
 	*nexthdr = icmp6h + 1;
-	return icmp6h;
-}
+	*icmp6hdr = icmp6h;
 
+	return icmp6h->icmp6_type;
+}
 
 SEC("xdp_packet_parser")
 int  xdp_parser_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
-	void *nexthdr = data;
+
+        /* These keep track of the next header type and a pointer to it */
+	void *nh_ptr = data;
+	int nh_type;
 
 	struct ethhdr *eth;
 	struct ipv6hdr *ip6h;
@@ -76,23 +88,22 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 * parsing fails. Each helper function does sanity checking (is the
 	 * header type in the packet correct?), and bounds checking.
 	 */
-	eth = get_ethhdr(&nexthdr, data_end);
-	if (!eth)
+	nh_type = parse_ethhdr(&nh_ptr, data_end, &eth);
+	if (nh_type != ETH_P_IPV6)
 		goto out;
 
-	ip6h = get_ip6hdr(eth, &nexthdr, data_end);
-	if (!ip6h)
+	nh_type = parse_ip6hdr(&nh_ptr, data_end, &ip6h);
+	if (nh_type != IPPROTO_ICMPV6)
 		goto out;
 
-	icmp6h = get_icmp6hdr(ip6h, &nexthdr, data_end);
-	if (!icmp6h)
+	nh_type = parse_icmp6hdr(&nh_ptr, data_end, &icmp6h);
+	if (nh_type != ICMPV6_ECHO_REQUEST)
 		goto out;
 
 	/* Perform the actual function we wanted, namely to drop all
 	 * even-numbered ping packets.
 	 */
-	if (icmp6h->icmp6_type == ICMPV6_ECHO_REQUEST &&
-	    bpf_ntohs(icmp6h->icmp6_sequence) % 2 == 0)
+	if (bpf_ntohs(icmp6h->icmp6_sequence) % 2 == 0)
 		return XDP_DROP;
 
 out:
