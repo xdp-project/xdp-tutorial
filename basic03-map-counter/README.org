@@ -10,6 +10,17 @@ We will only cover two simple maps types:
  - =BPF_MAP_TYPE_ARRAY= and
  - =BPF_MAP_TYPE_PERCPU_ARRAY=.
 
+* Overview of exercise                                                  :TOC:
+- [[#lesson][Lesson]]
+  - [[#lesson1-defining-a-map][Lesson#1: defining a map]]
+  - [[#lesson2-libbpf-map-elf-relocation][Lesson#2: libbpf map ELF relocation]]
+  - [[#lesson3-bpf_object-to-bpf_map][Lesson#3: bpf_object to bpf_map]]
+  - [[#lesson4-read-map-value-from-userspace][Lesson#4: read map-value from userspace]]
+- [[#assignments][Assignments]]
+  - [[#assignment1-add-bytes-counter][Assignment#1: Add bytes counter]]
+  - [[#assignment2-handle-other-xdp-actions-stats][Assignment#2: Handle other XDP actions stats]]
+  - [[#assignment3-per-cpu-stats][Assignment#3: Per CPU stats]]
+
 * Lesson
 
 ** Lesson#1: defining a map
