@@ -82,7 +82,72 @@ value and produce some stats.
 The assignments are have "hint" marks in the code via =Assignment#num=
 comments.
 
-** Assignment#1: Add byte counters
+** Assignment#1: Add bytes counter
+
+The current assignment code only counts packets.  It is your *assignment* to
+extend this to also count bytes.
+
+Notice how BPF-map =xdp_stats_map= used:
+ - =.value_size = sizeof(struct datarec)=
+
+The BPF-map have no knowledge about the data-structure used for the value
+record, it only knows the size. (The [[https://github.com/torvalds/linux/blob/master/Documentation/bpf/btf.rst][BPF Type Format]] ([[https://www.kernel.org/doc/html/latest/bpf/btf.html][BTF]]) is an advanced
+topic, that allow for associating data-struct knowledge via debug info, but
+we ignore that for now). Thus, it is up-to the two-sides (userspace and
+BPF-prog kernel side) to stay in-sync on the content and structure of
+=value=. The hint here on the data-structure used comes from =sizeof(struct
+datarec)=, which indicate that =struct datarec= is used.
+
+This =struct datarec= is defined in the include [[file:common_kern_user.h]] as:
+
+#+begin_src C
+/* This is the data record stored in the map */
+struct datarec {
+	__u64 rx_packets;
+	/* Assignment#1: Add byte counters */
+};
+#+end_src
+
+*** Assignment#1.1: Update BPF-prog
+
+Next step is update BPF-prog kernel side program: [[file:xdp_prog_kern.c]].
+
+To figure out the length of the packet, you need to learn about the context
+variable =*ctx= with type [[https://elixir.bootlin.com/linux/v5.0/ident/xdp_md][=struct xdp_md=]] that the BPF-prog gets a pointer
+to, when invoked by the kernel. This =struct xdp_md= is a little odd, as all
+members have type =__u32=, which is not actually their real data-types, as
+access to this data-structure is remapped by the kernel at BPF-load time
+(the BPF-byte-code instructions are rewritten by [[https://elixir.bootlin.com/linux/latest/ident/xdp_convert_ctx_access][=xdp_convert_ctx_access()=]]
+and [[https://elixir.bootlin.com/linux/latest/ident/xdp_is_valid_access][=xdp_is_valid_access()=]] assign types for the verifier).  Access gets
+remapped to struct =xdp_buff= and also struct =xdp_rxq_info=.
+
+#+begin_src C
+struct xdp_md {
+	// (Note: type __u32 is NOT the real-type)
+	__u32 data;
+	__u32 data_end;
+	__u32 data_meta;
+	/* Below access go through struct xdp_rxq_info */
+	__u32 ingress_ifindex; /* rxq->dev->ifindex */
+	__u32 rx_queue_index;  /* rxq->queue_index */
+};
+#+end_src
+
+First order of business in [[file:xdp_prog_kern.c]], is type-cast the data_end
+and data into void pointers:
+
+#+begin_src C
+	void *data_end = (void *)(long)ctx->data_end;
+	void *data     = (void *)(long)ctx->data;
+#+end_src
+
+Next step is calculating the number of bytes, by simply subtracting =data=
+from =data_end=, and update the datarec member.
+
+#+begin_src C
+	__u64 bytes = data_end - data; /* Calculate packet length */
+	lock_xadd(&rec->rx_bytes, bytes);
+#+end_src
 
 ** Assignment#2: Handle other XDP actions stats
 

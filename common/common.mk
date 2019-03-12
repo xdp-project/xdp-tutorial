@@ -1,12 +1,26 @@
-
+# Common Makefile parts for BPF-building with libbpf
+# --------------------------------------------------
+# SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+#
+# This file should be included from your Makefile like:
+#  COMMON_DIR = ../common/
+#  include $(COMMON_DIR)/common.mk
+#
+# It is expected that you define the variables:
+#  XDP_TARGETS and USER_TARGETS
+# as a space-separated list
+#
 LLC ?= llc
 CLANG ?= clang
 CC ?= gcc
 
 XDP_C = ${XDP_TARGETS:=.c}
 XDP_OBJ = ${XDP_C:.c=.o}
-USER_C ?= ${USER_TARGETS:=.c}
+USER_C := ${USER_TARGETS:=.c}
 USER_OBJ := ${USER_C:.c=.o}
+
+# Expect this is defined by including Makefile, but define if not
+COMMON_DIR ?= ../common/
 
 COPY_LOADER ?=
 LOADER_DIR := $(COMMON_DIR)/../basic04-pinning-maps
@@ -17,6 +31,9 @@ COMMON_OBJS ?= $(COMMON_DIR)/common_params.o $(COMMON_DIR)/common_user_bpf_xdp.o
 
 # Create expansions for dependencies
 COMMON_H := ${COMMON_OBJS:.o=.h}
+
+# BPF-prog kern and userspace shares struct via header file:
+KERN_USER_H ?= $(wildcard "common_kern_user.h")
 
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
@@ -40,6 +57,9 @@ $(COPY_LOADER): $(LOADER_DIR)/${COPY_LOADER:=.c} $(COMMON_H)
 	make -C $(LOADER_DIR) $(COPY_LOADER)
 	cp $(LOADER_DIR)/$(COPY_LOADER) $(COPY_LOADER)
 endif
+
+# For build dependency on this file, if it gets updated
+COMMON_MK = $(COMMON_DIR)/common.mk
 
 llvm-check: $(CLANG) $(LLC)
 	@for TOOL in $^ ; do \
@@ -68,11 +88,11 @@ $(COMMON_H): %.h: %.c
 $(COMMON_OBJS): %.o: %.h
 	make -C $(COMMON_DIR)
 
-$(USER_TARGETS): %: $(USER_C) $(OBJECT_LIBBPF) Makefile $(COMMON_OBJS)
+$(USER_TARGETS): %: %.c  $(OBJECT_LIBBPF) Makefile $(COMMON_MK) $(COMMON_OBJS) $(KERN_USER_H)
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
 	 $< $(LIBS)
 
-$(XDP_OBJ): %.o: %.c  Makefile $(COMMON_H)
+$(XDP_OBJ): %.o: %.c  Makefile $(COMMON_MK) $(KERN_USER_H)
 	$(CLANG) -S \
 	    -target bpf \
 	    -D __BPF_TRACING__ \
