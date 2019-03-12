@@ -171,6 +171,14 @@ Update functions:
 
 ** Assignment#2: Handle other XDP actions stats
 
+Notice how the BPF-map =xdp_stats_map= we defined (in [[#lesson1-defining-a-map][Lesson#1: defining a
+map]]) is an array with more elements =max_entries=XDP_ACTION_MAX=. The idea
+is to keep stats per [[https://elixir.bootlin.com/linux/latest/ident/xdp_action][(enum) xdp_action]], but our program does not take
+advantage of this.
+
+The *assignment* is primarily to extend userspace stats tool (in
+[[file:xdp_load_and_stats.c]] to collect and print these extra stats.
+
 ** Assignment#3: Per CPU stats
 
 Avoid the atomic stats counter, by using another per-CPU array type, and

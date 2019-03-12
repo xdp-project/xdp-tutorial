@@ -154,3 +154,22 @@ struct bpf_object *load_bpf_and_xdp_attach(struct config *cfg)
 
 	return bpf_obj;
 }
+
+#ifndef XDP_ACTION_MAX
+#define XDP_ACTION_MAX (XDP_REDIRECT + 1)
+#endif
+
+static const char *xdp_action_names[XDP_ACTION_MAX] = {
+	[XDP_ABORTED]   = "XDP_ABORTED",
+	[XDP_DROP]      = "XDP_DROP",
+	[XDP_PASS]      = "XDP_PASS",
+	[XDP_TX]        = "XDP_TX",
+	[XDP_REDIRECT]  = "XDP_REDIRECT",
+};
+
+const char *action2str(__u32 action)
+{
+        if (action < XDP_ACTION_MAX)
+                return xdp_action_names[action];
+        return NULL;
+}
