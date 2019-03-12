@@ -389,7 +389,7 @@ usage()
     echo "                    command line options passed after --."
     echo "                    Default: '$XDP_LOADER'"
     echo ""
-    echo "    --legacy-ip     Enable legacy IP (IPv4) addresses on the interfaces."
+    echo "    --legacy-ip     Enable legacy IP (IPv4) support."
     echo "                    For setup and reset commands this enables configuration of legacy"
     echo "                    IP addresses on the interface, for the ping command it switches to"
     echo "                    legacy ping."
