@@ -10,6 +10,17 @@ We will only cover two simple maps types:
  - =BPF_MAP_TYPE_ARRAY= and
  - =BPF_MAP_TYPE_PERCPU_ARRAY=.
 
+* Overview of exercise                                                  :TOC:
+- [[#lesson][Lesson]]
+  - [[#lesson1-defining-a-map][Lesson#1: defining a map]]
+  - [[#lesson2-libbpf-map-elf-relocation][Lesson#2: libbpf map ELF relocation]]
+  - [[#lesson3-bpf_object-to-bpf_map][Lesson#3: bpf_object to bpf_map]]
+  - [[#lesson4-read-map-value-from-userspace][Lesson#4: read map-value from userspace]]
+- [[#assignments][Assignments]]
+  - [[#assignment1-add-bytes-counter][Assignment#1: Add bytes counter]]
+  - [[#assignment2-handle-other-xdp-actions-stats][Assignment#2: Handle other XDP actions stats]]
+  - [[#assignment3-per-cpu-stats][Assignment#3: Per CPU stats]]
+
 * Lesson
 
 ** Lesson#1: defining a map
@@ -113,12 +124,12 @@ struct datarec {
 Next step is update BPF-prog kernel side program: [[file:xdp_prog_kern.c]].
 
 To figure out the length of the packet, you need to learn about the context
-variable =*ctx= with type [[https://elixir.bootlin.com/linux/v5.0/ident/xdp_md][=struct xdp_md=]] that the BPF-prog gets a pointer
+variable =*ctx= with type [[https://elixir.bootlin.com/linux/v5.0/ident/xdp_md][struct xdp_md]] that the BPF-prog gets a pointer
 to, when invoked by the kernel. This =struct xdp_md= is a little odd, as all
 members have type =__u32=, which is not actually their real data-types, as
 access to this data-structure is remapped by the kernel at BPF-load time
-(the BPF-byte-code instructions are rewritten by [[https://elixir.bootlin.com/linux/latest/ident/xdp_convert_ctx_access][=xdp_convert_ctx_access()=]]
-and [[https://elixir.bootlin.com/linux/latest/ident/xdp_is_valid_access][=xdp_is_valid_access()=]] assign types for the verifier).  Access gets
+(the BPF-byte-code instructions are rewritten by [[https://elixir.bootlin.com/linux/latest/ident/xdp_convert_ctx_access][xdp_convert_ctx_access()]]
+and [[https://elixir.bootlin.com/linux/latest/ident/xdp_is_valid_access][xdp_is_valid_access()]] assign types for the verifier).  Access gets
 remapped to struct =xdp_buff= and also struct =xdp_rxq_info=.
 
 #+begin_src C
@@ -149,9 +160,65 @@ from =data_end=, and update the datarec member.
 	lock_xadd(&rec->rx_bytes, bytes);
 #+end_src
 
+*** Assignment#1.2: Update userspace prog
+
+Now it is time to update the userspace program reading stats in
+[[file:xdp_load_and_stats.c]].
+
+Update functions:
+ - =map_collect()= to also collect rx_bytes.
+ - =stats_print()= to also print rx_bytes (adjust fmt string)
+
 ** Assignment#2: Handle other XDP actions stats
+
+Notice how the BPF-map =xdp_stats_map= we defined (in [[#lesson1-defining-a-map][Lesson#1: defining a
+map]]) is an array with more elements =max_entries=XDP_ACTION_MAX=. The idea
+is to keep stats per [[https://elixir.bootlin.com/linux/latest/ident/xdp_action][(enum) xdp_action]], but our program does not take
+advantage of this.
+
+The *assignment* is primarily to extend userspace stats tool (in
+[[file:xdp_load_and_stats.c]] to collect and print these extra stats.
 
 ** Assignment#3: Per CPU stats
 
 Avoid the atomic stats counter, by using another per-CPU array type, and
 move the burden of summing to userspace.
+
+First step is to change map =type= (in [[file:xdp_prog_kern.c]]) to use
+=BPF_MAP_TYPE_PERCPU_ARRAY=. If you only make this change, the userspace
+program will detect this and complain, as we query the map FD for some info
+(via =bpf_obj_get_info_by_fd()=) and e.g. check the map type. Remember it is
+userspace responsibility to make sure the data record for the value is large
+enough.
+
+Next step is writing a function that gets the values per CPU and sum these.
+In the [[file:xdp_load_and_stats.c]]. You can copy paste this, and call it from
+the switch-case statement in function =map_collect()=:
+
+#+begin_src C
+/* BPF_MAP_TYPE_PERCPU_ARRAY */
+void map_get_value_percpu_array(int fd, __u32 key, struct datarec *value)
+{
+	/* For percpu maps, userspace gets a value per possible CPU */
+	unsigned int nr_cpus = bpf_num_possible_cpus();
+	struct datarec values[nr_cpus];
+	__u64 sum_bytes = 0;
+	__u64 sum_pkts = 0;
+	int i;
+
+	if ((bpf_map_lookup_elem(fd, &key, values)) != 0) {
+		fprintf(stderr,
+			"ERR: bpf_map_lookup_elem failed key:0x%X\n", key);
+		return;
+	}
+
+	/* Sum values from each CPU */
+	for (i = 0; i < nr_cpus; i++) {
+		sum_pkts  += values[i].rx_packets;
+		sum_bytes += values[i].rx_bytes;
+	}
+	value->rx_packets = sum_pkts;
+	value->rx_bytes   = sum_bytes;
+}
+#+end_src
+
