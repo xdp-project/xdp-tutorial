@@ -1,4 +1,15 @@
-
+# Common Makefile parts for BPF-building with libbpf
+# --------------------------------------------------
+# SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+#
+# This file should be included from your Makefile like:
+#  COMMON_DIR = ../common/
+#  include $(COMMON_DIR)/common.mk
+#
+# It is expected that you define the variables:
+#  XDP_TARGETS and USER_TARGETS
+# as a space-separated list
+#
 LLC ?= llc
 CLANG ?= clang
 CC ?= gcc
