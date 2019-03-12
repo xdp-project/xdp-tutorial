@@ -22,7 +22,9 @@
 #include <stddef.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
+#include <linux/ip.h>
 #include <linux/ipv6.h>
+#include <linux/icmp.h>
 #include <linux/icmpv6.h>
 
 /*
@@ -96,6 +98,28 @@ static __always_inline int parse_ip6hdr(void **nexthdr,
 	return ip6h->nexthdr;
 }
 
+static __always_inline int parse_iphdr(void **nexthdr,
+                                       void *data_end,
+                                       struct iphdr **iphdr)
+{
+	struct iphdr *iph = *nexthdr;
+	int hdrsize;
+
+	if (iph + 1 > data_end)
+		return -1;
+
+        hdrsize = iph->ihl * 4;
+
+        /* Variable-length IPv4 header, need to use byte-based arithmetic */
+        if (*nexthdr + hdrsize > data_end)
+                return -1;
+
+	*nexthdr += hdrsize;
+	*iphdr = iph;
+
+	return iph->protocol;
+}
+
 static __always_inline int parse_icmp6hdr(void **nexthdr,
 					  void *data_end,
 					  struct icmp6hdr **icmp6hdr)
@@ -109,6 +133,21 @@ static __always_inline int parse_icmp6hdr(void **nexthdr,
 	*icmp6hdr = icmp6h;
 
 	return icmp6h->icmp6_type;
+}
+
+static __always_inline int parse_icmphdr(void **nexthdr,
+                                         void *data_end,
+                                         struct icmphdr **icmphdr)
+{
+	struct icmphdr *icmph = *nexthdr;
+
+	if (icmph + 1 > data_end)
+		return -1;
+
+	*nexthdr = icmph + 1;
+	*icmphdr = icmph;
+
+	return icmph->type;
 }
 
 static __always_inline struct ethhdr *get_ethhdr(void **nexthdr, void *data_end)
