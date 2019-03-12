@@ -14,7 +14,7 @@ umask 077
 
 source "$(dirname "$0")/config.sh"
 
-NEEDED_TOOLS="ethtool ip tc"
+NEEDED_TOOLS="ethtool ip tc ping"
 MAX_NAMELEN=15
 
 
@@ -25,14 +25,22 @@ STATEFILE=
 CMD=
 NS=
 XDP_LOADER=./xdp_loader
+LEGACY_IP=0
 
 # State variables that are written to and read from statefile
-STATEVARS="PREFIX INSIDE_IP INSIDE_MAC OUTSIDE_IP OUTSIDE_MAC"
-PREFIX=
-INSIDE_IP=
+STATEVARS=(IP6_PREFIX IP4_PREFIX
+           INSIDE_IP6 INSIDE_IP4 INSIDE_MAC
+           OUTSIDE_IP6 OUTSIDE_IP4 OUTSIDE_MAC
+           ENABLE_IPV4)
+IP6_PREFIX=
+IP4_PREFIX=
+INSIDE_IP6=
+INSIDE_IP4=
 INSIDE_MAC=
-OUTSIDE_IP=
+OUTSIDE_IP6=
+OUTSIDE_IP4=
 OUTSIDE_MAC=
+ENABLE_IPV4=0
 
 die()
 {
@@ -97,7 +105,7 @@ write_statefile()
 {
     [ -z "$STATEFILE" ] && return 1
     echo > "$STATEFILE"
-    for var in $STATEVARS; do
+    for var in "${STATEVARS[@]}"; do
         echo "${var}='$(eval echo '$'$var)'" >> "$STATEFILE"
     done
 }
@@ -105,7 +113,7 @@ write_statefile()
 read_statefile()
 {
     local value
-    for var in $STATEVARS; do
+    for var in "${STATEVARS[@]}"; do
         value=$(source "$STATEFILE"; eval echo '$'$var)
         eval "$var=\"$value\""
     done
@@ -180,10 +188,13 @@ setup()
 
     local NUM=$(get_num "$NS")
     local PEERNAME="testl-ve-$NUM"
-    [ -z "$PREFIX" ] && PREFIX="${IP_SUBNET}:${NUM}::"
+    [ -z "$IP6_PREFIX" ] && IP6_PREFIX="${IP6_SUBNET}:${NUM}::"
+    [ -z "$IP4_PREFIX" ] && IP4_PREFIX="${IP4_SUBNET}.${NUM}."
 
-    INSIDE_IP="${PREFIX}2"
-    OUTSIDE_IP="${PREFIX}1"
+    INSIDE_IP6="${IP6_PREFIX}2"
+    INSIDE_IP4="${IP4_PREFIX}2"
+    OUTSIDE_IP6="${IP6_PREFIX}1"
+    OUTSIDE_IP4="${IP4_PREFIX}1"
 
     NEEDS_CLEANUP=1
 
@@ -197,25 +208,36 @@ setup()
     ethtool -K "$PEERNAME" rxvlan off txvlan off
     ip link set dev "$PEERNAME" netns "$NS"
     ip link set dev "$NS" up
-    ip addr add dev "$NS" "${OUTSIDE_IP}/${IP_PREFIX_SIZE}"
+    ip addr add dev "$NS" "${OUTSIDE_IP6}/${IP6_PREFIX_SIZE}"
 
     ip -n "$NS" link set dev "$PEERNAME" name veth0
     ip -n "$NS" link set dev lo up
     ip -n "$NS" link set dev veth0 up
     set_sysctls veth0 "$NS"
-    ip -n "$NS" addr add dev veth0 "${INSIDE_IP}/${IP_PREFIX_SIZE}"
+    ip -n "$NS" addr add dev veth0 "${INSIDE_IP6}/${IP6_PREFIX_SIZE}"
 
     # Prevent neighbour queries on the link
-    ip neigh add "$INSIDE_IP" lladdr "$INSIDE_MAC" dev "$NS" nud permanent
-    ip -n "$NS" neigh add "$OUTSIDE_IP" lladdr "$OUTSIDE_MAC" dev veth0 nud permanent
+    ip neigh add "$INSIDE_IP6" lladdr "$INSIDE_MAC" dev "$NS" nud permanent
+    ip -n "$NS" neigh add "$OUTSIDE_IP6" lladdr "$OUTSIDE_MAC" dev veth0 nud permanent
+
+    if [ "$LEGACY_IP" -eq "1" ]; then
+        ip addr add dev "$NS" "${OUTSIDE_IP4}/${IP4_PREFIX_SIZE}"
+        ip -n "$NS" addr add dev veth0 "${INSIDE_IP4}/${IP4_PREFIX_SIZE}"
+        ip neigh add "$INSIDE_IP4" lladdr "$INSIDE_MAC" dev "$NS" nud permanent
+        ip -n "$NS" neigh add "$OUTSIDE_IP4" lladdr "$OUTSIDE_MAC" dev veth0 nud permanent
+        ENABLE_IPV4=1
+    else
+        ENABLE_IPV4=0
+    fi
 
     write_statefile
 
     NEEDS_CLEANUP=0
 
-    echo "Setup environment '$NS' with peer ip ${INSIDE_IP}."
+    echo -n "Setup environment '$NS' with peer ip ${INSIDE_IP6}"
+    [ "$ENABLE_IPV4" -eq "1" ] && echo " and ${INSIDE_IP4}." || echo "."
     echo ""
-    run_ping -c 1
+    LEGACY_IP=0 run_ping -c 1
 
     echo "$NS" > "$STATEDIR/current"
 }
@@ -260,12 +282,23 @@ enter()
 
 run_ping()
 {
+    local PING
+    local IP
+
     get_nsname && ensure_nsname "$NS"
 
     echo "Running ping from inside test environment:"
     echo ""
 
-    ns_exec ping "${OUTSIDE_IP}" "$@"
+    if [ "$LEGACY_IP" -eq "1" ]; then
+        PING=$(which ping)
+        IP="${OUTSIDE_IP4}"
+    else
+        PING=$(which ping6 2>/dev/null || which ping)
+        IP="${OUTSIDE_IP6}"
+    fi
+
+    ns_exec "$PING" "$IP" "$@"
 }
 
 status()
@@ -275,9 +308,10 @@ status()
     echo "Currently selected environment: ${NS:-None}"
     if [ -n "$NS" ] && [ -e "$STATEFILE" ]; then
         read_statefile
-        echo -n "  Namespace: "; ip netns | grep "^$NS"
-        echo    "  Prefix:    ${PREFIX}/${IP_PREFIX_SIZE}"
-        echo -n "  Iface:     "; ip -br a show dev "$NS" | sed 's/\s\+/ /g'
+        echo -n "  Namespace:      "; ip netns | grep "^$NS"
+        echo    "  Prefix:         ${IP6_PREFIX}/${IP6_PREFIX_SIZE}"
+        [ "$ENABLE_IPV4" -eq "1" ] && echo    "  Legacy prefix:  ${IP4_PREFIX}0/${IP4_PREFIX_SIZE}"
+        echo -n "  Iface:          "; ip -br a show dev "$NS" | sed 's/\s\+/ /g'
     fi
     echo ""
 
@@ -363,12 +397,17 @@ usage()
     echo "                    Device name will be passed to it, along with any additional"
     echo "                    command line options passed after --."
     echo "                    Default: '$XDP_LOADER'"
+    echo ""
+    echo "    --legacy-ip     Enable legacy IP (IPv4) addresses on the interfaces."
+    echo "                    For setup and reset commands this enables configuration of legacy"
+    echo "                    IP addresses on the interface, for the ping command it switches to"
+    echo "                    legacy ping."
     exit 1
 }
 
 
 OPTS="hn:gl:"
-LONGOPTS="help,name:,gen-new,loader:"
+LONGOPTS="help,name:,gen-new,loader:,legacy-ip"
 
 OPTIONS=$(getopt -o "$OPTS" --long "$LONGOPTS" -- "$@")
 [ "$?" -ne "0" ] && usage >&2 || true
@@ -394,6 +433,9 @@ while true; do
             ;;
         -g | --gen-new)
             GENERATE_NEW=1
+            ;;
+        --legacy-ip)
+            LEGACY_IP=1
             ;;
         -- )
             break
