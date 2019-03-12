@@ -41,6 +41,13 @@ $(COPY_LOADER): $(LOADER_DIR)/${COPY_LOADER:=.c} $(COMMON_H)
 	cp $(LOADER_DIR)/$(COPY_LOADER) $(COPY_LOADER)
 endif
 
+# For build dependency on this file, if it gets updated
+ifdef COMMON_DIR
+COMMON_MK = $(COMMON_DIR)/common.mk
+else
+COMMON_MK = ../common/common.mk
+endif
+
 llvm-check: $(CLANG) $(LLC)
 	@for TOOL in $^ ; do \
 		if [ ! $$(command -v $${TOOL} 2>/dev/null) ]; then \
@@ -68,11 +75,11 @@ $(COMMON_H): %.h: %.c
 $(COMMON_OBJS): %.o: %.h
 	make -C $(COMMON_DIR)
 
-$(USER_TARGETS): %: %.c  $(OBJECT_LIBBPF) Makefile $(COMMON_OBJS)
+$(USER_TARGETS): %: %.c  $(OBJECT_LIBBPF) Makefile $(COMMON_MK) $(COMMON_OBJS)
 	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
 	 $< $(LIBS)
 
-$(XDP_OBJ): %.o: %.c  Makefile $(COMMON_H)
+$(XDP_OBJ): %.o: %.c  Makefile $(COMMON_MK) $(COMMON_H)
 	$(CLANG) -S \
 	    -target bpf \
 	    -D __BPF_TRACING__ \
