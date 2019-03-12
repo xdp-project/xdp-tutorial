@@ -55,8 +55,10 @@ static __u32 get_map_fd_type(int map_fd)
 		exit(EXIT_FAIL_BPF) ;
 	}
 	if (verbose)
-		printf(" - BPF map (bpf_map_type:%d) id:%d name:%s\n",
-		       info.type, info.id, info.name);
+		printf(" - BPF map (bpf_map_type:%d) id:%d name:%s"
+		       " value_size:%d\n",
+		       info.type, info.id, info.name,
+		       info.value_size);
 
 	return info.type;
 }
