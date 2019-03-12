@@ -21,6 +21,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "common_kern_user.h"
+#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 static const char *default_filename = "xdp_prog_kern.o";
 static const char *default_progsec = "xdp_stats1";
@@ -162,12 +163,23 @@ static void stats_print(struct stats_record *stats_rec,
 	}
 }
 
+/* BPF_MAP_TYPE_ARRAY */
 void map_get_value_array(int fd, __u32 key, struct datarec *value)
 {
 	if ((bpf_map_lookup_elem(fd, &key, value)) != 0) {
 		fprintf(stderr,
 			"ERR: bpf_map_lookup_elem failed key:0x%X\n", key);
 	}
+}
+
+/* BPF_MAP_TYPE_PERCPU_ARRAY */
+void map_get_value_percpu_array(int fd, __u32 key, struct datarec *value)
+{
+	/* For percpu maps, userspace gets a value per possible CPU */
+	unsigned int nr_cpus = bpf_num_possible_cpus();
+	struct datarec values[nr_cpus];
+
+	fprintf(stderr, "ERR: %s() not impl. see assignment#3", __func__);
 }
 
 static bool map_collect(int fd, __u32 map_type, __u32 key, struct record *rec)
