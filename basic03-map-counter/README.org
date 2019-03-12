@@ -124,12 +124,12 @@ struct datarec {
 Next step is update BPF-prog kernel side program: [[file:xdp_prog_kern.c]].
 
 To figure out the length of the packet, you need to learn about the context
-variable =*ctx= with type [[https://elixir.bootlin.com/linux/v5.0/ident/xdp_md][=struct xdp_md=]] that the BPF-prog gets a pointer
+variable =*ctx= with type [[https://elixir.bootlin.com/linux/v5.0/ident/xdp_md][struct xdp_md]] that the BPF-prog gets a pointer
 to, when invoked by the kernel. This =struct xdp_md= is a little odd, as all
 members have type =__u32=, which is not actually their real data-types, as
 access to this data-structure is remapped by the kernel at BPF-load time
-(the BPF-byte-code instructions are rewritten by [[https://elixir.bootlin.com/linux/latest/ident/xdp_convert_ctx_access][=xdp_convert_ctx_access()=]]
-and [[https://elixir.bootlin.com/linux/latest/ident/xdp_is_valid_access][=xdp_is_valid_access()=]] assign types for the verifier).  Access gets
+(the BPF-byte-code instructions are rewritten by [[https://elixir.bootlin.com/linux/latest/ident/xdp_convert_ctx_access][xdp_convert_ctx_access()]]
+and [[https://elixir.bootlin.com/linux/latest/ident/xdp_is_valid_access][xdp_is_valid_access()]] assign types for the verifier).  Access gets
 remapped to struct =xdp_buff= and also struct =xdp_rxq_info=.
 
 #+begin_src C
