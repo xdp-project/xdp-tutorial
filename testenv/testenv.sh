@@ -27,6 +27,7 @@ NS=
 XDP_LOADER=./xdp_loader
 LEGACY_IP=0
 USE_VLAN=0
+RUN_ON_INNER=0
 
 # State variables that are written to and read from statefile
 STATEVARS=(IP6_PREFIX IP4_PREFIX
@@ -331,6 +332,17 @@ run_ping()
     ns_exec "$PING" "$IP" "$@"
 }
 
+run_tcpdump()
+{
+    get_nsname && ensure_nsname "$NS"
+
+    if [ "$RUN_ON_INNER" -eq "1" ]; then
+        ns_exec tcpdump -nei veth0 "$@"
+    else
+        tcpdump -nei "$NS" "$@"
+    fi
+}
+
 status()
 {
     get_nsname
@@ -407,6 +419,7 @@ usage()
     echo "status (or st)      Show status of test environment"
     echo "load                Load XDP program on outer interface"
     echo "unload              Unload XDP program on outer interface"
+    echo "tcpdump             Run on outer interface (or inner with --inner)"
     echo ""
 
     if [ -z "$FULL" ] ; then
@@ -440,12 +453,14 @@ usage()
     echo "                    When used with the ping command, the pings will be sent on the"
     echo "                    first VLAN ID (${VLAN_IDS[0]})."
     echo ""
+    echo "    --inner         Use with tcpdump command to run on inner interface."
+    echo ""
     exit 1
 }
 
 
 OPTS="hn:gl:"
-LONGOPTS="help,name:,gen-new,loader:,legacy-ip,vlan"
+LONGOPTS="help,name:,gen-new,loader:,legacy-ip,vlan,inner"
 
 OPTIONS=$(getopt -o "$OPTS" --long "$LONGOPTS" -- "$@")
 [ "$?" -ne "0" ] && usage >&2 || true
@@ -478,6 +493,9 @@ while true; do
         --vlan)
             USE_VLAN=1
             ;;
+        --inner)
+            RUN_ON_INNER=1
+            ;;
         -- )
             break
             ;;
@@ -499,8 +517,8 @@ case "$1" in
     "exec")
         CMD=ns_exec
         ;;
-    "ping")
-        CMD=run_ping
+    ping|tcpdump)
+        CMD="run_$1"
         ;;
     "alias")
         print_alias
