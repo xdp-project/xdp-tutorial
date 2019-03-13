@@ -10,6 +10,7 @@ the *libbpf API*.
 - [[#lessons-using-libbpf][Lessons using libbpf]]
   - [[#lesson1-bpf_object][Lesson#1: bpf_object]]
   - [[#lesson2-bpf_object-to-bpf_program][Lesson#2: bpf_object to bpf_program]]
+  - [[#lesson3-hardware-offloading][Lesson#3: Hardware offloading]]
 - [[#assignments][Assignments]]
   - [[#assignment1-setup-testlab][Assignment#1: Setup testlab]]
   - [[#assignment2-add-xdp_abort-program][Assignment#2: Add xdp_abort program]]
@@ -47,6 +48,19 @@ In [[file:xdp_loader.c]] the function =__load_bpf_and_xdp_attach()= use
 name, not the C-function name. This returns an struct =bpf_program= object,
 and we use the function =bpf_program__fd()= is used for getting the
 file-descriptor that we want to attach to the XDP hook.
+
+** Lesson#3: Hardware offloading
+
+XDP can also be hardware offloaded to capable NICs.
+
+The XDP-flag XDP_FLAGS_HW_MODE enables/request hardware offloading, and is
+set with long-option =--offload-mode=. The [[file:xdp_loader.c][loader-code]] also need to use a
+more advanced libbpf API call =bpf_prog_load_xattr()=, which allows us to
+set the ifindex, as this is also needed for HW offloading.
+
+There are some details on how to get hardware offloading working on
+Netronome's Agilio SmartNICs in [[file:xdp_offload_nfp.org]], like updating the
+firmware to support eBPF.
 
 * Assignments
 

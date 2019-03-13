@@ -66,7 +66,7 @@ struct bpf_object *__load_bpf_object_file(const char *filename, int ifindex)
 	struct bpf_object *obj;
 	int err;
 
-	/* Lesson#4: This struct allow us to set ifindex, this features is used
+	/* Lesson#3: This struct allow us to set ifindex, this features is used
 	 * for hardware offloading XDP programs.
 	 */
 	struct bpf_prog_load_attr prog_load_attr = {
