@@ -13,7 +13,7 @@ static const char *__doc__ = "XDP stats program\n"
 #include <time.h>
 
 #include <bpf/bpf.h>
-/* Lesson: this prog does not need to #include <bpf/libbpf.h> as it only uses
+/* Lesson#1: this prog does not need to #include <bpf/libbpf.h> as it only uses
  * the simple bpf-syscall wrappers, defined in libbpf #include<bpf/bpf.h>
  */
 
@@ -225,8 +225,8 @@ int open_bpf_map_file(const char *pin_dir, const char *mapname)
 		return -1;
 	}
 
-	/* Lesson: There is only a weak dependency to libbpf here as bpf_obj_get
-	 * is a simple wrapper around the bpf-syscall
+	/* Lesson#1: There is only a weak dependency to libbpf here as
+	 * bpf_obj_get is a simple wrapper around the bpf-syscall
 	 */
 	fd = bpf_obj_get(filename);
 	if (fd < 0) {
