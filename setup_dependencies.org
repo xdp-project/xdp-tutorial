@@ -123,4 +123,11 @@ On a machine running the Fedora Linux distribution, install package:
 
 ** Packages on Debian/Ubuntu
 
-Unfortunately, bpftool is not currently packaged for Debian/Ubuntu.
+Unfortunately, bpftool is not officially packaged for Debian/Ubuntu
+[[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=896165)][yet]].
+
+However, note that an unofficial
+[[https://help.netronome.com/helpdesk/attachments/36025601060][.deb package]]
+is provided by Netronome
+[[https://help.netronome.com/support/solutions/articles/36000050009-agilio-ebpf-2-0-6-extended-berkeley-packet-filter][on their support website]].
+The binary is statically linked, and should work on any x86-64 Linux machine.
