@@ -25,7 +25,8 @@ UNIX file-descriptor.
   - [[#lesson3-gotchas-with-pinned-maps][Lesson#3: gotchas with pinned maps]]
   - [[#lesson4-deleting-maps-on-xdp-reload][Lesson#4: Deleting maps on XDP-reload]]
 - [[#assignments][Assignments]]
-  - [[#assignment1-reload-map-file-descriptor][Assignment#1: reload map file-descriptor]]
+  - [[#assignment1-xdp_statsc-reload-map-file-descriptor][Assignment#1: (xdp_stats.c) reload map file-descriptor]]
+  - [[#assignment2-xdp_loaderc-reuse-pinned-map][Assignment#2: (xdp_loader.c) reuse pinned map]]
 
 * Solutions to basic03 assignments
 
@@ -102,7 +103,9 @@ applications it could be a problem that the counters reset to zero for the
 different stats tools. Even for our split =xdp_stats= program it is
 annoying, as you must remember to restart the =xdp_stats= tool, after
 reloading via =xdp_loader=, else it will be watching the wrong FD.
-(See assignment#1 for workaround)
+(See [[#assignment1-xdp_statsc-reload-map-file-descriptor][Assignment#1]] for workaround)
+
+*** Lesson#4.1: libbpf reuse map
 
 The libbpf library can *reuse and replace* a map with an existing map
 file-descriptor, via the libbpf API call: =bpf_map__reuse_fd()=. But you
@@ -111,15 +114,18 @@ as you need a step in-between =bpf_object__open()= and =bpf_object__load=.
 The basic steps needed looks like:
 
 #+begin_src C
-	struct bpf_object *obj = bpf_object__open(filename);
-	struct bpf_map    *map = bpf_object__find_map_by_name(obj, mapname);
-	bpf_map__reuse_fd(map, fd_from_pinned_map);
-	bpf_object__load(obj);
+ int pinned_map_fd = bpf_obj_get("/sys/fs/bpf/veth0/xdp_stats_map");
+ struct bpf_object *obj = bpf_object__open(cfg.filename);
+ struct bpf_map    *map = bpf_object__find_map_by_name(obj, "xdp_stats_map");
+ bpf_map__reuse_fd(map, pinned_map_fd);
+ bpf_object__load(obj);
 #+end_src
+
+(Hint: see [[#assignment2-xdp_loaderc-reuse-pinned-map][Assignment#2]])
 
 * Assignments
 
-** Assignment#1: reload map file-descriptor
+** Assignment#1: (xdp_stats.c) reload map file-descriptor
 
 As mentioned in Lesson#4, the =xdp_stats= tool will not detect if
 =xdp_loader= loads new maps and new BPF-prog, and will need to be restarted.
@@ -131,3 +137,13 @@ map file each time, but how do you detect that the file changed. If you
 don't detect this is a new map, then the stats diff between two measurements
 will be negative. Think about solutions were you remember/use the ID number
 to detect changes, either via the map ID or XDP BPF-prog ID.
+
+** Assignment#2: (xdp_loader.c) reuse pinned map
+
+As mentioned in Lesson#4.1, libbpf can reuse and replace a map with an
+existing map, it just requires open coding =bpf_prog_load()= (or
+=bpf_prog_load_xattr=).
+
+The *assignment* is to in [[file:xdp_loader.c][xdp_loader]] check if there is already a pinned
+version of the map "xdp_stats_map" and use libbpf =bpf_map__reuse_fd()= API
+to reuse it, instead of creating a new map.
