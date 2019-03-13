@@ -17,3 +17,8 @@ file-descriptor to the BPF-map, that we want to read from. Access to a
 BPF_map still goes through the BPF-syscall, but the handle is a standard
 UNIX file-descriptor.
 
+* Solutions to basic03 assignments
+
+The assignments in [[file:../basic03-map-counter][basic03]] have been "solved" or implemented in this basic04
+lesson. Thus, this functions as the reference solution for basic03.
+
