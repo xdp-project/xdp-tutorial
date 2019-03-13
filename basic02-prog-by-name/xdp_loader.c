@@ -37,6 +37,9 @@ static const struct option_wrapper long_options[] = {
 	{{"auto-mode",   no_argument,		NULL, 'A' },
 	 "Auto-detect SKB or native mode"},
 
+	{{"offload-mode",no_argument,		NULL, 3 },
+	 "Hardware offload XDP program to NIC"},
+
 	{{"force",       no_argument,		NULL, 'F' },
 	 "Force install, replacing existing program on interface"},
 
