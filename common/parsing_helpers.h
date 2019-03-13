@@ -39,6 +39,12 @@ struct vlan_hdr {
 
 #define VLAN_MAX_DEPTH 5
 
+static __always_inline int proto_is_vlan(__u16 h_proto)
+{
+        return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
+                  h_proto == bpf_htons(ETH_P_8021AD));
+}
+
 static __always_inline int parse_ethhdr(void **nexthdr, void *data_end,
 					struct ethhdr **ethhdr)
 {
@@ -64,8 +70,7 @@ static __always_inline int parse_ethhdr(void **nexthdr, void *data_end,
          */
         #pragma unroll
         for (i = 0; i < VLAN_MAX_DEPTH; i++) {
-                if (!(h_proto == bpf_htons(ETH_P_8021Q) ||
-                      h_proto == bpf_htons(ETH_P_8021AD)))
+                if (!proto_is_vlan(h_proto))
                         break;
 
                 if (vlh + 1 > data_end)
