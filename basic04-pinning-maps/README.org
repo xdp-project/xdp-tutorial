@@ -21,6 +21,7 @@ UNIX file-descriptor.
 - [[#solutions-to-basic03-assignments][Solutions to basic03 assignments]]
 - [[#lessons][Lessons]]
   - [[#lesson1-bpf-syscall-wrappers][Lesson#1: bpf-syscall wrappers]]
+  - [[#lesson2-mount-bpf-file-system][Lesson#2: mount BPF file-system]]
 
 * Solutions to basic03 assignments
 
@@ -44,4 +45,20 @@ which for this build-setup gets installed in =../libbpf/src/root/usr/include/bpf
 The point there is that libbpf keep the low-level bpf-syscall wrappers in
 separate files [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]] and [[https://github.com/libbpf/libbpf/blob/master/src/bpf.c][bpf.c]]. We could create a smaller binary by not
 linking with libbpf.a, but for ease of use, the proper library is used.
+
+** Lesson#2: mount BPF file-system
+
+Pinning BPF-map means creating files for-each map under a special mount
+point =/sys/fs/bpf/=. This mount point use a "BPF file-system" type. The
+pinning will fail of this is not mounted under =/sys/fs/bpf/=.
+
+The needed mount command is:
+#+begin_example
+ mount -t bpf bpf /sys/fs/bpf/
+#+end_example
+
+If you followed the tutorial you will likely already have gotten this
+mounted without noticing. As both iproute2 'ip' and our [[file:../testenv][testenv]] will
+automatically mount it to the default location under =/sys/fs/bpf/=. 
+If not, use the above command to mount it.
 
