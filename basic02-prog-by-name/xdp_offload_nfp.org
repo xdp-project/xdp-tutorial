@@ -30,8 +30,8 @@ If you need to upgrade the firmware:
 A section says after installing the firmware, unload and reload the driver
 kernel module will upgrade the firmware, like this:
 
-#+begin_export
- ## reload driver to load new firmware
+#+begin_example
+ # reload driver to load new firmware
  rmmod nfp; modprobe nfp
-#+end_export
+#+end_example
 
