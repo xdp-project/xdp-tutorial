@@ -110,16 +110,19 @@ void parse_cmdline_args(int argc, char **argv,
 			}
 			break;
 		case 'A':
-			cfg->xdp_flags &= ~XDP_FLAGS_DRV_MODE; /* Clear flag */
-			cfg->xdp_flags &= ~XDP_FLAGS_SKB_MODE; /* Clear flag */
+			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
 			break;
 		case 'S':
-			cfg->xdp_flags &= ~XDP_FLAGS_DRV_MODE; /* Clear flag */
+			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
 			cfg->xdp_flags |= XDP_FLAGS_SKB_MODE;  /* Set   flag */
 			break;
 		case 'N':
-			cfg->xdp_flags &= ~XDP_FLAGS_SKB_MODE; /* Clear flag */
+			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
 			cfg->xdp_flags |= XDP_FLAGS_DRV_MODE;  /* Set   flag */
+			break;
+		case 3: /* --offload-mode */
+			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
+			cfg->xdp_flags |= XDP_FLAGS_HW_MODE;   /* Set   flag */
 			break;
 		case 'F':
 			cfg->xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;

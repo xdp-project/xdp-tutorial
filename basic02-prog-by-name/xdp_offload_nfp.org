@@ -1,0 +1,37 @@
+# -*- fill-column: 76; -*-
+#+TITLE: XDP hardware offload on Netronome's Agilio SmartNICs
+#+OPTIONS: ^:nil
+
+* Check firmware
+
+Netronome's Agilio SmartNICs driver =nfp= support XDP offloading, *but* it
+requires that the correct firmware is loaded.
+
+Check the firmware version via ethtool.
+
+E.g this shows the wrong version:
+#+begin_example
+$ ethtool -i nfp1 | grep firmware-version
+firmware-version: 0.0.3.5 0.22 nic-2.1.13 nic
+#+end_example
+
+It needs to look like:
+#+begin_example
+$ ethtool -i nfp1 | grep firmware-version
+firmware-version: 0.0.3.5 0.22 bpf-2.0.6.124 ebpf
+#+end_example
+
+* Upgrade firmware
+
+If you need to upgrade the firmware:
+ - Get the BPF firmware: [[https://help.netronome.com/support/solutions/articles/36000050009-agilio-ebpf-2-0-6-extended-berkeley-packet-filter][here]]
+ - Follow the [[https://help.netronome.com/support/solutions/articles/36000049975-basic-firmware-user-guide][Netronome: Basic Firmware User Guide]].
+
+A section says after installing the firmware, unload and reload the driver
+kernel module will upgrade the firmware, like this:
+
+#+begin_example
+ # reload driver to load new firmware
+ rmmod nfp; modprobe nfp
+#+end_example
+

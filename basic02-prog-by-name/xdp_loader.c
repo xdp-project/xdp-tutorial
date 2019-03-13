@@ -37,6 +37,9 @@ static const struct option_wrapper long_options[] = {
 	{{"auto-mode",   no_argument,		NULL, 'A' },
 	 "Auto-detect SKB or native mode"},
 
+	{{"offload-mode",no_argument,		NULL, 3 },
+	 "Hardware offload XDP program to NIC"},
+
 	{{"force",       no_argument,		NULL, 'F' },
 	 "Force install, replacing existing program on interface"},
 
@@ -56,18 +59,19 @@ static const struct option_wrapper long_options[] = {
 };
 
 /* Lesson#1: More advanced load_bpf_object_file and bpf_object */
-struct bpf_object *__load_bpf_object_file(const char *filename)
+struct bpf_object *__load_bpf_object_file(const char *filename, int ifindex)
 {
 	/* In next assignment this will be moved into ../common/ */
 	int first_prog_fd = -1;
 	struct bpf_object *obj;
 	int err;
 
-	/* This struct allow us to set ifindex, but we currently don't use
-	 * features (like hardware offload) that requires setting ifindex.
+	/* Lesson#3: This struct allow us to set ifindex, this features is used
+	 * for hardware offloading XDP programs.
 	 */
 	struct bpf_prog_load_attr prog_load_attr = {
-		.prog_type      = BPF_PROG_TYPE_XDP,
+		.prog_type	= BPF_PROG_TYPE_XDP,
+		.ifindex	= ifindex,
 	};
 	prog_load_attr.file = filename;
 
@@ -94,11 +98,16 @@ struct bpf_object *__load_bpf_and_xdp_attach(struct config *cfg)
 	/* In next assignment this will be moved into ../common/ */
 	struct bpf_program *bpf_prog;
 	struct bpf_object *bpf_obj;
+	int offload_ifindex = 0;
 	int prog_fd = -1;
 	int err;
 
+	/* If flags indicate hardware offload, supply ifindex */
+	if (cfg->xdp_flags & XDP_FLAGS_HW_MODE)
+		offload_ifindex = cfg->ifindex;
+
 	/* Load the BPF-ELF object file and get back libbpf bpf_object */
-	bpf_obj = load_bpf_object_file(cfg->filename);
+	bpf_obj = __load_bpf_object_file(cfg->filename, offload_ifindex);
 	if (!bpf_obj) {
 		fprintf(stderr, "ERR: loading file: %s\n", cfg->filename);
 		exit(EXIT_FAIL_BPF);
