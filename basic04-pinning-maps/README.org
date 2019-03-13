@@ -17,8 +17,31 @@ file-descriptor to the BPF-map, that we want to read from. Access to a
 BPF_map still goes through the BPF-syscall, but the handle is a standard
 UNIX file-descriptor.
 
+* Overview of exercise                                                  :TOC:
+- [[#solutions-to-basic03-assignments][Solutions to basic03 assignments]]
+- [[#lessons][Lessons]]
+  - [[#lesson1-bpf-syscall-wrappers][Lesson#1: bpf-syscall wrappers]]
+
 * Solutions to basic03 assignments
 
 The assignments in [[file:../basic03-map-counter][basic03]] have been "solved" or implemented in this basic04
 lesson. Thus, this functions as the reference solution for basic03.
+
+* Lessons
+
+** Lesson#1: bpf-syscall wrappers
+
+When splitting up the [[file:../basic03-map-counter/xdp_load_and_stats.c][xdp_load_and_stats.c]] program, into [[file:xdp_loader.c]]
+and [[file:xdp_stats.c]], notice that xdp_stats.c no-longer =#include
+<bpf/libbpf.h>=. This is because xdp_stats doesn't use any of the advanced
+libbpf "object" related functions, it only use the basis bpf-syscall
+wrappers, which libbpf also provides.
+
+The bpf-syscall wrappers are provided by libbpf via =#include <bpf/bpf.h>=,
+which for this build-setup gets installed in =../libbpf/src/root/usr/include/bpf/bpf.h=
+(link to source [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]] in libbpf-github repo).
+
+The point there is that libbpf keep the low-level bpf-syscall wrappers in
+separate files [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]] and [[https://github.com/libbpf/libbpf/blob/master/src/bpf.c][bpf.c]]. We could create a smaller binary by not
+linking with libbpf.a, but for ease of use, the proper library is used.
 
