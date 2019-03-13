@@ -8,8 +8,12 @@ program.
 In basic03 the [[file:../basic03-map-counter/xdp_load_and_stats.c][xdp_load_and_stats.c]] program were both doing BPF/XDP-loading
 and reading stats from the map. This was practical as the map
 file-descriptor was readily available. In this lesson this program have been
-split into two separate program, one focused on BPF/XDP-loading
-([[file:xdp_loader.c]]) and one focused on reading and printing stats
-([[file:xdp_stats.c]]).
+split into two separate programs:
+ - one focused on BPF/XDP-loading ([[file:xdp_loader.c]]) and
+ - one focused on reading and printing stats ([[file:xdp_stats.c]]).
 
+The basic quest revolves around how to share or obtain the UNIX
+file-descriptor to the BPF-map, that we want to read from. Access to a
+BPF_map still goes through the BPF-syscall, but the handle is a standard
+UNIX file-descriptor.
 
