@@ -104,7 +104,18 @@ annoying, as you must remember to restart the =xdp_stats= tool, after
 reloading via =xdp_loader=, else it will be watching the wrong FD.
 (See assignment#1 for workaround)
 
+The libbpf library can *reuse and replace* a map with an existing map
+file-descriptor, via the libbpf API call: =bpf_map__reuse_fd()=. But you
+cannot use =bpf_prog_load()= any-longer, instead you have to open-code it,
+as you need a step in-between =bpf_object__open()= and =bpf_object__load=.
+The basic steps needed looks like:
 
+#+begin_src C
+	struct bpf_object *obj = bpf_object__open(filename);
+	struct bpf_map    *map = bpf_object__find_map_by_name(obj, mapname);
+	bpf_map__reuse_fd(map, fd_from_pinned_map);
+	bpf_object__load(obj);
+#+end_src
 
 * Assignments
 
