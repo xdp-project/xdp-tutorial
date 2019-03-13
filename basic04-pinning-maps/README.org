@@ -22,6 +22,7 @@ UNIX file-descriptor.
 - [[#lessons][Lessons]]
   - [[#lesson1-bpf-syscall-wrappers][Lesson#1: bpf-syscall wrappers]]
   - [[#lesson2-mount-bpf-file-system][Lesson#2: mount BPF file-system]]
+  - [[#lesson3-gotchas-with-pinned-maps][Lesson#3: gotchas with pinned maps]]
 
 * Solutions to basic03 assignments
 
@@ -59,6 +60,38 @@ The needed mount command is:
 
 If you followed the tutorial you will likely already have gotten this
 mounted without noticing. As both iproute2 'ip' and our [[file:../testenv][testenv]] will
-automatically mount it to the default location under =/sys/fs/bpf/=. 
+automatically mount it to the default location under =/sys/fs/bpf/=.
 If not, use the above command to mount it.
+
+** Lesson#3: gotchas with pinned maps
+
+Pinning all maps in a =bpf_object= using libbpf is easily done with:
+=bpf_object__pin_maps(bpf_object, pin_dir)=.
+
+To avoid filename collisions, when loading several XDP program on different
+interfaces, the maps are export/pinned under a sub-directory with the
+interface name, that was specified via =--dev=. The libbpf
+=bpf_object__pin_maps()= call even handle creating this sub-directory (via
+mkdir(3)).
+
+Open [[file:xdp_loader.c]] and look at our function =pin_maps_in_bpf_object()=,
+and you will see that due to corner-case it is slightly more complicated.
+E.g. need to handle cleanup of previous XDP progs that not have cleaned up
+their maps, which we choose to do via =bpf_object__unpin_maps()=. If this is
+the first usage, then we should not try to "unpin maps" as that will fail.
+We currently don't handle the corner case, where our BPF-prog get extended
+with a new-map, and then want to replace an existing BPF-prog that doesn't
+contain this new-map, which will result in =bpf_object__unpin_maps()= not
+finding the new-map to unlink, and then fails.
+
+In this solution we create new maps and delete the old ones. This is a
+design choice as it is easier and also makes it easier that the counters
+reset to zero for observe if our program works. But one can easily imagine
+that for real applications it could be a problem that the counters reset to
+zero for the stats tools.
+
+
+
+
+
 
