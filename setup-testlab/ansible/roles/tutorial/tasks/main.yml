@@ -38,6 +38,7 @@
     name:
       - clang
       - llvm
+      - kernel-headers
     state: installed
 
 - name: Packages - libbpf build dependencies
@@ -68,4 +69,7 @@
       - iproute-tc
       - bpftool
       - perf
+      - perl-Time-HiRes
+      - bash-completion
+      - redhat-lsb-core
     state: installed
