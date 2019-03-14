@@ -1,0 +1,7 @@
+# This file ~/.inputrc enables searching via up/down arrow keys
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+
+#If that prevents Left and Right from working, fix them like this:
+#"\e[C": forward-char
+#"\e[D": backward-char

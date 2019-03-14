@@ -1,0 +1,53 @@
+# -*- fill-column: 76; -*-
+#+Title: Ansible setup to install XDP-tutorial dependencies
+#+OPTIONS: ^:nil
+
+This directory contains an Ansible setup, that installs the needed software
+package dependencies for the XDP-tutorial.  It have been used on the VM
+image that participants are provided.
+
+* Running
+
+To run this ansible setup on your own testlab VM, edit the [[file:hosts]] and
+update it with the correct VM IP-address. Verify that you can SSH login to
+the VM with username: =fedora= and your SSH-key.
+
+The script [[file:run-on-hosts.sh][run-on-hosts.sh]] can be used to run:
+- ansible-playbook -i hosts site.yml
+
+
+* Bootstrapping Fedora
+
+Notice: This trick is ONLY needed first time, on an clean/fresh (VM) image.
+
+For some reason =/usr/bin/python= were not installed in Fedora 29, which
+Ansible complains about like this:
+
+#+begin_example
+$ ansible -i hosts --user=root -m ping all
+192.168.122.98 | FAILED! => {
+    "changed": false,
+    "module_stderr": "Shared connection to 192.168.122.98 closed.\r\n",
+    "module_stdout": "/bin/sh: /usr/bin/python: No such file or directory\r\n",
+    "msg": "The module failed to execute correctly, you probably need to set the interpreter.\nSee stdout/stderr for the exact error",
+    "rc": 127
+}
+#+end_example
+
+The packages python and python-dnf needs to be installed. We have added a
+file:bootstrap-ansible.yml that perform this via ansible, and it need to be
+run like:
+
+#+begin_example
+ansible-playbook -i hosts --user=root bootstrap-ansible.yml
+#+end_example
+
+Afterwards we can test if the user =fedora= can run ansible:
+
+#+begin_example
+$ ansible -i hosts --user fedora -m ping all
+192.168.122.98 | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+#+end_example

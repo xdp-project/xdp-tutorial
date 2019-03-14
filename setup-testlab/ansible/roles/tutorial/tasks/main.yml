@@ -1,0 +1,114 @@
+---
+# This playbook contains stuff for XDP-tutorial
+
+#
+# Setup SSH keys
+# - Hint: see group_vars/all
+#
+- name: SSH Authorized Keys
+  authorized_key:
+    user="{{ item }}"
+    key="{{ ssh_public_key }}"
+    state=present
+  with_items:
+    - fedora
+    - root
+
+# F29 failed with:
+#  Aborting, target uses selinux but python bindings (libselinux-python)
+#  aren't installed!
+- name: be sure libselinux-python are installed
+  dnf: pkg=libselinux-python state=present
+
+#
+# Notify handler to run ldconfig
+#  See file: roles/tutorial/handlers/main.yml
+#
+- name: Support shared ld libs in /usr/local/
+  copy: src=ld_usr_local.conf dest=/etc/ld.so.conf.d/usr_local.conf owner=root group=root mode=0644
+  notify:
+  - run-ldconfig
+
+- name: Upgrade all packages
+  dnf:
+    name: "*"
+    state: latest
+
+#
+# Copy some shell setup files
+# - src= looks in roles/tutorial/files/
+#
+- name: Shell inputrc root
+  copy: src=inputrc dest=/root/.inputrc owner=root group=root mode=0644
+- name: Shell inputrc for users
+  copy: src=inputrc dest=/home/{{ item }}/.inputrc owner={{ item }} group={{ item }} mode=0644
+  with_items:
+    - fedora
+
+# Want have SSH-X11 forwarding working
+- name: Packages - SSH-X11 packages
+  dnf:
+    name:
+      - xorg-x11-xauth
+      - xorg-x11-apps
+    state: installed
+
+# Ordinary developement tools
+- name: Packages - Devel tools
+  dnf:
+    name:
+      - git
+      - make
+      - cmake
+      - gcc
+      - gdb
+      - autoconf
+      - libtool
+      - emacs
+      - vim
+      - stgit
+      - openssl-devel
+      - cscope
+      - pigz
+    state: installed
+
+- name: Packages - Devel tools eBPF
+  dnf:
+    name:
+      - clang
+      - llvm
+      - kernel-headers
+    state: installed
+
+- name: Packages - libbpf build dependencies
+  dnf:
+    name:
+      - elfutils-libelf-devel
+    state: installed
+
+- name: Packages - Extra dependencies eBPF
+  dnf:
+    name:
+      - binutils-devel
+      - libcap-devel
+    state: installed
+
+- name: Packages - Devel tools eBPF extra for bpftrace
+  dnf:
+    name:
+      - clang-devel
+      - llvm-devel
+    state: installed
+
+- name: Packages - XDP-tutorial required tools
+  dnf:
+    name:
+      - ethtool
+      - iputils
+      - iproute-tc
+      - bpftool
+      - perf
+      - perl-Time-HiRes
+      - bash-completion
+      - redhat-lsb-core
+    state: installed

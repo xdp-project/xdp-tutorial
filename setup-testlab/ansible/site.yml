@@ -1,0 +1,13 @@
+---
+# This playbook is for XDP-tutorial VM-image installing dependencies
+
+# Pickup directory: roles/tutorial/
+- name: Apply XDP-tutorial configuration to all nodes
+  hosts: all
+  remote_user: fedora
+  become: true
+  become_method: sudo
+
+  roles:
+    - tutorial
+

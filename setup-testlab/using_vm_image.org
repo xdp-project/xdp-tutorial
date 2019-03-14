@@ -1,0 +1,91 @@
+# -*- fill-column: 76; -*-
+#+Title: Howto use the VM image
+#+OPTIONS: ^:nil
+
+How can you use the provided VM-image (which were created as described in
+[[file:create_vm_image.org]]).
+
+* Host-OS dependencies
+
+First of all, the host-OS (likely your laptop) need some software packages for
+running a virtual machine (VM) image.
+
+** Fedora: libvirt software setup
+
+There is a guide for Fedora here:
+- https://docs.fedoraproject.org/en-US/quick-docs/getting-started-with-virtualization/
+
+Fedora have a package collection called @virtualization.
+
+#+begin_example
+$ dnf groupinfo virtualization
+Group: Virtualization
+ Description: These packages provide a graphical virtualization environment.
+ Mandatory Packages:
+   virt-install
+ Default Packages:
+   libvirt-daemon-config-network
+   libvirt-daemon-kvm
+   qemu-kvm
+   virt-manager
+   virt-viewer
+ Optional Packages:
+   guestfs-browser
+   libguestfs-tools
+   python3-libguestfs
+   virt-top
+#+end_example
+
+Follow the instruction in [[ https://docs.fedoraproject.org/en-US/quick-docs/getting-started-with-virtualization/][guide link]]:
+
+#+begin_example
+sudo dnf group install --with-optional virtualization
+
+# After the packages install, start the libvirtd service:
+sudo systemctl start libvirtd
+
+# To start the service on boot, run:
+sudo systemctl enable libvirtd
+
+# I had to restart libvirtd
+sudo systemctl restart libvirtd
+
+# verify that the KVM kernel modules are properly loaded
+lsmod | grep kvm
+#+end_example
+
+
+* Import/use VM-image
+
+There are a number of ways to use/import the provided image.
+
+** Use via virt-manager
+
+Create a new virtual machine and import provided disk image virt-manager
+interface selecting "Import existing disk image" and adding CDROM drive
+manually.
+
+Use graphical tool: virt-manager
+ - (If not already connected: connect to QEMU/KVM on localhost)
+ - File -> "New Virtual Machine"
+ - Radio-button: "Import existing disk image"
+ - "Browse..." for file:
+   * Select "F29-xdp-tutorial.qcow2" (Choose Volume)
+ - Choose the operating system; name: Fedora 29
+   * Select "Forward"
+ - Choose Memory and CPU settings
+ - Choose: Name: "F29-xdp-tutorial"
+
+* Default username+password
+
+The default username+password for your new VM image is:
+- Username: fedora
+- Password: xdptut
+
+You should login and add your own SSH-key to the user "fedora"
+authorized_keys, e.g. via copy-paste into:
+
+#+begin_example
+cat >> /home/fedora/.ssh/authorized_keys
+#+end_example
+

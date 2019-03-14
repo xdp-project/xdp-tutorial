@@ -1,0 +1,22 @@
+# Bootstrap ansible on Fedora
+
+# Need this bootstrap trick on newer Fedora servers
+#  From: http://blog.oddbit.com/2015/10/15/bootstrapping-ansible-on-fedora-23/
+#
+# Run as: ansible-playbook -i hosts --user=root bootstrap-ansible.yml
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+    - name: Install packages for ansible support
+      raw: dnf -y -e0 -d0 install python python-dnf
+
+# Example to install some packages
+#- hosts: all
+#  tasks:
+#   - name: Install some packages
+#     dnf: pkg={{ item }} state=installed
+#     with_items:
+#      - xorg-x11-xauth
+#      - xorg-x11-apps
+#      - vim

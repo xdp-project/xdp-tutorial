@@ -1,0 +1,137 @@
+# -*- fill-column: 76; -*-
+#+Title: Howto create VM image
+#+OPTIONS: ^:nil
+
+This document describe how the virtual machine (VM) image for the
+XDP-tutorial were created.
+
+* Installing needed packages for XDP-tutorial
+
+The Ansible setup in directory [[file:ansible][ansible/]] is used to define and install the
+needed software packages.  This were used on the image after below setup.
+
+* Downloading images
+
+Here we download a predefined "cloud" image, and update it to suit the
+tutorial.
+
+Finding some alternative images to download here:
+- https://alt.fedoraproject.org/
+- https://alt.fedoraproject.org/cloud/
+
+Specifically downlaod the: "Cloud Base qcow2 image" (size 294M)
+ - https://download.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-Base-29-1.2.x86_64.qcow2
+
+Place a copy in: /var/lib/libvirt/images/
+ - with filename: F29-xdp-tutorial.qcow2.
+
+** Initial setup for cloud-init
+
+Use of the cloud image is annoying, because it requires creating a special
+CDROM image to reconfigure. After reboots it still want to do some
+cloud-init, which either requires mounting below CDROM-image or [[https://fatmin.com/2017/10/19/how-to-disable-cloud-init-in-a-rhel-cloud-image/][disabling
+cloud-init]] via cmdline: touch /etc/cloud/cloud-init.disabled
+
+*** Create: cloud-init.iso
+
+As describe [[https://www.technovelty.org/linux/running-cloud-images-locally.html][here]], these cloud images need/tries to fetch some setup info. We
+need to supply this, else you cannot login to them. This is supplied by
+creating a special crafted ISO image.
+
+Create two files:
+
+#+begin_example
+cat > meta-data << EOF
+instance-id: iid-local01
+local-hostname: xdp-tutorial
+EOF
+#+end_example
+
+#+begin_example
+cat > user-data << EOF
+#cloud-config
+password: xdptut
+ssh_pwauth: True
+chpasswd: { expire: False }
+
+ssh_authorized_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAEAQC+4vvIvwdZDBqVpeTHNv1QVxmWyK9rPTcIeAEssPly9aMe3Z0pzCikKnmH0biQQBn+hY3N7M6lrtE/n5znyClblS7k4Wud2GsZDjwmEYHPsi2/mf8JmJvNkJXTwd/1fOqr4LX4XFRVxbpT4cJ4qmtVSUjzc5I3a0/GJzm/0t9eXFHlIA/Ei+mFWF9b6y+0hWudb3Uwe1AwY1orM8imiHkS6/kztvD1FRJWZswwZi2fb5EfCCfyZCDGNDljueIWGt/I64iMgVBWuttyUxHvKkOd2AZ4up3K2JDnI0RC6pPWW4QiP6DLYYSRX9NofnO2/PaBjuKo1dGyGb8EAM5NrR/UxWAKpVThx8ya/j375ut2OsleCIhoj4Kb1depuZtGdJyj7p6c86K7pum4CqS8ar8XbnGsW1Nt6SaCOdcP4LkZAk/eGVMuRkFbU9C2fDaaipuzlh+kZxWS5/1PZVKfOK+X0xU8c0aBifqhy4kYpsLRkVPwv/EdjYbiKYdRZIJMIRgkyZDSStI2mJAzbIO4VVgGVWeRiVZsPw3nbt6GvgNCd1WGnjvR5LuvrFevDaXgnpsLHU42bwuuq30M+lKh4Ysu0xgniCZsEc7JWZkjzZi7s3I2r6Q2iL6hq+WheDsGEcrOFWo3FDe8mGDkmyGC3SzSUZmhJPav0WfWbWtPnz9a9Tmd48un7fngxYO9lQVBTotJ6uHs9JsrRENWDuSiIUQk9D2XB3x82tJiL3Pb+8CGaJqCzt5Zs0HkfF9K2LMw40ENcWwDMqdXmuHprUuwhTXk1tZtkQqAbghQVx+ivBmaq4issgPfyaUyCnETFjmmNXRirYAsWQUiYmxbz78jUBM7+idEDhvJANCprcgU8W8g8nvv9Gfbg781jCxZim5qm/3PpkSJGfcoQQYQyVguI1a9A2YrtK5EwHNFmVdW0v8Qs9gP60WGOI+2GIk73ePMsD99eowAKMBKAYbcst+sGGY3h8TS3md4TFT3zlgU4EgAOs3NDytxKJWI0G1I7FVVfbWRgIedNxT5Z0g9Mbw+rDo42lIEL6EBe3q1vkwg0bS7Y0+9HCMKDO3NFDKXhE9b/IYjB2QYb18ZlhxENFZPyXkTKKL5S9O7i5vTQ/efGZRNw/MVB52V6UPh+mY3KIUOkTyafUtlx0ufqshkJklTndRE9oOt/0iuLt1aM6ruK77HYY6gEvnHUZwJXsw4YbiaX+8m9RG7G/otxBihJZQTKO4LnB8XRZj7eZatV4MoXAxXuWMYvsB6Hlzg5J8gWP6egfk2dYoC9SAEko1LpAspMilJDEFtZZepYkMqH8wsFyXgRb5CUrSOh4jSRtBix/uMCPtHq+z77mzKCEZTy3L+Wzbr netoptimizer@github
+EOF
+#+end_example
+
+Create the ISO file that the images can use as CDROM drive:
+
+#+begin_example
+genisoimage -output cloud-init.iso -volid cidata -joliet -rock user-data meta-data
+#+end_example
+
+Then copy init.iso into /var/lib/libvirtd/images as well (if you already
+have an non-functional cloud-image, you can connect this images as
+virtual-CDROM drive).
+
+#+begin_example
+sudo cp cloud-init.iso /var/lib/libvirt/images/
+#+end_example
+
+* Initial: Import/use VM-image
+
+** Create via virt-install
+
+You can create a new libvirt machine, that use this image, from the command
+line using =virt-install=.
+
+Notice these two files must exist:
+- /var/lib/libvirt/images/F29-xdp-tutorial.qcow2
+- /var/lib/libvirt/images/cloud-init.iso
+
+Use virt-install:
+#+begin_example
+sudo virt-install --name F29-xdp-tutorial \
+--description 'Fedora 29 - XDP-tutorial' \
+--ram 2048 \
+--vcpus 2 \
+--disk path=/var/lib/libvirt/images/F29-xdp-tutorial.qcow2 \
+--cdrom  /var/lib/libvirt/images/cloud-init.iso \
+--os-type linux \
+--os-variant fedora29 \
+--network bridge=virbr0 \
+--graphics vnc,listen=127.0.0.1,port=5901 \
+--noautoconsole
+#+end_example
+
+Another important detail: If the machines doesn't give you a console after
+rebooting, then you likely need to (again) add the CDROM drive with the
+cloud-init.iso (/var/lib/libvirt/images/cloud-init.iso). This can be done
+via virt-manager. You can also disable "cloud-init" via command line:
+=sudo touch /etc/cloud/cloud-init.disabled=
+
+** Default user+password
+
+End-result: A virtual machine with:
+- Username: fedora
+- Password: xdptut
+
+This Fedora-Cloud image have a 10 sec. delay when logging in as root, remove
+that via editing /root/.ssh/authorized_keys.
+
+* Increasing disk capacity
+
+The remaining disc capacity is getting low, it will be unfortunate if this
+disrupt the tutorial. Thus, we resize the VM disk. First shutdown the VM.
+
+Following [[https://nullr0ute.com/2018/08/increasing-a-libvirt-kvm-virtual-machine-disk-capacity/][this blogpost]] we resize disk via commands.
+
+On host-OS machine:
+#+begin_example
+cd /var/lib/libvirt/images/
+qemu-img resize F29-xdp-tutorial.qcow2 +2G
+qemu-img info   F29-xdp-tutorial.qcow2
+#+end_example
+
+Now power up the VM, login as root (or use sudo) for next commands on VM:
+#+begin_example
+echo ", +" | sfdisk -N 1 /dev/vda --no-reread
+partprobe
+resize2fs /dev/vda1
+#+end_example
+

@@ -1,0 +1,14 @@
+#
+# group_vars/all is used to set variables that will be used for every host
+#
+#
+# Multiline:
+# ----------
+# Values can span multiple lines using | or >. Spanning multiple lines
+# using a | will include the newlines. Using a > will ignore newlines;
+# it’s used to make what would otherwise be a very long line easier to
+# read and edit. In either case the indentation will be ignored.
+
+ssh_public_key: |
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAEAQC+4vvIvwdZDBqVpeTHNv1QVxmWyK9rPTcIeAEssPly9aMe3Z0pzCikKnmH0biQQBn+hY3N7M6lrtE/n5znyClblS7k4Wud2GsZDjwmEYHPsi2/mf8JmJvNkJXTwd/1fOqr4LX4XFRVxbpT4cJ4qmtVSUjzc5I3a0/GJzm/0t9eXFHlIA/Ei+mFWF9b6y+0hWudb3Uwe1AwY1orM8imiHkS6/kztvD1FRJWZswwZi2fb5EfCCfyZCDGNDljueIWGt/I64iMgVBWuttyUxHvKkOd2AZ4up3K2JDnI0RC6pPWW4QiP6DLYYSRX9NofnO2/PaBjuKo1dGyGb8EAM5NrR/UxWAKpVThx8ya/j375ut2OsleCIhoj4Kb1depuZtGdJyj7p6c86K7pum4CqS8ar8XbnGsW1Nt6SaCOdcP4LkZAk/eGVMuRkFbU9C2fDaaipuzlh+kZxWS5/1PZVKfOK+X0xU8c0aBifqhy4kYpsLRkVPwv/EdjYbiKYdRZIJMIRgkyZDSStI2mJAzbIO4VVgGVWeRiVZsPw3nbt6GvgNCd1WGnjvR5LuvrFevDaXgnpsLHU42bwuuq30M+lKh4Ysu0xgniCZsEc7JWZkjzZi7s3I2r6Q2iL6hq+WheDsGEcrOFWo3FDe8mGDkmyGC3SzSUZmhJPav0WfWbWtPnz9a9Tmd48un7fngxYO9lQVBTotJ6uHs9JsrRENWDuSiIUQk9D2XB3x82tJiL3Pb+8CGaJqCzt5Zs0HkfF9K2LMw40ENcWwDMqdXmuHprUuwhTXk1tZtkQqAbghQVx+ivBmaq4issgPfyaUyCnETFjmmNXRirYAsWQUiYmxbz78jUBM7+idEDhvJANCprcgU8W8g8nvv9Gfbg781jCxZim5qm/3PpkSJGfcoQQYQyVguI1a9A2YrtK5EwHNFmVdW0v8Qs9gP60WGOI+2GIk73ePMsD99eowAKMBKAYbcst+sGGY3h8TS3md4TFT3zlgU4EgAOs3NDytxKJWI0G1I7FVVfbWRgIedNxT5Z0g9Mbw+rDo42lIEL6EBe3q1vkwg0bS7Y0+9HCMKDO3NFDKXhE9b/IYjB2QYb18ZlhxENFZPyXkTKKL5S9O7i5vTQ/efGZRNw/MVB52V6UPh+mY3KIUOkTyafUtlx0ufqshkJklTndRE9oOt/0iuLt1aM6ruK77HYY6gEvnHUZwJXsw4YbiaX+8m9RG7G/otxBihJZQTKO4LnB8XRZj7eZatV4MoXAxXuWMYvsB6Hlzg5J8gWP6egfk2dYoC9SAEko1LpAspMilJDEFtZZepYkMqH8wsFyXgRb5CUrSOh4jSRtBix/uMCPtHq+z77mzKCEZTy3L+Wzbr netoptimizer@github
+
