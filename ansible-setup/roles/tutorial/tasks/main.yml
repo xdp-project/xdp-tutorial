@@ -58,3 +58,11 @@
       - clang-devel
       - llvm-devel
     state: installed
+
+- name: Packages - XDP-tutorial required tools
+  dnf:
+    name:
+      - ethtool
+      - iputils
+      - iproute-tc
+    state: installed
