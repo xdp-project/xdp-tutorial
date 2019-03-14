@@ -5,6 +5,8 @@
 - name: Apply XDP-tutorial configuration to all nodes
   hosts: all
   remote_user: fedora
+  become: true
+  become_method: sudo
 
   roles:
     - tutorial
