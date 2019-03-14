@@ -1,0 +1,39 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Setup workarounds
+#+OPTIONS: ^:nil
+
+This files contains notes about needed setup workarounds.
+
+* SElinux workaround
+
+In current Fedora 29, SElinux deny bpftool access to listing maps via e.g.
+commands:
+
+#+begin_example
+ # bpftool map
+ # bpftool map list
+#+end_example
+
+Users see this error:
+
+#+begin_example
+ $ sudo bpftool map
+ Error: can't get map by id (13): Permission denied
+#+end_example
+
+Other part of the bpftool command do work, like listing BPF-prog running:
+
+#+begin_example
+ # bpftool prog
+ # bpftool prog list
+#+end_example
+
+Filed: Red Hat [[https://bugzilla.redhat.com/show_bug.cgi?id=1688668][Bug 1688668]] - SElinux conflict with bpftool map listing
+- As of this writing it is already resolved
+- But not fully rolled out, so use below workaround
+- Fixed in selinux-policy version 3.14.2-51.fc29
+
+Using the proposed workaround:
+- https://bodhi.fedoraproject.org/updates/FEDORA-2019-4cc36fafbb
+- sudo dnf upgrade --enablerepo=updates-testing --advisory=FEDORA-2019-4cc36fafbb
+
