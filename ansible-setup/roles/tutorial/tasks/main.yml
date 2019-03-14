@@ -37,8 +37,12 @@
     name:
       - clang
       - llvm
-      - binutils-devel
-      - libcap-devel
+    state: installed
+
+- name: Packages - libbpf build dependencies
+  dnf:
+    name:
+      - elfutils-libelf-devel
     state: installed
 
 - name: Packages - Extra dependencies eBPF
