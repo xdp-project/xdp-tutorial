@@ -12,7 +12,7 @@ needed software packages.  This were used on the image after below setup.
 
 * Downloading images
 
-Here we download a predefined "cloud" image, and update it do suite the
+Here we download a predefined "cloud" image, and update it to suit the
 tutorial.
 
 Finding some alternative images to download here:
