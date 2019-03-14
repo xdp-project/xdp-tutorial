@@ -1,0 +1,16 @@
+# This is the an ansible 'hosts' file.
+#
+# It usually live in /etc/ansible/hosts, but this local copy can be
+# invoked like:  ansible-playbook -i hosts site.yml
+#
+#   - Comments begin with the '#' character
+#   - Blank lines are ignored
+#   - Groups of hosts are delimited by [header] elements
+#   - You can enter hostnames or ip addresses
+#   - A hostname/ip can be a member of multiple groups
+
+[fedora-vm]
+192.168.122.171
+
+# Idea: run on the VM itself after git-clone
+# 127.0.0.1

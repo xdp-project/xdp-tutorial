@@ -6,6 +6,16 @@ This directory contains an Ansible setup, that installs the needed software
 package dependencies for the XDP-tutorial.  It have been used on the VM
 image that participants are provided.
 
+* Running
+
+To run this ansible setup on your own testlab VM, edit the [[file:hosts]] and
+update it with the correct VM IP-address. Verify that you can SSH login to
+the VM with username: =fedora= and your SSH-key.
+
+The script [[file:run-on-hosts.sh][run-on-hosts.sh]] can be used to run:
+- ansible-playbook -i hosts site.yml
+
+
 * Bootstrapping Fedora
 
 Notice: This trick is ONLY needed first time, on an clean/fresh (VM) image.
