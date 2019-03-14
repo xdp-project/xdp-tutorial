@@ -1,0 +1,5 @@
+# handlers :
+
+# Simple handler for updating the shared library cache
+- name: run-ldconfig
+  action: command /sbin/ldconfig

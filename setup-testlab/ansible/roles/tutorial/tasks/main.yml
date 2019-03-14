@@ -14,6 +14,21 @@
     - fedora
     - root
 
+# F29 failed with:
+#  Aborting, target uses selinux but python bindings (libselinux-python)
+#  aren't installed!
+- name: be sure libselinux-python are installed
+  dnf: pkg=libselinux-python state=present
+
+#
+# Notify handler to run ldconfig
+#  See file: roles/tutorial/handlers/main.yml
+#
+- name: Support shared ld libs in /usr/local/
+  copy: src=ld_usr_local.conf dest=/etc/ld.so.conf.d/usr_local.conf owner=root group=root mode=0644
+  notify:
+  - run-ldconfig
+
 - name: Upgrade all packages
   dnf:
     name: "*"
