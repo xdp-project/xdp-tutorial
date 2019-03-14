@@ -114,3 +114,24 @@ End-result: A virtual machine with:
 This Fedora-Cloud image have a 10 sec. delay when logging in as root, remove
 that via editing /root/.ssh/authorized_keys.
 
+* Increasing disk capacity
+
+The remaining disc capacity is getting low, it will be unfortunate if this
+disrupt the tutorial. Thus, we resize the VM disk. First shutdown the VM.
+
+Following [[https://nullr0ute.com/2018/08/increasing-a-libvirt-kvm-virtual-machine-disk-capacity/][this blogpost]] we resize disk via commands.
+
+On host-OS machine:
+#+begin_example
+cd /var/lib/libvirt/images/
+qemu-img resize F29-xdp-tutorial.qcow2 +2G
+qemu-img info   F29-xdp-tutorial.qcow2
+#+end_example
+
+Now power up the VM, login as root (or use sudo) for next commands on VM:
+#+begin_example
+echo ", +" | sfdisk -N 1 /dev/vda --no-reread
+partprobe
+resize2fs /dev/vda1
+#+end_example
+
