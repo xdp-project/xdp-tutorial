@@ -1,6 +1,19 @@
 ---
 # This playbook contains stuff for XDP-tutorial
 
+#
+# Setup SSH keys
+# - Hint: see group_vars/all
+#
+- name: SSH Authorized Keys
+  authorized_key:
+    user="{{ item }}"
+    key="{{ ssh_public_key }}"
+    state=present
+  with_items:
+    - fedora
+    - root
+
 - name: Upgrade all packages
   dnf:
     name: "*"
