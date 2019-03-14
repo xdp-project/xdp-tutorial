@@ -1,40 +1,56 @@
 ---
 # This playbook contains stuff for XDP-tutorial
 
+- name: Upgrade all packages
+  dnf:
+    name: "*"
+    state: latest
+
 # Want have SSH-X11 forwarding working
-- name: X11 forward
-  dnf: pkg={{ item }} state=installed
-  with_items:
-    - xorg-x11-xauth
-    - xorg-x11-apps
+- name: Packages - SSH-X11 packages
+  dnf:
+    name:
+      - xorg-x11-xauth
+      - xorg-x11-apps
+    state: installed
 
-- name: Devel tools
-  dnf: pkg={{ item }} state=installed
-  with_items:
-    - git
-    - make
-    - cmake
-    - gcc
-    - gdb
-    - autoconf
-    - libtool
-    - emacs
-    - stgit
-    - openssl-devel
-    - cscope
-    - pigz
+# Ordinary developement tools
+- name: Packages - Devel tools
+  dnf:
+    name:
+      - git
+      - make
+      - cmake
+      - gcc
+      - gdb
+      - autoconf
+      - libtool
+      - emacs
+      - stgit
+      - openssl-devel
+      - cscope
+      - pigz
+    state: installed
 
-- name: Devel tools eBPF
-  dnf: pkg={{ item }} state=installed
-  with_items:
-    - clang
-    - llvm
-    - binutils-devel
-    - libcap-devel
+- name: Packages - Devel tools eBPF
+  dnf:
+    name:
+      - clang
+      - llvm
+      - binutils-devel
+      - libcap-devel
+    state: installed
 
-- name: Devel tools eBPF extra for bpftrace
-  dnf: pkg={{ item }} state=installed
-  with_items:
-    - clang-devel
-    - llvm-devel
+- name: Packages - Extra dependencies eBPF
+  dnf:
+    name:
+      - binutils-devel
+      - libcap-devel
+    state: installed
 
+- name: Packages - Devel tools eBPF extra for bpftrace
+  dnf:
+    name:
+      - clang-devel
+      - llvm-devel
+    state: installed
