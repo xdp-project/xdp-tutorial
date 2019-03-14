@@ -8,7 +8,7 @@ XDP-tutorial were created.
 * Installing needed packages for XDP-tutorial
 
 The Ansible setup in directory [[file:ansible][ansible/]] is used to define and install the
-needed software packages.
+needed software packages.  This were used on the image after below setup.
 
 * Downloading images
 
@@ -73,9 +73,7 @@ virtual-CDROM drive).
 sudo cp cloud-init.iso /var/lib/libvirt/images/
 #+end_example
 
-
-
-* Import/use VM-image
+* Initial: Import/use VM-image
 
 ** Create via virt-install
 
@@ -104,23 +102,8 @@ sudo virt-install --name F29-xdp-tutorial \
 Another important detail: If the machines doesn't give you a console after
 rebooting, then you likely need to (again) add the CDROM drive with the
 cloud-init.iso (/var/lib/libvirt/images/cloud-init.iso). This can be done
-via virt-manager. You can also disable
-
-** Create via virt-manager
-
-Alternatively install via virt-manager interface selecting "Import existing
-disk image" and adding CDROM drive manually.
-
-Use graphical tool: virt-manager
- - If not already connected: connect to QEMU/KVM on locahost
- - File -> "New Virtual Machine"
- - Radio-button: "Import existing disk image"
- - "Browse..." for file:
-   * Select "F29-xdp-tutorial.qcow2" (Choose Volume)
- - Choose the operating system; name: Fedora 29
-   * Select "Forward"
- - Choose Memory and CPU settings
- - Choose: Name: "F29-xdp-tutorial"
+via virt-manager. You can also disable "cloud-init" via command line:
+=sudo touch /etc/cloud/cloud-init.disabled=
 
 ** Default user+password
 

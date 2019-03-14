@@ -55,14 +55,18 @@ lsmod | grep kvm
 #+end_example
 
 
+* Import/use VM-image
 
-* Create via virt-manager
+There are a number of ways to use/import the provided image.
 
-Alternatively install via virt-manager interface selecting "Import existing
-disk image" and adding CDROM drive manually.
+** Use via virt-manager
+
+Create a new virtual machine and import provided disk image virt-manager
+interface selecting "Import existing disk image" and adding CDROM drive
+manually.
 
 Use graphical tool: virt-manager
- - If not already connected: connect to QEMU/KVM on locahost
+ - (If not already connected: connect to QEMU/KVM on localhost)
  - File -> "New Virtual Machine"
  - Radio-button: "Import existing disk image"
  - "Browse..." for file:
@@ -71,4 +75,17 @@ Use graphical tool: virt-manager
    * Select "Forward"
  - Choose Memory and CPU settings
  - Choose: Name: "F29-xdp-tutorial"
+
+* Default username+password
+
+The default username+password for your new VM image is:
+- Username: fedora
+- Password: xdptut
+
+You should login and add your own SSH-key to the user "fedora"
+authorized_keys, e.g. via copy-paste into:
+
+#+begin_example
+cat >> /home/fedora/.ssh/authorized_keys
+#+end_example
 
