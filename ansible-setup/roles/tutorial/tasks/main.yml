@@ -1,0 +1,40 @@
+---
+# This playbook contains stuff for XDP-tutorial
+
+# Want have SSH-X11 forwarding working
+- name: X11 forward
+  dnf: pkg={{ item }} state=installed
+  with_items:
+    - xorg-x11-xauth
+    - xorg-x11-apps
+
+- name: Devel tools
+  dnf: pkg={{ item }} state=installed
+  with_items:
+    - git
+    - make
+    - cmake
+    - gcc
+    - gdb
+    - autoconf
+    - libtool
+    - emacs
+    - stgit
+    - openssl-devel
+    - cscope
+    - pigz
+
+- name: Devel tools eBPF
+  dnf: pkg={{ item }} state=installed
+  with_items:
+    - clang
+    - llvm
+    - binutils-devel
+    - libcap-devel
+
+- name: Devel tools eBPF extra for bpftrace
+  dnf: pkg={{ item }} state=installed
+  with_items:
+    - clang-devel
+    - llvm-devel
+
