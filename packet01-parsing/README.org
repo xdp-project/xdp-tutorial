@@ -1,0 +1,154 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Packet01 - packet parsing
+#+OPTIONS: ^:nil
+
+Now that you have completed the basic steps of the tutorial, you are ready to
+begin writing packet processing programs. This lesson contains the first
+introduction to packet processing, where we will see how to parse the packet
+contents, and how to make sure that the kernel verifier will accept your
+programs.
+
+* Table of Contents                                                     :TOC:
+- [[#setup-notes][Setup notes]]
+- [[#what-you-will-learn-in-this-lesson][What you will learn in this lesson]]
+  - [[#the-data-and-data_end-pointers][The data and data_end pointers]]
+  - [[#packet-bounds-checking][Packet bounds checking]]
+  - [[#program-return-codes][Program return codes]]
+  - [[#packet-header-definitions][Packet header definitions]]
+- [[#assignments][Assignments]]
+
+* Setup notes
+
+We will use the loader from the basic04 lesson. The Makefile in this directory
+contains a rule to copy it over to this directory, so you can run it as
+=./xdp_loader= after running =make=.
+
+* What you will learn in this lesson
+
+This lesson will teach you how to parse packet data from XDP. This is done via
+direct memory access using pointers to the packet data, which is one of the
+reasons for the high performance attainable using XDP. This works because the
+kernel verifier will check that all data accesses are within the packet
+boundaries. We will see how this works, and how you can deal with verifier
+errors.
+
+You will also learn how to decide the packet verdict via program return code
+based on the packet data, and we will cover how to structure the packet parsing
+code to ensure readability and code reuse.
+
+A few points to be aware of while completing the assignments are listed below.
+
+** The data and data_end pointers
+When an XDP program is executed, it will receive as a parameter a pointer to
+a =struct xdp_md= object, which contains context information about the
+packet. This object is defined in =bpf.h= as follows:
+
+#+begin_src C
+struct xdp_md {
+	__u32 data;
+	__u32 data_end;
+	__u32 data_meta;
+	/* Below access go through struct xdp_rxq_info */
+	__u32 ingress_ifindex; /* rxq->dev->ifindex */
+	__u32 rx_queue_index;  /* rxq->queue_index  */
+};
+#+end_src
+
+The last two items in this struct are just data fields which contain the
+ifindex and RX queue index that the packet was received on. The program can
+use this in its decision making (along with the packet data itself).
+
+The three first items are actually pointers, even though they are defined
+with the =__u32= type. The =data= field points to the start of the packet,
+the =data_end= field points to the end, and the =data_meta= field points to
+the metadata area that XDP programs can use to store extra metadata to
+accompany the packet. In this lesson we will only be working with the =data=
+and =data_end= fields.
+
+The verifier will rewrite the pointer accesses when the program is loaded to
+point to the actual packet data. But to satisfy the compiler type checking
+we need to cast the fields to pointers when accessing them. For this reason,
+XDP programs often start with an assignment like this:
+
+#+begin_src C
+	void *data_end = (void *)(long)ctx->data_end;
+	void *data = (void *)(long)ctx->data;
+#+end_src
+
+** Packet bounds checking
+
+As mentioned above, packet data is accessed using direct memory reads, which
+the verifier will ensure are safe. However, doing this at runtime for every
+pointer access would result in a significant performance overhead. So
+instead, what the verifier does is check that the XDP program does its own
+bounds checking; this is the purpose of the =data_end= pointer.
+
+When the verifier performs its static analysis at load time, it will track
+all memory address offsets used by the program, and look for comparisons
+with the =data_end= pointer, which will be set to the end of the packet at
+runtime. This means that if the program does something like this:
+
+#+begin_src C
+if (data + 10 < data_end)
+  /* do something with the first 10 bytes of data */
+else
+  /* skip the packet access */
+#+end_src
+
+The verifier can know that all instructions in the =true= branch of the =if=
+statement can safely access the first 10 bytes of the packet, while the
+=else= branch cannot. So if a program does attempt to access the packet data
+in the else branch, the program will be rejected.
+
+** Program return codes
+
+The final verdict for what happens to a packet after it has been processed
+by the XDP program is communicated to the kernel by means of the program
+return code. These are also defined in =bpf.h=:
+
+#+begin_src C
+enum xdp_action {
+	XDP_ABORTED = 0,
+	XDP_DROP,
+	XDP_PASS,
+	XDP_TX,
+	XDP_REDIRECT,
+};
+#+end_src
+
+=ABORTED= and =DROP= will both drop the packet, but =ABORTED= will also
+increment an error counter. =PASS= will allow the packet to continue up to
+the kernel networking stack for processing, =TX= will retransmit the packet
+out of the same interface it was received on, and =REDIRECT= will transmit
+the packet out of another interface.
+
+Note that the XDP program can perform arbitrary alterations to the packets
+before these verdicts are rendered. For the =TX= and =REDIRECT= actions,
+some packet data transformation is generally required (such as rewriting
+ethernet header addresses), while for the others it is optional. We will see
+how this can be used in the next lesson.
+
+** Packet header definitions
+
+Since an XDP program only receives a pointer to a raw data buffer, it will
+need to do its own parsing of packet headers. To aid in this, the kernel
+headers define structs that contain the packet header fields. Parsing
+packets generally involves a lot of casting of data buffers to the right
+struct types, as we will see in the assignments below. The header
+definitions we will be using in this lesson are the following:
+
+| Struct            | Header file          |
+|-------------------+----------------------|
+| =struct ethhdr=   | =<linux/if_ether.h>= |
+| =struct ipv6hdr=  | =<linux/ipv6.h>=     |
+| =struct iphdr=    | =<linux/ip.h>=       |
+| =struct icmp6hdr= | =<linux/icmpv6.h>=   |
+| =struct icmphdr=  | =<linux/icmp.h>=     |
+
+* Assignments
+
+The end goal of this lesson is to build an XDP program that will inspect packet
+headers, and drop every other ICMP echo request (i.e. ping) packet seen on the
+interface, while allowing everything else to pass up to the kernel. The
+assignments below will gradually build up towards this goal.
+
