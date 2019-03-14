@@ -14,14 +14,24 @@ programs.
   - [[#the-data-and-data_end-pointers][The data and data_end pointers]]
   - [[#packet-bounds-checking][Packet bounds checking]]
   - [[#program-return-codes][Program return codes]]
-  - [[#packet-header-definitions][Packet header definitions]]
+  - [[#packet-header-definitions-and-byte-order][Packet header definitions and byte order]]
+  - [[#function-inlining-and-loop-unrolling][Function inlining and loop unrolling]]
 - [[#assignments][Assignments]]
+  - [[#assignment-1-fix-the-bounds-checking-error][Assignment 1: Fix the bounds checking error]]
+  - [[#assignment-2-parsing-the-ip-header][Assignment 2: Parsing the IP header]]
+  - [[#assignment-2-parsing-the-icmpv6-header-and-reacting-to-it][Assignment 2: Parsing the ICMPv6 header and reacting to it]]
+  - [[#assignment-3-adding-vlan-support][Assignment 3: Adding VLAN support]]
+  - [[#assignment-4-adding-ipv4-support][Assignment 4: Adding IPv4 support]]
 
 * Setup notes
 
 We will use the loader from the basic04 lesson. The Makefile in this directory
 contains a rule to copy it over to this directory, so you can run it as
-=./xdp_loader= after running =make=.
+=./xdp_loader= after running =make=. The =testenv.sh= script will use this
+when run with the =load= command. In the example below, we assume you've
+installed the alias for testenv (by running =eval $(./testenv.sh alias)=),
+so all examples will use the short =t= command to refer to the =testenv.sh=
+script.
 
 * What you will learn in this lesson
 
@@ -128,7 +138,7 @@ some packet data transformation is generally required (such as rewriting
 ethernet header addresses), while for the others it is optional. We will see
 how this can be used in the next lesson.
 
-** Packet header definitions
+** Packet header definitions and byte order
 
 Since an XDP program only receives a pointer to a raw data buffer, it will
 need to do its own parsing of packet headers. To aid in this, the kernel
@@ -145,6 +155,23 @@ definitions we will be using in this lesson are the following:
 | =struct icmp6hdr= | =<linux/icmpv6.h>=   |
 | =struct icmphdr=  | =<linux/icmp.h>=     |
 
+Since the packet data comes straight off the wire, the data fields will be
+in network byte order. Use the =bpf_ntohs()= and =bpf_htons()= functions to
+convert to and from host byte order, respectively.
+
+** Function inlining and loop unrolling
+
+Because eBPF programs only have limited support for function calls, helper
+functions need to be inlined into the main function. The =__always_inline=
+marker on the function definition ensures this, overriding any inlining
+decisions the compiler would otherwise make.
+
+Similarly, because eBPF does not support looping, we need to unroll any
+loops in the program. This can be done by adding the =#pragma unroll=
+statement on the line before the loop, and only works with loops where the
+number of iterations are known at compile time (such as for loops with a
+static counter).
+
 * Assignments
 
 The end goal of this lesson is to build an XDP program that will inspect packet
@@ -152,3 +179,169 @@ headers, and drop every other ICMP echo request (i.e. ping) packet seen on the
 interface, while allowing everything else to pass up to the kernel. The
 assignments below will gradually build up towards this goal.
 
+The starting point for this assignment is the packet parsing program in
+=xdp_prog_kern.c=, which will parse the packet Ethernet header using a
+helper function. Each assignment will extend this program by adding new
+features.
+
+** Assignment 1: Fix the bounds checking error
+The parser function in =xdp_prog_kern.c= will parse the Ethernet header, do
+bounds checking, and return the next header type and position. However,
+there is a bug in the bounds checking logic, so the program will be rejected
+by the verifier (test this by running =t load= after compiling it).
+
+Your first assignment is to fix this bug (*hint*: it's in the =if= statement
+in =parse_ethhdr()=), and make sure that the program can be successfully
+loaded onto an interface.
+
+** Assignment 2: Parsing the IP header
+
+Now that our Ethernet parsing program runs, we will add parsing of the IP
+header. To do this, implement the =parse_ip6hdr()= function that has a
+commented-out prototype below the =parse_ethhdr()= function. The function
+will be quite similar to =parse_ethhdr()=, but you'll need to look up the
+IPv6 header structure definition in =ipv6.h=.
+
+When you add bounds checking, notice that the style used in
+=parse_ethhdr()=, which computes the size of the header and does byte-wise
+comparison, is not the only one possible. You can also use pointer
+arithmetic-style comparison, which makes use of the fact that incrementing a
+pointer will move the memory it is pointing to by the size of the structure.
+Using this will get you a bounds check that looks like this:
+
+#+begin_src C
+	struct ipv6hdr *ip6h = *nexthdr;
+
+	/* Pointer-arithmetic bounds check; pointer +1 points to after end of
+	 * thing being pointed to. We will be using this style in the remainder
+	 * of the tutorial.
+	 */
+	if (ip6h + 1 > data_end)
+		return -1;
+#+end_src
+
+To check that your program works, test that it compiles and loads. You can
+also change the return code to drop IP packets, and check that this works
+using either =t tcpdump= or =t ping=.
+
+** Assignment 2: Parsing the ICMPv6 header and reacting to it
+
+Now that we can successfully parse packets down to the IP header, we will
+need to add parsing of the payload that we are interested in. I.e., the
+ICMPv6 header. To do this, implement the =parse_icmp6hdr()= function.
+
+After parsing the ICMPv6 header, it is finally time to make our decisions
+based on the packet payload. In this case, we are interested in the sequence
+number. The data structure is quite deeply nested, but the header file also
+defines a convenient alias, so the sequence number can be accessed as
+=icmp6h->icmp6_sequence= (but don't forget byte order conversion).
+
+With this, we can finally implement the drop logic mentioned above, by
+simply returning =XDP_DROP= if the sequence number is even, and =XDP_PASS=
+otherwise. Verify that this works by loading the program and running a ping;
+you should see responses on every other sequence number:
+
+#+begin_src sh
+$ make
+$ t load
+$ t ping
+Running ping from inside test environment:
+
+PING fc00:dead:cafe:1::1(fc00:dead:cafe:1::1) 56 data bytes
+64 bytes from fc00:dead:cafe:1::1: icmp_seq=1 ttl=64 time=0.059 ms
+64 bytes from fc00:dead:cafe:1::1: icmp_seq=3 ttl=64 time=0.135 ms
+^C
+--- fc00:dead:cafe:1::1 ping statistics ---
+4 packets transmitted, 2 received, 50% packet loss, time 44ms
+rtt min/avg/max/mdev = 0.059/0.097/0.135/0.038 ms
+#+end_src
+
+** Assignment 3: Adding VLAN support
+
+Now that we have the basic functionality working, we can improve it to also
+correctly handle VLAN tags on the Ethernet packets, as an example of how to
+parse multiple variable headers depending on the payload. In Linux, VLANs
+are configured by creating virtual interfaces of type vlan; but since the
+XDP program runs directly on the real interface, it will see all packets
+with their VLAN tags, before the kernel assigns them to the virtual VLAN
+interfaces. We can use this to create a parser that will work with any VLAN
+encapsulation.
+
+For now we just want to parse the VLAN tags and find the encapsulated IP
+header (in the next lesson we will move on to adding and removing VLAN
+tags). This means that we can just augment our =parse_ethhdr()= function to
+also parse VLAN tags. If any tags are found, we simply grab the next header
+type from the innermost tag instead of directly from the Ethernet header,
+and move the nexthdr pointer to after the end of the VLAN tag.
+
+Unfortunately, the VLAN tag header is not exported by any of the IP header
+files. However, it is quite simple, so we can just define it ourselves, like
+this (copied from the internal kernel headers):
+
+#+begin_src C
+struct vlan_hdr {
+	__be16	h_vlan_TCI;
+	__be16	h_vlan_encapsulated_proto;
+};
+#+end_src
+
+The ethertype of a VLAN tag is either =ETH_P_8021Q= or =ETH_P_8021AD=, both
+of which are defined in =if_ether=. So we can define a simple helper
+function to check if a VLAN tag is present:
+
+#+begin_src C
+static __always_inline int proto_is_vlan(__u16 h_proto)
+{
+        return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
+                  h_proto == bpf_htons(ETH_P_8021AD));
+}
+#+end_src
+
+Which can be used like this:
+
+#+begin_src C
+if (proto_is_vlan(eth->h_proto)) {
+  /* Process VLAN tag */
+}
+#+end_src
+
+Another thing to bear in mind is that a single packet can have several
+nested VLAN tags. We can handle this by using an unrolled loop to parse
+subsequent VLAN headers, as long as their encapsulated protocol continues to
+be on of the VLAN types.
+
+Using the above, modify your parsing program to also work with VLAN tags.
+You can test this by setting up the test environment with VLAN interfaces;
+simply pass the =--vlan= tag to =t setup=; or run =t reset --vlan= to
+re-initialise an existing environment with the addition of a VLAN interface.
+Once you have initialised the environment to include VLANs, you can run =t
+ping --vlan= to run a ping on the VLAN interfaces, and verify that every
+other packet is still being dropped.
+
+** Assignment 4: Adding IPv4 support
+
+While we would obviously all like IPv6 to be ubiquitous everywhere,
+sometimes it is still necessary to handle legacy IPv4 packets. To this end,
+the final assignment for this lesson is to extend our program to perform the
+same function for v4 ICMP packets as it does for ICMPv6 packets. This means
+adding two new parser functions for the IPv4 headers, and handling each
+according to the payload type of the Ethernet header.
+
+This should be a pretty straight-forward extension of the program. The only
+complication to be aware of is that IPv4 headers can very in size, so you'll
+need to do the bounds checking in two passes: First verify that the iphdr
+struct itself fits in the packet payload, then compute the actual header
+size as =hdrsize = iph->ihl * 4=, and finally verify that this full size
+fits in the packet (and adjust the nexthdr pointer accordingly).
+
+To test IPv4 support, you can run =t setup --legacy-ip= which will configure
+IPv4 addresses on the virtual interfaces, and =t ping --legacy-ip= to run a
+ping afterwards. Note that you will need to pass both =--legacy-ip= and
+=--vlan= to the =setup= (or =reset=) commands if you want both at the same
+time; however, no IPv4 addresses will be configured on the VLAN interfaces,
+so you can't use =t ping= with both.
+
+Once you have added IPv4 support and verified that every other v4 ICMP
+packet is being dropped when you load the program, you have completed this
+lesson, and you are ready move on to =packet02= to learn about packet
+modification!
