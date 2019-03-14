@@ -34,6 +34,17 @@
     name: "*"
     state: latest
 
+#
+# Copy some shell setup files
+# - src= looks in roles/tutorial/files/
+#
+- name: Shell inputrc root
+  copy: src=inputrc dest=/root/.inputrc owner=root group=root mode=0644
+- name: Shell inputrc for users
+  copy: src=inputrc dest=/home/{{ item }}/.inputrc owner={{ item }} group={{ item }} mode=0644
+  with_items:
+    - fedora
+
 # Want have SSH-X11 forwarding working
 - name: Packages - SSH-X11 packages
   dnf:
