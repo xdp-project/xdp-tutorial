@@ -37,7 +37,7 @@ struct bpf_map_def SEC("maps") xdp_stats_map = {
 };
 #+end_src
 
-BPF-maps are basically a generic *key-value* stores (see =key_size= and
+BPF-maps are basically generic *key-value* stores (see =key_size= and
 =value_size=), with a given =type=, and maximum allowed entries
 =max_entries=. Here we focus on the simple =BPF_MAP_TYPE_ARRAY=, which means
 =max_entries= gets allocated when map is created.

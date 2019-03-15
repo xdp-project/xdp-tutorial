@@ -73,7 +73,7 @@ helps you setup a testlab based on =veth= and network namespaces.
 
 E.g. run the script like:
 #+begin_example sh
-$ sudo ./testenv.sh --name veth-basic0 setup
+$ sudo ../testenv/testenv.sh setup --name veth-basic02
 Setting up new environment 'veth-basic02'
 Setup environment 'veth-basic02' with peer ip fc00:dead:cafe:1::2.
 #+end_example
@@ -94,6 +94,56 @@ sudo ./xdp_loader --help
 sudo ./xdp_loader --dev veth-basic02
 sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_drop
 sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_pass
+#+end_example
+
+The testenv script also have a helper command for "load":
+#+begin_example
+sudo ../testenv/testenv.sh load --name veth-basic02
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --force
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progsec xdp_drop
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progsec xdp_pass
+#+end_example
+
+*** A note about: Testlab and veth packets directions
+
+You should do the ping from *within* the network namespace (netns) that were
+created by the script. This is because XDP program only operates on
+RX-packets. XDP was loaded on "outer" veth device "veth-basic02", which RX
+packets from from the "inner" veth0 device.
+
+You can "enter" the namespace manually (via =sudo ip netns exec veth-basic02
+/bin/bash=) or via the script like:
+#+begin_example
+$ sudo ../testenv/testenv.sh enter --name veth-basic02
+# ping fc00:dead:cafe:1::1
+#+end_example
+
+To make this ping connectivity test easier, the script have a ping command
+that pings from within the the netns, like:
+#+begin_example
+$ sudo ../testenv/testenv.sh ping --name veth-basic02
+#+end_example
+
+You should note that, the *cool thing* about using netns as a testlab is
+that we can still "enter" the netns even-when XDP is dropping all packets.
+
+*** Recommend: Create alias for testenv.sh
+
+To have faster access to the testenv.sh script, we recommend that you create
+a shell alias (called =t=). The testenv script even have a command helper
+for this purpose:
+
+#+begin_example
+$ ../testenv/testenv.sh alias
+Eval this with `eval $(../testenv/testenv.sh alias)` to create shell alias
+WARNING: Creating sudo alias; be careful, this script WILL execute arbitrary programs
+
+alias t='sudo /home/fedora/git/xdp-tutorial/testenv/testenv.sh'
+#+end_example
+
+As pointed out run:
+#+begin_example
+eval $(../testenv/testenv.sh alias)
 #+end_example
 
 ** Assignment#2: Add xdp_abort program
