@@ -57,6 +57,22 @@ int  xdp_pass_func(struct xdp_md *ctx)
 	return record_xdp_stats_action(ctx, action);
 }
 
+SEC("xdp_drop")
+int  xdp_drop_func(struct xdp_md *ctx)
+{
+	__u32 action = XDP_DROP;
+
+	return record_xdp_stats_action(ctx, action);
+}
+
+SEC("xdp_abort")
+int  xdp_abort_func(struct xdp_md *ctx)
+{
+	__u32 action = XDP_ABORTED;
+
+	return record_xdp_stats_action(ctx, action);
+}
+
 char _license[] SEC("license") = "GPL";
 
 /* Copied from: $KERNEL/include/uapi/linux/bpf.h
