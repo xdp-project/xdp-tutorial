@@ -43,14 +43,14 @@ static __always_inline int parse_ethhdr(struct next_hdr_iter *nh,
 }
 
 /* Assignment 2: Implement and use this */
-/*static __always_inline int parse_ip6hdr(void **nexthdr,
+/*static __always_inline int parse_ip6hdr(struct next_hdr_iter *nh,
 					void *data_end,
 					struct ipv6hdr **ip6hdr)
 {
 }*/
 
 /* Assignment 3: Implement and use this */
-/*static __always_inline int parse_icmp6hdr(void **nexthdr,
+/*static __always_inline int parse_icmp6hdr(struct next_hdr_iter *nh,,
 					  void *data_end,
 					  struct icmp6hdr **icmp6hdr)
 {
