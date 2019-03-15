@@ -159,7 +159,9 @@ definitions we will be using in this lesson are the following:
 
 Since the packet data comes straight off the wire, the data fields will be
 in network byte order. Use the =bpf_ntohs()= and =bpf_htons()= functions to
-convert to and from host byte order, respectively.
+convert to and from host byte order, respectively. (Detail of why you should
+use these =bpf_= prefixed byteorder(3) functions are described in the header
+file that defines them file:../headers/bpf_endian.h).
 
 ** Function inlining and loop unrolling
 
