@@ -96,6 +96,14 @@ sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_drop
 sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_pass
 #+end_example
 
+The testenv script also have a helper command for "load":
+#+begin_example
+sudo ../testenv/testenv.sh load --name veth-basic02
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --force
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progsec xdp_drop
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progsec xdp_pass
+#+end_example
+
 *** A note about: Testlab
 
 You should do the ping from *within* the network namespace (netns) that were
