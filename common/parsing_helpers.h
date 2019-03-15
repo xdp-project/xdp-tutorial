@@ -27,6 +27,11 @@
 #include <linux/icmp.h>
 #include <linux/icmpv6.h>
 
+/* Next header iterator for packet parsing */
+struct next_hdr_iter {
+	void *ptr;
+};
+
 /*
  * 	struct vlan_hdr - vlan header
  * 	@h_vlan_TCI: priority and VLAN ID
@@ -45,10 +50,10 @@ static __always_inline int proto_is_vlan(__u16 h_proto)
                   h_proto == bpf_htons(ETH_P_8021AD));
 }
 
-static __always_inline int parse_ethhdr(void **nexthdr, void *data_end,
+static __always_inline int parse_ethhdr(struct next_hdr_iter *nh, void *data_end,
 					struct ethhdr **ethhdr)
 {
-	struct ethhdr *eth = *nexthdr;
+	struct ethhdr *eth = nh->ptr;
 	int hdrsize = sizeof(*eth);
         struct vlan_hdr *vlh;
         __u16 h_proto;
@@ -57,12 +62,12 @@ static __always_inline int parse_ethhdr(void **nexthdr, void *data_end,
 	/* Byte-count bounds check; check if current pointer + size of header
 	 * is after data_end.
 	 */
-	if (*nexthdr + hdrsize > data_end)
+	if (nh->ptr + hdrsize > data_end)
 		return -1;
 
-	*nexthdr += hdrsize;
+	nh->ptr += hdrsize;
 	*ethhdr = eth;
-        vlh = *nexthdr;
+        vlh = nh->ptr;
         h_proto = eth->h_proto;
 
         /* Use loop unrolling to avoid the verifier restriction on loops;
@@ -80,15 +85,15 @@ static __always_inline int parse_ethhdr(void **nexthdr, void *data_end,
                 vlh++;
         }
 
-        *nexthdr = vlh;
+        nh->ptr = vlh;
 	return bpf_ntohs(h_proto);
 }
 
-static __always_inline int parse_ip6hdr(void **nexthdr,
+static __always_inline int parse_ip6hdr(struct next_hdr_iter *nh,
 					void *data_end,
 					struct ipv6hdr **ip6hdr)
 {
-	struct ipv6hdr *ip6h = *nexthdr;
+	struct ipv6hdr *ip6h = nh->ptr;
 
 	/* Pointer-arithmetic bounds check; pointer +1 points to after end of
 	 * thing being pointed to. We will be using this style in the remainder
@@ -97,17 +102,17 @@ static __always_inline int parse_ip6hdr(void **nexthdr,
 	if (ip6h + 1 > data_end)
 		return -1;
 
-	*nexthdr = ip6h + 1;
+	nh->ptr = ip6h + 1;
 	*ip6hdr = ip6h;
 
 	return ip6h->nexthdr;
 }
 
-static __always_inline int parse_iphdr(void **nexthdr,
+static __always_inline int parse_iphdr(struct next_hdr_iter *nh,
                                        void *data_end,
                                        struct iphdr **iphdr)
 {
-	struct iphdr *iph = *nexthdr;
+	struct iphdr *iph = nh->ptr;
 	int hdrsize;
 
 	if (iph + 1 > data_end)
@@ -116,65 +121,66 @@ static __always_inline int parse_iphdr(void **nexthdr,
         hdrsize = iph->ihl * 4;
 
         /* Variable-length IPv4 header, need to use byte-based arithmetic */
-        if (*nexthdr + hdrsize > data_end)
+        if (nh->ptr + hdrsize > data_end)
                 return -1;
 
-	*nexthdr += hdrsize;
+	nh->ptr += hdrsize;
 	*iphdr = iph;
 
 	return iph->protocol;
 }
 
-static __always_inline int parse_icmp6hdr(void **nexthdr,
+static __always_inline int parse_icmp6hdr(struct next_hdr_iter *nh,
 					  void *data_end,
 					  struct icmp6hdr **icmp6hdr)
 {
-	struct icmp6hdr *icmp6h = *nexthdr;
+	struct icmp6hdr *icmp6h = nh->ptr;
 
 	if (icmp6h + 1 > data_end)
 		return -1;
 
-	*nexthdr = icmp6h + 1;
+	nh->ptr   = icmp6h + 1;
 	*icmp6hdr = icmp6h;
 
 	return icmp6h->icmp6_type;
 }
 
-static __always_inline int parse_icmphdr(void **nexthdr,
+static __always_inline int parse_icmphdr(struct next_hdr_iter *nh,
                                          void *data_end,
                                          struct icmphdr **icmphdr)
 {
-	struct icmphdr *icmph = *nexthdr;
+	struct icmphdr *icmph = nh->ptr;
 
 	if (icmph + 1 > data_end)
 		return -1;
 
-	*nexthdr = icmph + 1;
+	nh->ptr  = icmph + 1;
 	*icmphdr = icmph;
 
 	return icmph->type;
 }
 
-static __always_inline struct ethhdr *get_ethhdr(void **nexthdr, void *data_end)
+static __always_inline struct ethhdr *get_ethhdr(struct next_hdr_iter *nh,
+						 void *data_end)
 {
-	struct ethhdr *eth = *nexthdr;
+	struct ethhdr *eth = nh->ptr;
 	int hdrsize = sizeof(*eth);
 
 	/* Byte-count bounds check; check if current pointer + size of header
 	 * is after data_end.
 	 */
-	if (*nexthdr + hdrsize > data_end)
+	if (nh->ptr + hdrsize > data_end)
 		return NULL;
 
-	*nexthdr += hdrsize;
+	nh->ptr += hdrsize;
 	return eth;
 }
 
 static __always_inline struct ipv6hdr *get_ip6hdr(struct ethhdr *eth,
-						 void **nexthdr,
+						 struct next_hdr_iter *nh,
 						 void *data_end)
 {
-        struct vlan_hdr *vlh = *nexthdr;
+        struct vlan_hdr *vlh = nh->ptr;
         __u16 h_proto = eth->h_proto;
 	struct ipv6hdr *ip6h;
         int i;
@@ -207,15 +213,15 @@ static __always_inline struct ipv6hdr *get_ip6hdr(struct ethhdr *eth,
 	if (ip6h + 1 > data_end)
 		return NULL;
 
-	*nexthdr = ip6h + 1;
+	nh->ptr = ip6h + 1;
 	return ip6h;
 }
 
 static __always_inline struct icmp6hdr *get_icmp6hdr(struct ipv6hdr *ip6h,
-						    void **nexthdr,
+						    struct next_hdr_iter *nh,
 						    void *data_end)
 {
-	struct icmp6hdr *icmp6h = *nexthdr;
+	struct icmp6hdr *icmp6h = nh->ptr;
 
 	if (ip6h->nexthdr != IPPROTO_ICMPV6)
 		return NULL;
@@ -223,7 +229,7 @@ static __always_inline struct icmp6hdr *get_icmp6hdr(struct ipv6hdr *ip6h,
 	if (icmp6h + 1 > data_end)
 		return NULL;
 
-	*nexthdr = icmp6h + 1;
+	nh->ptr = icmp6h + 1;
 	return icmp6h;
 }
 

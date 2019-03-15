@@ -108,12 +108,13 @@ int xdp_vlan_swap_func(struct xdp_md *ctx)
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
 
-        /* These keep track of the next header type and a pointer to it */
-	void *nh_ptr = data;
+        /* These keep track of the next header type and iterator pointer */
+	struct next_hdr_iter nh;
 	int nh_type;
+        nh.ptr = data;
 
 	struct ethhdr *eth;
-	nh_type = parse_ethhdr(&nh_ptr, data_end, &eth);
+	nh_type = parse_ethhdr(&nh, data_end, &eth);
         if (nh_type < 0)
                 return XDP_PASS;
 
@@ -134,9 +135,10 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
 
-        /* These keep track of the next header type and a pointer to it */
-	void *nh_ptr = data;
+        /* These keep track of the next header type and iterator pointer */
+	struct next_hdr_iter nh;
 	int nh_type;
+        nh.ptr = data;
 
 	struct ethhdr *eth;
 
@@ -144,17 +146,17 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 * parsing fails. Each helper function does sanity checking (is the
 	 * header type in the packet correct?), and bounds checking.
 	 */
-	nh_type = parse_ethhdr(&nh_ptr, data_end, &eth);
+	nh_type = parse_ethhdr(&nh, data_end, &eth);
 
         if (nh_type == ETH_P_IPV6) {
                 struct ipv6hdr *ip6h;
                 struct icmp6hdr *icmp6h;
 
-                nh_type = parse_ip6hdr(&nh_ptr, data_end, &ip6h);
+                nh_type = parse_ip6hdr(&nh, data_end, &ip6h);
                 if (nh_type != IPPROTO_ICMPV6)
                         goto out;
 
-                nh_type = parse_icmp6hdr(&nh_ptr, data_end, &icmp6h);
+                nh_type = parse_icmp6hdr(&nh, data_end, &icmp6h);
                 if (nh_type != ICMPV6_ECHO_REQUEST)
                         goto out;
 
@@ -165,11 +167,11 @@ int  xdp_parser_func(struct xdp_md *ctx)
                 struct iphdr *iph;
                 struct icmphdr *icmph;
 
-                nh_type = parse_iphdr(&nh_ptr, data_end, &iph);
+                nh_type = parse_iphdr(&nh, data_end, &iph);
                 if (nh_type != IPPROTO_ICMP)
                         goto out;
 
-                nh_type = parse_icmphdr(&nh_ptr, data_end, &icmph);
+                nh_type = parse_icmphdr(&nh, data_end, &icmph);
                 if (nh_type != ICMP_ECHO)
                         goto out;
 

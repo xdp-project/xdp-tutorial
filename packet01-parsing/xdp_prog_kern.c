@@ -9,6 +9,11 @@
 #include "bpf_helpers.h"
 #include "bpf_endian.h"
 
+/* Next header iterator for packet parsing */
+struct next_hdr_iter {
+	void *ptr;
+};
+
 /* Packet parsing helpers.
  *
  * Each helper parses a packet header, including doing bounds checking, and
@@ -18,33 +23,34 @@
  * (h_proto for Ethernet, nexthdr for IPv6), for ICMP it is the ICMP type field.
  * All return values are in host byte order.
  */
-static __always_inline int parse_ethhdr(void **nexthdr, void *data_end,
+static __always_inline int parse_ethhdr(struct next_hdr_iter *nh,
+					void *data_end,
 					struct ethhdr **ethhdr)
 {
-	struct ethhdr *eth = *nexthdr;
+	struct ethhdr *eth = nh->ptr;
 	int hdrsize = sizeof(*eth);
 
 	/* Byte-count bounds check; check if current pointer + size of header
 	 * is after data_end.
 	 */
-	if (*nexthdr + 1 > data_end)
+	if (nh->ptr + 1 > data_end)
 		return -1;
 
-	*nexthdr += hdrsize;
+	nh->ptr += hdrsize;
 	*ethhdr = eth;
 
 	return bpf_ntohs(eth->h_proto);
 }
 
 /* Assignment 2: Implement and use this */
-/*static __always_inline int parse_ip6hdr(void **nexthdr,
+/*static __always_inline int parse_ip6hdr(struct next_hdr_iter *nh,
 					void *data_end,
 					struct ipv6hdr **ip6hdr)
 {
 }*/
 
 /* Assignment 3: Implement and use this */
-/*static __always_inline int parse_icmp6hdr(void **nexthdr,
+/*static __always_inline int parse_icmp6hdr(struct next_hdr_iter *nh,,
 					  void *data_end,
 					  struct icmp6hdr **icmp6hdr)
 {
@@ -55,18 +61,20 @@ int  xdp_parser_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
+	struct ethhdr *eth;
 
-        /* These keep track of the next header type and a pointer to it */
-	void *nh_ptr = data;
+        /* These keep track of the next header type and iterator pointer */
+	struct next_hdr_iter nh;
 	int nh_type;
 
-	struct ethhdr *eth;
+	/* Start next header iterator pointer at data start */
+	nh.ptr = data;
 
 	/* Packet parsing in steps: Get each header one at a time, aborting if
 	 * parsing fails. Each helper function does sanity checking (is the
 	 * header type in the packet correct?), and bounds checking.
 	 */
-	nh_type = parse_ethhdr(&nh_ptr, data_end, &eth);
+	nh_type = parse_ethhdr(&nh, data_end, &eth);
 	if (nh_type != ETH_P_IPV6)
 		goto out;
 
