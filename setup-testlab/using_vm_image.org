@@ -76,6 +76,38 @@ Use graphical tool: virt-manager
  - Choose Memory and CPU settings
  - Choose: Name: "F29-xdp-tutorial"
 
+** Use via virt-install
+
+You can create a new libvirt machine, that use this image, from the command
+line using =virt-install=:
+
+Here we assume you installed the VM image in:
+- /var/lib/libvirt/images/F29-xdp-tutorial.qcow2
+
+#+begin_example
+sudo virt-install --name F29-xdp-tutorial \
+--description 'Fedora 29 - XDP-tutorial' \
+--ram 2048 \
+--vcpus 2 \
+--disk path=/var/lib/libvirt/images/F29-xdp-tutorial.qcow2 \
+--cdrom /dev/null \
+--os-type linux \
+--os-variant fedora29 \
+--network bridge=virbr0 \
+--graphics vnc,listen=127.0.0.1,port=5901 \
+--noautoconsole
+#+end_example
+
+Guess you don't prefer the graphical tool virt-manager.  You can start a
+console login via:
+
+#+begin_example
+ sudo virsh console F29-xdp-tutorial
+#+end_example
+
+You should login with user "fedora", observe the IP-address (e.g. ifconfig)
+and then instead use SSH to login.  To exit the console use: =Ctrl + 5=.
+
 * Default username+password
 
 The default username+password for your new VM image is:
