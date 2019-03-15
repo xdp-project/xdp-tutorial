@@ -271,6 +271,21 @@ with their VLAN tags, before the kernel assigns them to the virtual VLAN
 interfaces. We can use this to create a parser that will work with any VLAN
 encapsulation.
 
+*Gotcha:* XDP need to see the VLAN-headers *inline* in the packet. Most NIC
+drivers support VLAN offloading, where the VLAN-info is *not* inline, but
+instead deliver the VLAN-info in the hardware descriptor (and transfer info
+to SKB related vlan fields). Thus, make sure that this vlan-offload feature
+is turned off, via ethtool:
+
+#+begin_example
+ # Check current setting:
+ ethtool -k veth-xdp | grep vlan-offload
+ # Disable for both RX and TX
+ ethtool --offload DEV rxvlan off txvlan off
+ # Same as:
+ # ethtool -K DEV rxvlan off txvlan off
+#+end_example
+
 For now we just want to parse the VLAN tags and find the encapsulated IP
 header (in the next lesson we will move on to adding and removing VLAN
 tags). This means that we can just augment our =parse_ethhdr()= function to
