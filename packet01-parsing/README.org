@@ -127,12 +127,12 @@ enum xdp_action {
 #+end_src
 
 =ABORTED= and =DROP= will both drop the packet, but =ABORTED= will also
-trigger a tracepoint event (=xdp:xdp_exception=), which have zero-overhead
-when not enabled. =PASS= will allow the packet to continue up to the kernel
-networking stack for processing, =TX= will retransmit the packet out of the
-same interface it was received on, and =REDIRECT= will transmit the packet
-out of another interface (where destination interface is set by BPF-helper
-call prior to returning =REDIRECT=).
+trigger a tracepoint event (=xdp:xdp_exception=; this has zero overhead when
+the tracepoint is not). =PASS= will allow the packet to continue up to the
+kernel networking stack for processing, =TX= will retransmit the packet out
+of the same interface it was received on, and =REDIRECT= will transmit the
+packet out of another interface (where the destination interface needs to be
+set by a BPF helper call prior to returning =REDIRECT=).
 
 Note that the XDP program can perform arbitrary alterations to the packets
 before these verdicts are rendered. For the =TX= and =REDIRECT= actions,
@@ -159,9 +159,9 @@ definitions we will be using in this lesson are the following:
 
 Since the packet data comes straight off the wire, the data fields will be
 in network byte order. Use the =bpf_ntohs()= and =bpf_htons()= functions to
-convert to and from host byte order, respectively. (Detail of why you should
-use these =bpf_= prefixed byteorder(3) functions are described in the header
-file that defines them file:../headers/bpf_endian.h).
+convert to and from host byte order, respectively. See the comment at the
+top of [[file:../headers/bpf_endian.h]] for why the =bpf_=-prefixed versions are
+needed.
 
 ** Function inlining and loop unrolling
 
@@ -269,22 +269,7 @@ are configured by creating virtual interfaces of type vlan; but since the
 XDP program runs directly on the real interface, it will see all packets
 with their VLAN tags, before the kernel assigns them to the virtual VLAN
 interfaces. We can use this to create a parser that will work with any VLAN
-encapsulation.
-
-*Gotcha:* XDP need to see the VLAN-headers *inline* in the packet. Most NIC
-drivers support VLAN offloading, where the VLAN-info is *not* inline, but
-instead deliver the VLAN-info in the hardware descriptor (and transfer info
-to SKB related vlan fields). Thus, make sure that this vlan-offload feature
-is turned off, via ethtool:
-
-#+begin_example
- # Check current setting:
- ethtool -k veth-xdp | grep vlan-offload
- # Disable for both RX and TX
- ethtool --offload DEV rxvlan off txvlan off
- # Same as:
- # ethtool -K DEV rxvlan off txvlan off
-#+end_example
+encapsulation (but see the note about hardware offloads below).
 
 For now we just want to parse the VLAN tags and find the encapsulated IP
 header (in the next lesson we will move on to adding and removing VLAN
@@ -336,6 +321,27 @@ re-initialise an existing environment with the addition of a VLAN interface.
 Once you have initialised the environment to include VLANs, you can run =t
 ping --vlan= to run a ping on the VLAN interfaces, and verify that every
 other packet is still being dropped.
+
+*** A note about VLAN offloads
+
+Since XDP needs to see the VLAN headers as part of the packet headers, it is
+important to turn off VLAN hardware offload (which most hardware NICs
+support), since that will remove the VLAN tag from the packet header and
+instead communicate it out of band to the kernel via the packet hardware
+descriptor. The =testenv= script already disables VLAN offload when setting
+up the environment, but for reference, here is how to turn it off for other
+devices, using ethtool:
+
+#+begin_example
+ # Check current setting:
+ ethtool -k DEV | grep vlan-offload
+ # Disable for both RX and TX
+ ethtool --offload DEV rxvlan off txvlan off
+ # Same as:
+ # ethtool -K DEV rxvlan off txvlan off
+#+end_example
+
+
 
 ** Assignment 4: Adding IPv4 support
 
