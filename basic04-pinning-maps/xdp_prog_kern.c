@@ -29,7 +29,7 @@ __u32 record_xdp_stats_action(struct xdp_md *ctx, __u32 action)
 	void *data     = (void *)(long)ctx->data;
 
 	if (action >= XDP_ACTION_MAX)
-                return XDP_ABORTED;
+		return XDP_ABORTED;
 
 	/* Lookup in kernel BPF-side return pointer to actual data record */
 	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
