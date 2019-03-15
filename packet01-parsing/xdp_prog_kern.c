@@ -68,7 +68,7 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	int nh_type;
 
 	/* Start next header iterator pointer at data start */
-	nh->ptr = data;
+	nh.ptr = data;
 
 	/* Packet parsing in steps: Get each header one at a time, aborting if
 	 * parsing fails. Each helper function does sanity checking (is the
