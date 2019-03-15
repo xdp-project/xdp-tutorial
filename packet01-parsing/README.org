@@ -347,7 +347,7 @@ adding two new parser functions for the IPv4 headers, and handling each
 according to the payload type of the Ethernet header.
 
 This should be a pretty straight-forward extension of the program. The only
-complication to be aware of is that IPv4 headers can very in size, so you'll
+complication to be aware of is that IPv4 headers can vary in size, so you'll
 need to do the bounds checking in two passes: First verify that the iphdr
 struct itself fits in the packet payload, then compute the actual header
 size as =hdrsize = iph->ihl * 4=, and finally verify that this full size
