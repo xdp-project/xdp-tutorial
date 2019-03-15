@@ -124,6 +124,9 @@ that pings from within the the netns, like:
 $ sudo ../testenv/testenv.sh ping --name veth-basic02
 #+end_example
 
+You should note that, the *cool thing* about using netns as a testlab is
+that we can still "enter" the netns even-when XDP is dropping all packets.
+
 *** Recommend: Create alias for testenv.sh
 
 To have faster access to the testenv.sh script, we recommend that you create
