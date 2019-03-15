@@ -127,10 +127,12 @@ enum xdp_action {
 #+end_src
 
 =ABORTED= and =DROP= will both drop the packet, but =ABORTED= will also
-increment an error counter. =PASS= will allow the packet to continue up to
-the kernel networking stack for processing, =TX= will retransmit the packet
-out of the same interface it was received on, and =REDIRECT= will transmit
-the packet out of another interface.
+trigger a tracepoint event (=xdp:xdp_exception=), which have zero-overhead
+when not enabled. =PASS= will allow the packet to continue up to the kernel
+networking stack for processing, =TX= will retransmit the packet out of the
+same interface it was received on, and =REDIRECT= will transmit the packet
+out of another interface (where destination interface is set by BPF-helper
+call prior to returning =REDIRECT=).
 
 Note that the XDP program can perform arbitrary alterations to the packets
 before these verdicts are rendered. For the =TX= and =REDIRECT= actions,
