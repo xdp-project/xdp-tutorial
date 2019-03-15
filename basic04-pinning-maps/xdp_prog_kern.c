@@ -22,26 +22,22 @@ struct bpf_map_def SEC("maps") xdp_stats_map = {
 #define lock_xadd(ptr, val)	((void) __sync_fetch_and_add(ptr, val))
 #endif
 
-SEC("xdp_stats1")
-int  xdp_stats1_func(struct xdp_md *ctx)
+static __always_inline
+__u32 record_xdp_stats_action(struct xdp_md *ctx, __u32 action)
 {
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data     = (void *)(long)ctx->data;
-	struct datarec *rec;
-	__u32 key = XDP_PASS; /* XDP_PASS = 2 */
-	__u64 bytes;
+
+	if (action >= XDP_ACTION_MAX)
+                return XDP_ABORTED;
 
 	/* Lookup in kernel BPF-side return pointer to actual data record */
-	rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
-	/* BPF kernel-side verifier will reject program if the NULL pointer
-	 * check isn't performed here. Even-though this is a static array where
-	 * we know key lookup XDP_PASS always will succeed.
-	 */
+	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
 	if (!rec)
 		return XDP_ABORTED;
 
 	/* Calculate packet length */
-	bytes = data_end - data;
+	__u64 bytes = data_end - data;
 
 	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
 	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
@@ -50,7 +46,15 @@ int  xdp_stats1_func(struct xdp_md *ctx)
 	rec->rx_packets++;
 	rec->rx_bytes += bytes;
 
-	return XDP_PASS;
+	return action;
+}
+
+SEC("xdp_pass")
+int  xdp_pass_func(struct xdp_md *ctx)
+{
+	__u32 action = XDP_PASS; /* XDP_PASS = 2 */
+
+	return record_xdp_stats_action(ctx, action);
 }
 
 char _license[] SEC("license") = "GPL";
