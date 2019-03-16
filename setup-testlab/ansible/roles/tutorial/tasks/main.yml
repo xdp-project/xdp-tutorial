@@ -86,6 +86,15 @@
       - elfutils-libelf-devel
     state: installed
 
+- name: Packages - pahole/dwarves build dependencies
+  dnf:
+    name:
+      - elfutils-devel
+      - zlib-devel
+      - cmake
+    state: installed
+
+
 - name: Packages - Extra dependencies eBPF
   dnf:
     name:

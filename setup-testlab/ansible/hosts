@@ -10,7 +10,7 @@
 #   - A hostname/ip can be a member of multiple groups
 
 [fedora-vm]
-192.168.122.171
+192.168.122.16
 
 # Idea: run on the VM itself after git-clone
 # 127.0.0.1
