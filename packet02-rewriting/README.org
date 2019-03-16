@@ -12,28 +12,61 @@ modify the packet contents.
 - [[#what-you-will-learn-in-this-lesson][What you will learn in this lesson]]
   - [[#rewriting-packet-data-with-direct-memory-access][Rewriting packet data with direct memory access]]
   - [[#enlarging-and-shrinking-packet-size][Enlarging and shrinking packet size]]
-  - [[#tail-calling-between-xdp-progams][Tail calling between XDP progams]]
 - [[#assignments][Assignments]]
   - [[#assignment-1-rewrite-port-numbers][Assignment 1: Rewrite port numbers]]
   - [[#assignment-2-remove-the-outermost-vlan-tag][Assignment 2: Remove the outermost VLAN tag]]
   - [[#assignment-3-add-back-a-missing-vlan-tag][Assignment 3: Add back a missing VLAN tag]]
-  - [[#assignment-4-combine-the-two-programs][Assignment 4: Combine the two programs]]
 
 * What you will learn in this lesson
 
 ** Rewriting packet data with direct memory access
 
+As we saw in the previous lesson, the verifier will check that all memory
+accesses to packet data first perform correct bounds checking to make sure
+it doesn't reference memory outside the packet. This applies not only to
+packet data reads, but also to writes; which means that we can rewrite
+packet data simply by changing the memory it occupies. We will use this in
+the assignments below to modify packet header fields.
+
 ** Enlarging and shrinking packet size
 
-** Tail calling between XDP progams
+While many things can be accomplished simply by rewriting existing packet
+data, sometimes it is necessary to add or remove chunks of memory entirely,
+for instance to perform encapsulation, or to remove protocol headers from a
+packet. The kernel exposes an eBPF helper function to achieve this, which is
+called =bpf_xdp_adjust_head()=. This function takes the XDP context object
+and an adjustment size as parameter, and will move the header pointer by
+this many bytes (i.e., a positive number will shrink the size of the packet
+data, while a negative number will add that many bytes to the front of the
+packet).
+
+There are a few things to be aware of when using this helper:
+
+1. First, it may fail either because the adjustment would make the packet
+   data too small to contain at least an Ethernet header, or because there
+   is not enough space in memory before the start of the packet (packet data
+   is put at a fixed offset from the start of the memory page).
+
+2. Second, the helper only adjusts the data pointer. It is up to the XDP
+   program to ensure that the packet data is valid afterwards. This typically
+   involves rewriting the Ethernet header at the new start of the packet
+   location, and adjusting any subsequent header fields to match.
+
+3. Finally, the verifier will discard all information about previous bounds
+   checks after the packet size has been adjusted. This means that the XDP
+   program needs to perform new bounds checks *including re-evaluating the
+   data and data_end pointers* after adjusting the packet size.
+
+There is also a =bpf_xdp_adjust_tail()= which be used to move the end of the
+packet data, but this only supports shrinking the packet, not extending it;
+but otherwise it functions identically to =bpf_xdp_adjust_head()=.
 
 * Assignments
 
 In this lesson we will be creating two programs: One that rewrites the
 destination port number of TCP and UDP packets to be one less than its
 original. And another that removes the outermost VLAN encapsulation header
-if one exists, or add a new one if it doesn't. Finally, we will combine the
-two programs together by tail calling one from the other.
+if one exists, or add a new one if it doesn't.
 
 ** Assignment 1: Rewrite port numbers
 
@@ -92,12 +125,3 @@ the code that adds a VLAN tag if none exists. Just hardcode the VLAN ID to a
 value of your choosing; and test the program the same way as with the
 previous assignment (but run =t ping= without the =--vlan= parameter, and
 verify that the ICMP echo request packets do have a VLAN tag added to them).
-
-** Assignment 4: Combine the two programs
-
-Now that you have two XDP programs performing different functions, you can
-combine them by XDP tail call. Add the tail call at the end of the
-=xdp_vlan_swap_func()=, so that it will call the port rewrite program after
-performing its own function. The combined program should end up *both*
-popping or pushing VLAN tags *and* rewriting port numbers. Verify this with
-tcpdump.
