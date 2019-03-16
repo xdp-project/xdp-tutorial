@@ -249,11 +249,13 @@ setup()
             ip link set dev "${NS}.$vid" up
             ip addr add dev "${NS}.$vid" "${outside_ip}/${IP6_PREFIX_SIZE}"
             ip neigh add "$inside_ip" lladdr "$INSIDE_MAC" dev "${NS}.$vid" nud permanent
+            set_sysctls "${NS}/$vid"
 
             ip -n "$NS" link add dev "veth0.$vid" link "veth0" type vlan id "$vid"
             ip -n "$NS" link set dev "veth0.$vid" up
             ip -n "$NS" addr add dev "veth0.$vid" "${inside_ip}/${IP6_PREFIX_SIZE}"
             ip -n "$NS" neigh add "$outside_ip" lladdr "$OUTSIDE_MAC" dev "veth0.$vid" nud permanent
+            set_sysctls "veth0/$vid" "$NS"
         done
     else
         ENABLE_VLAN=0
