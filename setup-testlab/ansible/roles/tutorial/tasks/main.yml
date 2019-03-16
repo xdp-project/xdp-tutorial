@@ -120,4 +120,5 @@
       - perl-Time-HiRes
       - bash-completion
       - redhat-lsb-core
+      - stow
     state: installed

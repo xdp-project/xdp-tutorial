@@ -135,3 +135,50 @@ partprobe
 resize2fs /dev/vda1
 #+end_example
 
+* Extra manual changes
+
+Cloned some git trees in user 'fedora' home directory.
+
+List of git trees:
+- https://github.com/xdp-project/xdp-tutorial/
+- https://github.com/netoptimizer/network-testing
+- git://git.kernel.org/pub/scm/devel/pahole/pahole.git
+
+** stow
+
+Use stow to easier keep track of manually installed packages under:
+=/usr/local/=
+
+Some manual setup (TODO move this to ansible):
+#+begin_export
+sudo mkdir /usr/local/stow/
+sudo chown fedora /usr/local/stow/
+sudo chgrp -R adm  /usr/local/
+sudo chmod -R g+ws /usr/local/
+#+end_export
+
+Note, ansible-setup have already added /usr/local/lib to ldconfig.
+
+** pahole
+
+Until LLVM 8.0.0 gets released, we can use pahole to create the BTF-info
+into in the BPF-ELF files. The on Fedora 29 the package 'dwarves' that
+contain pahole is too old to have the needed BTF-features (avail in version
+1.12). Thus, we need to build it ourselves.
+
+Building pahole:
+
+#+begin_example
+cd ~/git/pahole
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local/stow/pahole-git01 -D__LIB=lib ..
+make
+#+end_example
+
+Stow part of the setup:
+#+begin_example
+cd /usr/local/stow/
+stow pahole-git01
+sudo ldconfig
+#+end_example
