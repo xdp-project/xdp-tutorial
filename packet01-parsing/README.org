@@ -13,6 +13,7 @@ programs.
 - [[#what-you-will-learn-in-this-lesson][What you will learn in this lesson]]
   - [[#the-data-and-data_end-pointers][The data and data_end pointers]]
   - [[#packet-bounds-checking][Packet bounds checking]]
+  - [[#header-cursor-to-keep-track-of-current-parsing-position][Header cursor to keep track of current parsing position]]
   - [[#program-return-codes][Program return codes]]
   - [[#packet-header-definitions-and-byte-order][Packet header definitions and byte order]]
   - [[#function-inlining-and-loop-unrolling][Function inlining and loop unrolling]]
@@ -109,6 +110,23 @@ The verifier can know that all instructions in the =true= branch of the =if=
 statement can safely access the first 10 bytes of the packet, while the
 =else= branch cannot. So if a program does attempt to access the packet data
 in the else branch, the program will be rejected.
+
+** Header cursor to keep track of current parsing position
+
+When going through a packet and parsing subsequent headers, it is generally
+necessary to keep track of the current parsing position. When using helper
+functions to parse packet headers, those helper functions generally need to
+modify the current parser position. To avoid having to deal with pointer
+arithmetic on pointers to pointers, we encapsulate this in a /cursor/
+object, which we can pass to helper functions. The cursor is simply defined
+as a single-entry struct:
+
+#+begin_src C
+/* Header cursor to keep track of current parsing position */
+struct hdr_cursor {
+	void *pos;
+};
+#+end_src
 
 ** Program return codes
 

@@ -109,9 +109,9 @@ int xdp_vlan_swap_func(struct xdp_md *ctx)
 	void *data = (void *)(long)ctx->data;
 
         /* These keep track of the next header type and iterator pointer */
-	struct next_hdr_iter nh;
+	struct hdr_cursor nh;
 	int nh_type;
-        nh.ptr = data;
+        nh.pos = data;
 
 	struct ethhdr *eth;
 	nh_type = parse_ethhdr(&nh, data_end, &eth);
@@ -136,9 +136,9 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	void *data = (void *)(long)ctx->data;
 
         /* These keep track of the next header type and iterator pointer */
-	struct next_hdr_iter nh;
+	struct hdr_cursor nh;
 	int nh_type;
-        nh.ptr = data;
+        nh.pos = data;
 
 	struct ethhdr *eth;
 
