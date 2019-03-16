@@ -1,0 +1,103 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Packet02 - packet rewriting
+#+OPTIONS: ^:nil
+
+Having completed the packet parsing lesson in packet01, you are now familiar
+with how to structure packet parsing, how to make sure you do proper bounds
+checking before referencing packet data, and how to decide the final packet
+verdict with return codes. In this lesson we build on this to show how to
+modify the packet contents.
+
+* Table of Contents                                                     :TOC:
+- [[#what-you-will-learn-in-this-lesson][What you will learn in this lesson]]
+  - [[#rewriting-packet-data-with-direct-memory-access][Rewriting packet data with direct memory access]]
+  - [[#enlarging-and-shrinking-packet-size][Enlarging and shrinking packet size]]
+  - [[#tail-calling-between-xdp-progams][Tail calling between XDP progams]]
+- [[#assignments][Assignments]]
+  - [[#assignment-1-rewrite-port-numbers][Assignment 1: Rewrite port numbers]]
+  - [[#assignment-2-remove-the-outermost-vlan-tag][Assignment 2: Remove the outermost VLAN tag]]
+  - [[#assignment-3-add-back-a-missing-vlan-tag][Assignment 3: Add back a missing VLAN tag]]
+  - [[#assignment-4-combine-the-two-programs][Assignment 4: Combine the two programs]]
+
+* What you will learn in this lesson
+
+** Rewriting packet data with direct memory access
+
+** Enlarging and shrinking packet size
+
+** Tail calling between XDP progams
+
+* Assignments
+
+In this lesson we will be creating two programs: One that rewrites the
+destination port number of TCP and UDP packets to be one less than its
+original. And another that removes the outermost VLAN encapsulation header
+if one exists, or add a new one if it doesn't. Finally, we will combine the
+two programs together by tail calling one from the other.
+
+** Assignment 1: Rewrite port numbers
+
+For this assignment you will need to parse the TCP and UDP headers and
+rewrite the port number before passing on the packet. These headers are
+defined in =<linux/tcp.h>= and =<linux/udp.h>=, respectively.
+
+Rewriting is simply a matter of writing to the right field in the header
+(after parsing it). E.g.:
+
+#+begin_src C
+udphdr->dest = bpf_htons(bpf_ntohs(udphdr->dest) - 1);
+#+end_src
+
+You can use =tcpdump= to verify that this works. As a packet generator you
+can use the =socat= utility. The following will generate a UDP packet to
+port 2000 for each line you type on stdin:
+
+#+begin_example
+$ t exec -- socat - 'udp6:[fc00:dead:cafe:1::1]:2000'
+#+end_example
+
+You can view these with =tcpdump=:
+
+#+begin_example
+$ t tcpdump
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on xdptut-3c93, link-type EN10MB (Ethernet), capture size 262144 bytes
+12:54:31.085948 d2:9e:c0:4f:3b:7b > 32:71:5a:a4:74:c1, ethertype IPv6 (0x86dd), length 67: fc00:dead:cafe:1::2.35126 > fc00:dead:cafe:1::1.2000: UDP, length 5
+#+end_example
+
+When your program is working correctly, the destination port (2000 near the
+end of the line) should be 1999 instead.
+
+** Assignment 2: Remove the outermost VLAN tag
+
+In this assignment we will start implementing the program that removes the
+outermost VLAN tag if one exists. To do this, fill in the =vlan_tag_pop()=
+function that is prototyped in [[file:xdp_prog_kern.c]]. The function prototype
+contains the variable definitions and inline comments from our solution to
+the issue, to guide you in the implementation.
+
+Once you have implemented the function, test that it works by setting up a
+test environment with VLANs enabled (like in the previous lesson), and run
+=t ping --vlan= in one window, while looking at the output of =t tcpdump= in
+another. You should see no VLAN tags on the echo request packets; the echo
+replies will still have VLAN tags, because the kernel will reply to the ping
+even though it is targeting a different interface, and the replies will be
+routed out the interface that actually has the IP address being pinged
+(i.e., the virtual VLAN interface).
+
+** Assignment 3: Add back a missing VLAN tag
+
+In this assignment we will implement the opposite of the previous one: I.e.,
+the code that adds a VLAN tag if none exists. Just hardcode the VLAN ID to a
+value of your choosing; and test the program the same way as with the
+previous assignment (but run =t ping= without the =--vlan= parameter, and
+verify that the ICMP echo request packets do have a VLAN tag added to them).
+
+** Assignment 4: Combine the two programs
+
+Now that you have two XDP programs performing different functions, you can
+combine them by XDP tail call. Add the tail call at the end of the
+=xdp_vlan_swap_func()=, so that it will call the port rewrite program after
+performing its own function. The combined program should end up *both*
+popping or pushing VLAN tags *and* rewriting port numbers. Verify this with
+tcpdump.
