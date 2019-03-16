@@ -22,8 +22,8 @@ In the kernel tree there is a BPF-sample that show how XDP and TC-ingress
 hook can cooperate; XDP set info in meta-data and TC use this meta-data to
 set the SKB mark field.
 
-The XDP and TC BPF-prog's code is in: [[https://github.com/torvalds/linux/blob/master/][samples/bpf/xdp2skb_meta_kern.c]]. A
-shell script to load both XDP and TC via iproute2 is placed in
+The XDP and TC BPF-prog's code is in: [[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp2skb_meta_kern.c][samples/bpf/xdp2skb_meta_kern.c]].
+A shell script to load both XDP and TC via iproute2 is placed in
 [[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp2skb_meta.sh][xdp2skb_meta.sh]].
 
 ** XDP CPU-redirect solving TC-locking
