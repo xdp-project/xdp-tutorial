@@ -26,3 +26,19 @@ The XDP and TC BPF-prog's code is in: [[https://github.com/torvalds/linux/blob/m
 shell script to load both XDP and TC via iproute2 is placed in
 [[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp2skb_meta.sh][xdp2skb_meta.sh]].
 
+** XDP CPU-redirect solving TC-locking
+
+A real-world problem is traffic shaping causing lock-congestion on the TC
+root qdisc lock (e.g. [[http://vger.kernel.org/lpc-bpf2018.html#session-1][Googles servers experience this]] also see [[https://doi.org/10.1145/2785956.2787478][article]]).
+
+The XDP-project have a git-repo for demonstrating how to solve this:
+- https://github.com/xdp-project/xdp-cpumap-tc
+
+It setup the MQ (Multi-Queue) qdisc per TXQ to have a HTB-shaper. Then is
+uses XDP to redirect (via CPUMAP) the traffic to the CPU that is responsible
+for handling this egress traffic. In the TC clsact-egress hook, a BPF-prog
+stamps the SKB packet with the appropriate HTB class id (via
+skb->queue_mapping), such that traffic shaping get isolated per CPU.
+
+Do notice that it depends on a kernel feature that will first be avail in
+kernel v5.1, via [[https://github.com/torvalds/linux/commit/74e31ca850c1][kernel commit 74e31ca850c1]].
