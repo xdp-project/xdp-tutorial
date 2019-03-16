@@ -1,0 +1,53 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Packet03 - redirecting packets
+#+OPTIONS: ^:nil
+
+Now that you have come this far, you know how to parse packet data, and how
+to modify packets. These are two of the main components of a packet
+processing system, but there is one additional component that is missing:
+How to redirect packets and transmit them back out onto the network.
+
+This lesson will cover this aspect of packet processing. Unfortunately, we
+have not had time to complete it yet. So if you've made it this far,
+congratulations, you are at the end of the tutorial for now!
+
+If you do feel up to a challenge, the headings below should give you a hint
+about what to do in this lesson; but you will have to find guidance and
+examples elsewhere. For instance, you could take a look at the [[https://elixir.bootlin.com/linux/latest/source/samples/bpf][examples in
+the kernel source tree]].
+
+Bonus points for sending a pull request with extensions of this tutorial
+document when you're done :)
+
+* Table of Contents                                                     :TOC:
+- [[#assignments][Assignments]]
+  - [[#assignment-1-send-packets-back-where-they-came-from][Assignment 1: Send packets back where they came from]]
+  - [[#assignment-2-redirect-packets-between-two-interfaces][Assignment 2: Redirect packets between two interfaces]]
+  - [[#assignment-3-extend-to-a-bidirectional-router][Assignment 3: Extend to a bidirectional router]]
+  - [[#assignment-4-use-the-bpf-helper-for-routing][Assignment 4: Use the BPF helper for routing]]
+
+* Assignments
+
+** Assignment 1: Send packets back where they came from
+Just swap destination and source MAC addresses, and use =XDP_TX= to send the
+packet back where it came from.
+
+** Assignment 2: Redirect packets between two interfaces
+Manually setup a redirect map, perform the necessary Ethernet header
+rewrite, and make the packet go from one interface to another. You'll need
+two interfaces (i.e., two test environments) to do this.
+
+** Assignment 3: Extend to a bidirectional router
+For this you'll need to install redirect packets on both interfaces and make
+packets be redirected both ways. See if you can get a ping between the two
+inner interfaces to work.
+
+** Assignment 4: Use the BPF helper for routing
+After completing Assignment 3, you'll have hard-coded a redirect between two
+interfaces. But wouldn't it be better to dynamically lookup where each
+packet should go? Fortunately, the kernel already has this functionality, in
+the form of a routing table. There's a BPF helper that allows XDP programs
+to do lookups in the kernel routing table, and use this information to
+redirect packets. In this assignment, extend your forwarding program to use
+this facility for full redirection.
+
