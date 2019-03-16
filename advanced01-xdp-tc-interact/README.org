@@ -1,0 +1,44 @@
+# -*- fill-column: 76; -*-
+#+Title: Advanced: XDP interacting with TC
+#+OPTIONS: ^:nil
+
+XDP is only one of the available eBPF network hooks. Another very important
+eBPF network hook in the Linux Traffic Control (TC) system, both at
+/ingress/ and /egress/ via =clsact=.
+
+* Lessons
+
+** XDP meta-data to TC
+
+To transfer info between XDP and network stack there are a number of
+options. On option is that XDP can *modify packet headers* before netstack,
+e.g. pop/push headers influence RX-handler in netstack, or e.g. modify
+MAC-src and match that with a iptables rule.
+
+Another option is XDP "meta-data". The "meta-data" can be written by XDP,
+and a TC-hook BPF program can read this, and e.g. update fields in the SKB.
+
+In the kernel tree there is a BPF-sample that show how XDP and TC-ingress
+hook can cooperate; XDP set info in meta-data and TC use this meta-data to
+set the SKB mark field.
+
+The XDP and TC BPF-prog's code is in: [[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp2skb_meta_kern.c][samples/bpf/xdp2skb_meta_kern.c]].
+A shell script to load both XDP and TC via iproute2 is placed in
+[[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp2skb_meta.sh][xdp2skb_meta.sh]].
+
+** XDP CPU-redirect solving TC-locking
+
+A real-world problem is traffic shaping causing lock-congestion on the TC
+root qdisc lock (e.g. [[http://vger.kernel.org/lpc-bpf2018.html#session-1][Googles servers experience this]] also see [[https://doi.org/10.1145/2785956.2787478][article]]).
+
+The XDP-project have a git-repo for demonstrating how to solve this:
+- https://github.com/xdp-project/xdp-cpumap-tc
+
+It setup the MQ (Multi-Queue) qdisc per TXQ to have a HTB-shaper. Then is
+uses XDP to redirect (via CPUMAP) the traffic to the CPU that is responsible
+for handling this egress traffic. In the TC clsact-egress hook, a BPF-prog
+stamps the SKB packet with the appropriate HTB class id (via
+skb->queue_mapping), such that traffic shaping get isolated per CPU.
+
+Do notice that it depends on a kernel feature that will first be avail in
+kernel v5.1, via [[https://github.com/torvalds/linux/commit/74e31ca850c1][kernel commit 74e31ca850c1]].
