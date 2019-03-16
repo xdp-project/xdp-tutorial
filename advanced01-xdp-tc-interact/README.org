@@ -3,5 +3,26 @@
 #+OPTIONS: ^:nil
 
 XDP is only one of the available eBPF network hooks. Another very important
-eBPF network hook in the Linux Traffic Control (TC) system.
+eBPF network hook in the Linux Traffic Control (TC) system, both at
+/ingress/ and /egress/ via =clsact=.
+
+* Lessons
+
+** XDP meta-data to TC
+
+To transfer info between XDP and network stack there are a number of
+options. On option is that XDP can *modify packet headers* before netstack,
+e.g. pop/push headers influence RX-handler in netstack, or e.g. modify
+MAC-src and match that with a iptables rule.
+
+Another option is XDP "meta-data". The "meta-data" can be written by XDP,
+and a TC-hook BPF program can read this, and e.g. update fields in the SKB.
+
+In the kernel tree there is a BPF-sample that show how XDP and TC-ingress
+hook can cooperate; XDP set info in meta-data and TC use this meta-data to
+set the SKB mark field.
+
+The XDP and TC BPF-prog's code is in: [[https://github.com/torvalds/linux/blob/master/][samples/bpf/xdp2skb_meta_kern.c]]. A
+shell script to load both XDP and TC via iproute2 is placed in
+[[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp2skb_meta.sh][xdp2skb_meta.sh]].
 
