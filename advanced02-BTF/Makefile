@@ -45,4 +45,4 @@ $(XDP_BTF_OBJ): %.o: %.c  Makefile $(COMMON_MK)
 	    -Werror \
 	    -O2 -emit-llvm -c -g $<
 	$(LLC) -march=bpf $(LLC_FLAGS) -filetype=obj -o $@ ${@:.o=.ll}
-	$(PAHOLE) --btf_encode $@
+	$(PAHOLE) -V --btf_encode $@ > ${@:.o=.pahole-btf-info}
