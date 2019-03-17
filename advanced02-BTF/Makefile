@@ -17,14 +17,13 @@ PAHOLE ?= pahole
 TEST_PAHOLE := "$(PAHOLE) --help 2>&1 | grep BTF"
 
 pahole-check: $(PAHOLE)
-	for TOOL in $^ ; do \
+	@for TOOL in $^ ; do \
 		if [ ! $$(command -v $${TOOL} 2>/dev/null) ]; then \
 			echo "*** ERROR: Cannot find tool $${TOOL}" ;\
 			exit 1; \
 		else true; fi; \
 	done
-	echo OOO
-	if [ ! $(TEST_PAHOLE) > /dev/null 2>&1 ]; then \
+	@if [ ! $(TEST_PAHOLE) > /dev/null 2>&1 ]; then \
 		echo "Tool pahole too old, missing BTF support" ;\
 		exit 1; \
 	else \
@@ -32,7 +31,6 @@ pahole-check: $(PAHOLE)
 	fi
 
 $(XDP_BTF_OBJ): %.o: %.c  Makefile $(COMMON_MK)
-	echo $(USE_PAHOLE)
 	$(CLANG) -S \
 	    -target bpf \
 	    -D __BPF_TRACING__ \
