@@ -122,4 +122,7 @@
       - redhat-lsb-core
       - stow
       - socat
+      - nmap-ncat
+      - nmap
+      - hping3
     state: installed
