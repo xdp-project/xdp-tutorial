@@ -126,4 +126,5 @@
       - nmap
       - hping3
       - sysstat
+      - tcpdump
     state: installed
