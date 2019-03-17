@@ -202,6 +202,10 @@ setup()
 
     CLEANUP_FUNC=cleanup_setup
 
+    if ! mount | grep -q /sys/fs/bpf; then
+        mount -t bpf bpf /sys/fs/bpf/
+    fi
+
     ip netns add "$NS"
     ip link add dev "$NS" type veth peer name "$PEERNAME"
     OUTSIDE_MAC=$(iface_macaddr "$NS")
