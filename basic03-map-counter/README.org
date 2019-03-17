@@ -1,31 +1,32 @@
 # -*- fill-column: 76; -*-
-#+TITLE: Tutorial: Basic03
+#+TITLE: Tutorial: Basic03 - counting with BPF maps
 #+OPTIONS: ^:nil
 
-In this lesson you will learn about BPF-maps, and in the assignment get
-hands-on experience with extending the "value" size/content, and reading the
-contents from userspace.
+In this lesson you will learn about BPF maps, the persistent storage
+mechanism available to BPF programs. The assignments will give you hands-on
+experience with extending the "value" size/content, and reading the contents
+from userspace.
 
-We will only cover two simple maps types:
+In this lesson we will only cover two simple maps types:
  - =BPF_MAP_TYPE_ARRAY= and
  - =BPF_MAP_TYPE_PERCPU_ARRAY=.
 
-* Overview of exercise                                                  :TOC:
-- [[#lesson][Lesson]]
-  - [[#lesson1-defining-a-map][Lesson#1: defining a map]]
-  - [[#lesson2-libbpf-map-elf-relocation][Lesson#2: libbpf map ELF relocation]]
-  - [[#lesson3-bpf_object-to-bpf_map][Lesson#3: bpf_object to bpf_map]]
-  - [[#lesson4-read-map-value-from-userspace][Lesson#4: read map-value from userspace]]
+* Table of Contents                                                     :TOC:
+- [[#things-you-will-learn-in-this-lesson][Things you will learn in this lesson]]
+  - [[#defining-a-map][Defining a map]]
+  - [[#libbpf-map-elf-relocation][libbpf map ELF relocation]]
+  - [[#bpf_object-to-bpf_map][bpf_object to bpf_map]]
+  - [[#reading-map-values-from-userspace][Reading map values from userspace]]
 - [[#assignments][Assignments]]
-  - [[#assignment1-add-bytes-counter][Assignment#1: Add bytes counter]]
-  - [[#assignment2-handle-other-xdp-actions-stats][Assignment#2: Handle other XDP actions stats]]
-  - [[#assignment3-per-cpu-stats][Assignment#3: Per CPU stats]]
+  - [[#assignment-1-add-bytes-counter][Assignment 1: Add bytes counter]]
+  - [[#assignment-2-handle-other-xdp-actions-stats][Assignment 2: Handle other XDP actions stats]]
+  - [[#assignment-3-per-cpu-stats][Assignment 3: Per CPU stats]]
 
-* Lesson
+* Things you will learn in this lesson
 
-** Lesson#1: defining a map
+** Defining a map
 
-Creating a BPF-map is done by defining a global struct =bpf_map_def= (in
+Creating a BPF map is done by defining a global struct =bpf_map_def= (in
 [[file:xdp_prog_kern.c]]), with a special =SEC("maps")= as below:
 
 #+begin_src C
@@ -37,77 +38,83 @@ struct bpf_map_def SEC("maps") xdp_stats_map = {
 };
 #+end_src
 
-BPF-maps are basically generic *key-value* stores (see =key_size= and
-=value_size=), with a given =type=, and maximum allowed entries
+BPF maps are generic *key/value* stores (hence the =key_size= and
+=value_size= parameters), with a given =type=, and maximum allowed entries
 =max_entries=. Here we focus on the simple =BPF_MAP_TYPE_ARRAY=, which means
-=max_entries= gets allocated when map is created.
+=max_entries= array elements get allocated when the map is first created.
 
-The BPF-map is both accessible from BPF-prog (kernel) side and userspace.
-How this is done and how they differ is part of this lesson.
+The BPF map is accessible from both the BPF program (kernel) side and from
+userspace. How this is done and how they differ is part of this lesson.
 
-** Lesson#2: libbpf map ELF relocation
+** libbpf map ELF relocation
 
-The libbpf library (fortunately) handles ELF-object decoding and map
-references relocation, when the map is referenced from the BPF code.
+It is worth pointing out that everything goes through the bpf syscall. This
+means that the user space program /must/ create the maps and programs with
+separate invocations of the bpf syscall. So how does a BPF program reference
+a BPF map?
 
-It is worth pointing out that everything goes through the bpf-syscall. This
-means that libbpf /must/ create the maps and programs with separate
-invocations of the bpf-syscall. Then how can a BPF-prog reference a BPF-map?
-This happen via first loading all the BPF-maps, and get back their
-corresponding file-descriptor (FD). Then the ELF-relocation table is used
-for identifying when the BPF-prog reference a given map, and then rewrite
-those BPF-byte-code instructions to use the map FD, before loading BPF-prog
-into the kernel.
+This happens by first loading all the BPF maps, and storing their
+corresponding file descriptors (FDs). Then the ELF relocation table is used
+to identify each reference  the BPF program makes to a given map; each such
+reference is then rewritten, so the BPF byte code instructions use the right
+map FD for each map.
 
-** Lesson#3: bpf_object to bpf_map
+All this needs to be done before the BPF program itself can be loaded into
+the kernel. Fortunately, the libbpf library handles the ELF object decoding
+and map reference relocation, transparently to the user space program
+performing the loads.
+
+** bpf_object to bpf_map
 
 As you learned in [[file:../basic02-prog-by-name/][basic02]] the libbpf API have "objects" and functions
-working on/with these objects. The struct =bpf_object= represents ELF object
-itself (which is returned from our =load_bpf_and_xdp_attach()= function).
+working on/with these objects. The struct =bpf_object= represents the ELF
+object itself (which is returned from our =load_bpf_and_xdp_attach()=
+function).
 
-In our function find_map_fd() (in [[file:xdp_load_and_stats.c]]) the function
-=bpf_object__find_map_by_name()= is used for finding the =bpf_map= object
+Similarly to what we did for BPF functions, our load has a function called
+=find_map_fd()= (in [[file:xdp_load_and_stats.c]]), which uses the library
+function =bpf_object__find_map_by_name()= for finding the =bpf_map= object
 with a given name. (Note, the length of the map name is provided by ELF and
-is longer than what the name kernel stores, after loading it). Next step is
-obtaining the map file-descriptor (FD) via =bpf_map__fd()=. There is also a
-libbpf function that wrap these two steps, which is called
+is longer than what the name kernel stores, after loading it). After finding
+the =bpf_object=, we obtain the map file descriptor via =bpf_map__fd()=.
+There is also a libbpf function that wraps these two steps, which is called
 =bpf_object__find_map_fd_by_name()=.
 
-** Lesson#4: read map-value from userspace
+** Reading map values from userspace
 
-The contents of the map is read from userspace via the function
-=bpf_map_lookup_elem()=, which is a simple syscall-wrapper, that operate on
-the map file-descriptor (FD), lookup the =key= and store the value into the
-memory area supplied by the value pointer. It is userspace own
-responsibility to known what map it is reading and know the value size, and
-thus have allocated memory large enough to store the value. In our example
-we demonstrate how userspace can query the map-FD and get back some info in
-struct =bpf_map_info= via syscall-wrapper =bpf_obj_get_info_by_fd()=.
+The contents of a map is read from userspace via the function
+=bpf_map_lookup_elem()=, which is a simple syscall-wrapper, that operates on
+the map file descriptor (FD). The syscall looks up the =key= and stores the
+value into the memory area supplied by the value pointer. It is up to the
+calling userspace program to ensure that the memory allocated to hold the
+returned value is large enough to store the type of data contained in the
+map. In our example we demonstrate how userspace can query the map FD and
+get back some info in struct =bpf_map_info= via the syscall wrapper
+=bpf_obj_get_info_by_fd()=.
 
-The program =xdp_load_and_stats= will periodically read the xdp_stats_map
-value and produce some stats.
-
+For example, the program =xdp_load_and_stats= will periodically read the
+xdp_stats_map value and produce some stats.
 
 * Assignments
 
 The assignments are have "hint" marks in the code via =Assignment#num=
 comments.
 
-** Assignment#1: Add bytes counter
+** Assignment 1: Add bytes counter
 
 The current assignment code only counts packets.  It is your *assignment* to
 extend this to also count bytes.
 
-Notice how BPF-map =xdp_stats_map= used:
+Notice how the BPF map =xdp_stats_map= used:
  - =.value_size = sizeof(struct datarec)=
 
-The BPF-map have no knowledge about the data-structure used for the value
+The BPF map has no knowledge about the data-structure used for the value
 record, it only knows the size. (The [[https://github.com/torvalds/linux/blob/master/Documentation/bpf/btf.rst][BPF Type Format]] ([[https://www.kernel.org/doc/html/latest/bpf/btf.html][BTF]]) is an advanced
-topic, that allow for associating data-struct knowledge via debug info, but
-we ignore that for now). Thus, it is up-to the two-sides (userspace and
-BPF-prog kernel side) to stay in-sync on the content and structure of
-=value=. The hint here on the data-structure used comes from =sizeof(struct
-datarec)=, which indicate that =struct datarec= is used.
+topic, that allows for associating data struct knowledge via debug info, but
+we ignore that for now). Thus, it is up to the two sides (userspace and
+BPF-prog kernel side) to ensure they stay in sync on the content and
+structure of =value=. The hint here on the data structure used comes from
+=sizeof(struct datarec)=, which indicate that =struct datarec= is used.
 
 This =struct datarec= is defined in the include [[file:common_kern_user.h]] as:
 
@@ -119,18 +126,17 @@ struct datarec {
 };
 #+end_src
 
-*** Assignment#1.1: Update BPF-prog
+*** Assignment 1.1: Update the BPF program
 
-Next step is update BPF-prog kernel side program: [[file:xdp_prog_kern.c]].
+Next step is to update the kernel side BPF program: [[file:xdp_prog_kern.c]].
 
 To figure out the length of the packet, you need to learn about the context
-variable =*ctx= with type [[https://elixir.bootlin.com/linux/v5.0/ident/xdp_md][struct xdp_md]] that the BPF-prog gets a pointer
-to, when invoked by the kernel. This =struct xdp_md= is a little odd, as all
-members have type =__u32=, which is not actually their real data-types, as
-access to this data-structure is remapped by the kernel at BPF-load time
-(the BPF-byte-code instructions are rewritten by [[https://elixir.bootlin.com/linux/latest/ident/xdp_convert_ctx_access][xdp_convert_ctx_access()]]
-and [[https://elixir.bootlin.com/linux/latest/ident/xdp_is_valid_access][xdp_is_valid_access()]] assign types for the verifier).  Access gets
-remapped to struct =xdp_buff= and also struct =xdp_rxq_info=.
+variable =*ctx= with type [[https://elixir.bootlin.com/linux/v5.0/ident/xdp_md][struct xdp_md]] that the BPF program gets a pointer
+to when invoked by the kernel. This =struct xdp_md= is a little odd, as all
+members have type =__u32=. However, this is not actually their real data
+types, as access to this data-structure is remapped by the kernel when the
+program is loaded into the kernel. Access gets remapped to struct =xdp_buff=
+and also struct =xdp_rxq_info=.
 
 #+begin_src C
 struct xdp_md {
@@ -144,52 +150,55 @@ struct xdp_md {
 };
 #+end_src
 
-First order of business in [[file:xdp_prog_kern.c]], is type-cast the data_end
-and data into void pointers:
+While we know this, the compiler doesn't. So we need to type-cast the fields
+into void pointers before we can use them:
 
 #+begin_src C
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data     = (void *)(long)ctx->data;
 #+end_src
 
-Next step is calculating the number of bytes, by simply subtracting =data=
-from =data_end=, and update the datarec member.
+The next step is calculating the number of bytes in each packet, by simply
+subtracting =data= from =data_end=, and update the datarec member.
 
 #+begin_src C
 	__u64 bytes = data_end - data; /* Calculate packet length */
 	lock_xadd(&rec->rx_bytes, bytes);
 #+end_src
 
-*** Assignment#1.2: Update userspace prog
+*** Assignment 1.2: Update the userspace program
 
-Now it is time to update the userspace program reading stats in
-[[file:xdp_load_and_stats.c]].
+Now it is time to update the userspace program that reads stats (in
+[[file:xdp_load_and_stats.c]]).
 
-Update functions:
+Update the functions:
  - =map_collect()= to also collect rx_bytes.
  - =stats_print()= to also print rx_bytes (adjust fmt string)
 
-** Assignment#2: Handle other XDP actions stats
+** Assignment 2: Handle other XDP actions stats
 
-Notice how the BPF-map =xdp_stats_map= we defined (in [[#lesson1-defining-a-map][Lesson#1: defining a
-map]]) is an array with more elements =max_entries=XDP_ACTION_MAX=. The idea
-is to keep stats per [[https://elixir.bootlin.com/linux/latest/ident/xdp_action][(enum) xdp_action]], but our program does not take
-advantage of this.
+Notice how the BPF map =xdp_stats_map= we defined above is actually an
+array, with =max_entries=XDP_ACTION_MAX=. The idea with this is to keep
+stats per [[https://elixir.bootlin.com/linux/latest/ident/xdp_action][(enum) xdp_action]], but our program does not yet take advantage of
+this.
 
-The *assignment* is primarily to extend userspace stats tool (in
-[[file:xdp_load_and_stats.c]] to collect and print these extra stats.
+The *assignment* is to extend userspace stats tool (in
+[[file:xdp_load_and_stats.c]]) to collect and print these extra stats.
 
-** Assignment#3: Per CPU stats
+** Assignment 3: Per CPU stats
 
-Avoid the atomic stats counter, by using another per-CPU array type, and
-move the burden of summing to userspace.
+Thus far, we have used atomic operations to increment our stats counters;
+however, this is expensive as it inserts memory barriers to make sure
+different CPUs don't garble each other's data. We can avoid this by using
+another array type that stores its data in per-CPU storage. The drawback of
+this is that we move the burden of summing to userspace.
 
-First step is to change map =type= (in [[file:xdp_prog_kern.c]]) to use
-=BPF_MAP_TYPE_PERCPU_ARRAY=. If you only make this change, the userspace
-program will detect this and complain, as we query the map FD for some info
-(via =bpf_obj_get_info_by_fd()=) and e.g. check the map type. Remember it is
-userspace responsibility to make sure the data record for the value is large
-enough.
+To achieve this, the first step is to change map =type= (in
+[[file:xdp_prog_kern.c]]) to use =BPF_MAP_TYPE_PERCPU_ARRAY=. If you only make
+this change, the userspace program will detect this and complain, as we
+query the map FD for some info (via =bpf_obj_get_info_by_fd()=) and e.g.
+check the map type. Remember it is userspace's responsibility to make sure
+the data record for the value is large enough.
 
 Next step is writing a function that gets the values per CPU and sum these.
 In the [[file:xdp_load_and_stats.c]]. You can copy paste this, and call it from
