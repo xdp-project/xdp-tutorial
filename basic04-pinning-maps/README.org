@@ -1,61 +1,66 @@
 # -*- fill-column: 76; -*-
-#+TITLE: Tutorial: Basic04
+#+TITLE: Tutorial: Basic04 - pinning of maps
 #+OPTIONS: ^:nil
 
-In this lesson you will learn about reading BPF-maps from another "external"
+In this lesson you will learn about reading BPF maps from another "external"
 program.
 
-In basic03 the [[file:../basic03-map-counter/xdp_load_and_stats.c][xdp_load_and_stats.c]] program were both doing BPF/XDP-loading
-and reading stats from the map. This was practical as the map
-file-descriptor was readily available. In this lesson this program have been
-split into two separate programs:
- - one focused on BPF/XDP-loading ([[file:xdp_loader.c]]) and
+In basic03 the [[file:../basic03-map-counter/xdp_load_and_stats.c][xdp_load_and_stats.c]] program was both loading the BPF program
+and reading the stats from the map. This was practical as the map
+file descriptor was readily available; however it is often limiting that a
+map can only be accessed from the same program that loads it.
+
+In this lesson we will split the program  into two separate programss:
+ - one focused on BPF/XDP loading ([[file:xdp_loader.c]]) and
  - one focused on reading and printing stats ([[file:xdp_stats.c]]).
 
 The basic quest revolves around how to share or obtain the UNIX
-file-descriptor to the BPF-map, that we want to read from. Access to a
-BPF_map still goes through the BPF-syscall, but the handle is a standard
-UNIX file-descriptor.
+file descriptor pointing to the BPF map from another program than the one
+that created the map.
 
-* Overview of exercise                                                  :TOC:
+* Table of Contents                                                     :TOC:
 - [[#solutions-to-basic03-assignments][Solutions to basic03 assignments]]
-- [[#lessons][Lessons]]
-  - [[#lesson1-bpf-syscall-wrappers][Lesson#1: bpf-syscall wrappers]]
-  - [[#lesson2-mount-bpf-file-system][Lesson#2: mount BPF file-system]]
-  - [[#lesson3-gotchas-with-pinned-maps][Lesson#3: gotchas with pinned maps]]
-  - [[#lesson4-deleting-maps-on-xdp-reload][Lesson#4: Deleting maps on XDP-reload]]
+- [[#what-you-will-learn-in-this-lesson][What you will learn in this lesson]]
+  - [[#bpf-syscall-wrappers][bpf syscall wrappers]]
+  - [[#mounting-the-bpf-file-system][Mounting the BPF file system]]
+  - [[#gotchas-with-pinned-maps][Gotchas with pinned maps]]
+  - [[#deleting-maps-on-xdp-reload][Deleting maps on XDP reload]]
 - [[#assignments][Assignments]]
-  - [[#assignment1-xdp_statsc-reload-map-file-descriptor][Assignment#1: (xdp_stats.c) reload map file-descriptor]]
-  - [[#assignment2-xdp_loaderc-reuse-pinned-map][Assignment#2: (xdp_loader.c) reuse pinned map]]
+  - [[#assignment-1-xdp_statsc-reload-map-file-descriptor][Assignment 1: (xdp_stats.c) reload map file-descriptor]]
+  - [[#assignment-2-xdp_loaderc-reuse-pinned-map][Assignment 2: (xdp_loader.c) reuse pinned map]]
 
 * Solutions to basic03 assignments
 
 The assignments in [[file:../basic03-map-counter][basic03]] have been "solved" or implemented in this basic04
 lesson. Thus, this functions as the reference solution for basic03.
 
-* Lessons
+* What you will learn in this lesson
 
-** Lesson#1: bpf-syscall wrappers
+** bpf syscall wrappers
 
-When splitting up the [[file:../basic03-map-counter/xdp_load_and_stats.c][xdp_load_and_stats.c]] program, into [[file:xdp_loader.c]]
-and [[file:xdp_stats.c]], notice that xdp_stats.c no-longer =#include
-<bpf/libbpf.h>=. This is because xdp_stats doesn't use any of the advanced
-libbpf "object" related functions, it only use the basis bpf-syscall
+When splitting up the [[file:../basic03-map-counter/xdp_load_and_stats.c][xdp_load_and_stats.c]] program into [[file:xdp_loader.c]]
+and [[file:xdp_stats.c]], notice that xdp_stats.c no longer includes
+=#<bpf/libbpf.h>=. This is because xdp_stats doesn't use any of the advanced
+libbpf "object" related functions, it only uses the basis bpf syscall
 wrappers, which libbpf also provides.
 
-The bpf-syscall wrappers are provided by libbpf via =#include <bpf/bpf.h>=,
-which for this build-setup gets installed in =../libbpf/src/root/usr/include/bpf/bpf.h=
-(link to source [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]] in libbpf-github repo).
+The bpf syscall wrappers are provided by libbpf via the =#<bpf/bpf.h>=
+include file, which for this tutorial setup lives in
+=../libbpf/src/root/usr/include/bpf/bpf.h= (but see also the [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][source bpf.h in
+the libbpf github repository]]).
 
-The point there is that libbpf keep the low-level bpf-syscall wrappers in
-separate files [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]] and [[https://github.com/libbpf/libbpf/blob/master/src/bpf.c][bpf.c]]. We could create a smaller binary by not
-linking with libbpf.a, but for ease of use, the proper library is used.
+The point here is that libbpf keeps the low-level bpf-syscall wrappers in
+separate files [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]] and [[https://github.com/libbpf/libbpf/blob/master/src/bpf.c][bpf.c]]. Thus, we could shrink the size of our binary
+by not linking with libbpf.a. However, for ease of use we just link
+everything with the full library in this tutorial.
 
-** Lesson#2: mount BPF file-system
+** Mounting the BPF file system
 
-Pinning BPF-map means creating files for-each map under a special mount
-point =/sys/fs/bpf/=. This mount point use a "BPF file-system" type. The
-pinning will fail of this is not mounted under =/sys/fs/bpf/=.
+The mechanism used for sharing BPF maps between programs is called
+/pinning/. What this means is that we create a file for each map under a
+special file system mounted at =/sys/fs/bpf/=. If this file system is not
+mounted, our attempts to pin BPF objects will fail, so we need to make sure
+it is mounted.
 
 The needed mount command is:
 #+begin_example
@@ -67,33 +72,34 @@ mounted without noticing. As both iproute2 'ip' and our [[file:../testenv][teste
 automatically mount it to the default location under =/sys/fs/bpf/=.
 If not, use the above command to mount it.
 
-** Lesson#3: gotchas with pinned maps
+** Gotchas with pinned maps
 
 Pinning all maps in a =bpf_object= using libbpf is easily done with:
-=bpf_object__pin_maps(bpf_object, pin_dir)=.
+=bpf_object__pin_maps(bpf_object, pin_dir)=, which we use in =xdp_loader=.
 
-To avoid filename collisions, when loading several XDP program on different
-interfaces, the maps are export/pinned under a sub-directory with the
-interface name, that was specified via =--dev=. The libbpf
-=bpf_object__pin_maps()= call even handle creating this sub-directory (via
-mkdir(3)).
+To avoid filename collisions, we create a subdirectory named after the
+interface that we are loading the BPF program onto. The libbpf
+=bpf_object__pin_maps()= call even handles creating this subdirectory if it
+doesn't exist.
 
-Open [[file:xdp_loader.c]] and look at our function =pin_maps_in_bpf_object()=,
-and you will see that due to corner-case it is slightly more complicated.
-E.g. need to handle cleanup of previous XDP progs that not have cleaned up
-their maps, which we choose to do via =bpf_object__unpin_maps()=. If this is
-the first usage, then we should not try to "unpin maps" as that will fail.
+However, if you open [[file:xdp_loader.c]] and look at our function
+=pin_maps_in_bpf_object()=, you will see that due to corner cases things are
+slightly more complicated. E.g., we also need to handle cleanup of previous
+XDP programs that not have cleaned up their maps, which we choose to do via
+=bpf_object__unpin_maps()=. If this is the first usage, then we should not
+try to "unpin maps" as that will fail.
 
-We currently don't handle the corner case, where our BPF-prog get extended
-with a new-map, and then want to replace an existing BPF-prog that doesn't
-contain this new-map, which will result in =bpf_object__unpin_maps()= not
-finding the new-map to unlink, and then fails.
+There is one corner case that we currently don't handle, namely the case
+where our BPF-prog get extended with a new map, and is loaded as a
+replacement for an existing BPF progam that doesn't contain this new map. In
+this case, =bpf_object__unpin_maps()= won't finding the new map to unlink,
+and therefore fail in its operation.
 
-** Lesson#4: Deleting maps on XDP-reload
+** Deleting maps on XDP reload
 
-When reloading the XDP BPF-prog via our =xdp_loader=, then the existing
-pinned maps are not reused. This differs from iproute2 tool BPF-loader (=ip=
-and =tc= commands), which will reuse the existing pinned maps, rather than
+When reloading the XDP BPF program via our =xdp_loader=, the existing pinned
+maps are not reused. This differs from iproute2 tool BPF-loader (=ip= and
+=tc= commands), which will reuse the existing pinned maps, rather than
 creating new maps.
 
 This is a design choice, mostly because libbpf doesn't have easy support for
@@ -103,15 +109,15 @@ applications it could be a problem that the counters reset to zero for the
 different stats tools. Even for our split =xdp_stats= program it is
 annoying, as you must remember to restart the =xdp_stats= tool, after
 reloading via =xdp_loader=, else it will be watching the wrong FD.
-(See [[#assignment1-xdp_statsc-reload-map-file-descriptor][Assignment#1]] for workaround)
+(See [[#assignment1-xdp_statsc-reload-map-file-descriptor][Assignment 1]] for workaround)
 
-*** Lesson#4.1: libbpf reuse map
+*** Reusing maps with libbpf
 
-The libbpf library can *reuse and replace* a map with an existing map
-file-descriptor, via the libbpf API call: =bpf_map__reuse_fd()=. But you
-cannot use =bpf_prog_load()= any-longer, instead you have to open-code it,
-as you need a step in-between =bpf_object__open()= and =bpf_object__load=.
-The basic steps needed looks like:
+The libbpf library can *reuse and replace* a map with an existing map file
+descriptor, via the libbpf API call: =bpf_map__reuse_fd()=. But you cannot
+use =bpf_prog_load()= for this; instead you have to code it yourself, as you
+need a step in-between =bpf_object__open()= and =bpf_object__load=. The
+basic steps needed looks like:
 
 #+begin_src C
  int pinned_map_fd = bpf_obj_get("/sys/fs/bpf/veth0/xdp_stats_map");
@@ -121,29 +127,30 @@ The basic steps needed looks like:
  bpf_object__load(obj);
 #+end_src
 
-(Hint: see [[#assignment2-xdp_loaderc-reuse-pinned-map][Assignment#2]])
+(Hint: see [[#assignment2-xdp_loaderc-reuse-pinned-map][Assignment 2]])
 
 * Assignments
 
-** Assignment#1: (xdp_stats.c) reload map file-descriptor
+** Assignment 1: (xdp_stats.c) reload map file-descriptor
 
-As mentioned in Lesson#4, the =xdp_stats= tool will not detect if
-=xdp_loader= loads new maps and new BPF-prog, and will need to be restarted.
-This is annoying. The *assignment* is to reload the map file-descriptor
-dynamically, such that the =xdp_stats= program doesn't need to be restarted.
+As mentioned above, the =xdp_stats= tool will not detect if =xdp_loader=
+loads new maps and new BPF programs, and will need to be restarted. This is
+annoying. The *assignment* is to reload the map file descriptor dynamically,
+such that the =xdp_stats= program doesn't need to be restarted.
 
-There are more than one solution. The naive solution is to reopen the pinned
-map file each time, but how do you detect that the file changed. If you
-don't detect this is a new map, then the stats diff between two measurements
-will be negative. Think about solutions were you remember/use the ID number
-to detect changes, either via the map ID or XDP BPF-prog ID.
+There are several solutions to this. The naive solution is to reopen the
+pinned map file each time; but how do you detect that the file changed? If
+you don't detect when dealing with a new map, then the stats diff between
+two measurements will be negative. Think about solutions were you
+remember/use the ID number to detect changes, either via the map ID or XDP
+BPF program ID.
 
-** Assignment#2: (xdp_loader.c) reuse pinned map
+** Assignment 2: (xdp_loader.c) reuse pinned map
 
-As mentioned in Lesson#4.1, libbpf can reuse and replace a map with an
-existing map, it just requires open coding =bpf_prog_load()= (or
+As mentioned above, libbpf can reuse and replace a map with an existing map,
+it just requires writing your own =bpf_prog_load()= (or
 =bpf_prog_load_xattr=).
 
-The *assignment* is to in [[file:xdp_loader.c][xdp_loader]] check if there is already a pinned
+The *assignment* is to check in [[file:xdp_loader.c][xdp_loader]] if there already is a pinned
 version of the map "xdp_stats_map" and use libbpf =bpf_map__reuse_fd()= API
 to reuse it, instead of creating a new map.
