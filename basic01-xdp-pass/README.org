@@ -1,13 +1,20 @@
 # -*- fill-column: 76; -*-
-#+TITLE: Tutorial: Basic01
+#+TITLE: Tutorial: Basic01 - loading your first BPF program
 #+OPTIONS: ^:nil
 
-Welcome to the first step in this XDP-tutorial.
+Welcome to the first step in this XDP tutorial.
 
-The programming language for XDP is eBPF (Extended Berkeley Packet Filter) which
-we will just refer to as BPF. Thus, this tutorial will also be relevant for
-learning how to write other BPF program.  The focus is on BPF programs
-that can be used in the XDP-hook.
+The programming language for XDP is eBPF (Extended Berkeley Packet Filter)
+which we will just refer to as BPF. Thus, this tutorial will also be
+relevant for learning how to write other BPF programs; however, the main
+focus is on BPF programs that can be used in the XDP-hook. In this and the
+following couple of lessons we will be focusing on the basics to get up and
+running with BPF; the later lessons will then build on this to teach you how
+to do packet processing with XDP.
+
+Since this is the first lesson, we will start out softly by not actually
+including any assignments. Instead, just read the text below and make sure
+you can load the program and that you understand what is going on.
 
 * Table of Contents                                                     :TOC:
 - [[#first-step-setup-dependencies][First step: setup dependencies]]
@@ -15,17 +22,17 @@ that can be used in the XDP-hook.
   - [[#simple-xdp-code][Simple XDP code]]
   - [[#compiling-process][Compiling process]]
   - [[#looking-into-the-bpf-elf-object][Looking into the BPF-ELF object]]
-- [[#loading-and-xdp-hook][Loading and XDP-hook]]
+- [[#loading-and-the-xdp-hook][Loading and the XDP hook]]
   - [[#loading-via-iproute2-ip][Loading via iproute2 ip]]
   - [[#loading-using-xdp_pass_user][Loading using xdp_pass_user]]
 
 * First step: setup dependencies
 
 There are a number of setup dependencies, that are needed in order to
-compile the source code in this git-repository. Please go read and complete
-the [[file:../setup_dependencies.org]] guide.
+compile the source code in this git repository. Please go read and complete
+the [[file:../setup_dependencies.org]] guide if you haven't already.
 
-Return here, and see if the next step compiles.
+Then return here, and see if the next step compiles.
 
 * Compiling example code
 
@@ -50,14 +57,14 @@ int  xdp_prog_simple(struct xdp_md *ctx)
 ** Compiling process
 
 The LLVM+clang compiler turns this restricted-C code into BPF-byte-code and
-stores it in an ELF-object file, named =xdp_pass_kern.o=.
+stores it in an ELF object file, named =xdp_pass_kern.o=.
 
 ** Looking into the BPF-ELF object
 
 You can inspect the contents of the =xdp_pass_kern.o= file with different
 tools like =readelf= or =llvm-objdump=. As the Makefile enables the debug
-option =-g= (LLVM version >= 4.0), llvm-objdump tool can annotate assembler
-output with the original C code:
+option =-g= (LLVM version >= 4.0), the llvm-objdump tool can annotate
+assembler output with the original C code:
 
 Run: =llvm-objdump -S xdp_pass_kern.o=
 #+begin_example asm
@@ -71,20 +78,21 @@ xdp_prog_simple:
        1:	95 00 00 00 00 00 00 00 	exit
 #+end_example
 
-If you don't want to see the raw-BPF instrutions add: =-no-show-raw-insn=.
+If you don't want to see the raw BPF instructions add: =-no-show-raw-insn=.
 The define/enum XDP_PASS has a value of 2, as can be seen in the dump. The
 section name "xdp" was defined by =SEC("xdp")=, and the =xdp_prog_simple:=
 is our C-function name.
 
-* Loading and XDP-hook
+* Loading and the XDP hook
 
-As you should understand by now, the BPF-byte-code is stored in an ELF file.
-To load this into the kernel, userspace needs an ELF loader. The *libbpf*
-library provides both an ELF loader and several XDP helper functions. In
-this tutorial you will learn how to write C-code using this library, which
-is where our libelf-devel dependency comes from.
+As you should understand by now, the BPF byte code is stored in an ELF file.
+To load this into the kernel, userspace needs an ELF loader to read the file
+and pass it into the kernel in the right format. The *libbpf* library
+provides both an ELF loader and several XDP helper functions. In this
+tutorial you will learn how to write C code using this library, which is
+where our libelf-devel dependency comes from.
 
-The C-code in [[file:xdp_pass_user.c]] (which gets compiled to the program
+The C code in [[file:xdp_pass_user.c]] (which gets compiled to the program
 =xdp_pass_user=) shows how to write a BPF loader specifically for our
 =xdp_pass_kern.o= ELF file. This loader attached the program in the ELF file
 as an XDP hook on a network device.
@@ -95,9 +103,9 @@ It does seem overkill to write a C program to simply load and attach a
 specific BPF-program. However, we still include this in the the tutorial
 since it will help you integrate BPF into other Open Source projects.
 
-As an alternative to writing a new loader, the standard iproute2 tool, also
-contains a BPF ELF loader, although it is not based on libbpf, which
-unfortunately makes it incompatible when starting to use BPF-maps.
+As an alternative to writing a new loader, the standard iproute2 tool also
+contains a BPF ELF loader. However, this loader is not based on libbpf,
+which unfortunately makes it incompatible when starting to use BPF maps.
 
 The iproute2 loader can be used with the standard =ip= tool; so in this case
 you can actually load our ELF-file =xdp_pass_kern.o= (where we named our
@@ -107,7 +115,7 @@ ELF section "xdp") like this:
  ip link set dev lo xdpgeneric obj xdp_pass_kern.o sec xdp
 #+end_example
 
-Listing the device via =ip link show= also show the XDP info:
+Listing the device via =ip link show= also shows the XDP info:
 
 #+begin_example sh
 $ ip link show dev lo
