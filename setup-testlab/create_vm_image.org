@@ -114,7 +114,8 @@ End-result: A virtual machine with:
 This Fedora-Cloud image have a 10 sec. delay when logging in as root, remove
 that via editing /root/.ssh/authorized_keys.
 
-* Increasing disk capacity
+* Disk capacity
+** Increasing VM disk capacity
 
 The remaining disc capacity is getting low, it will be unfortunate if this
 disrupt the tutorial. Thus, we resize the VM disk. First shutdown the VM.
@@ -134,6 +135,11 @@ echo ", +" | sfdisk -N 1 /dev/vda --no-reread
 partprobe
 resize2fs /dev/vda1
 #+end_example
+
+** Reduce VM image size
+
+Before uploading, use the tool =virt-sparsify= to reduce disk capacity used
+by VM image. And afterwards also compress image, to reduce download size.
 
 * Extra manual changes
 
