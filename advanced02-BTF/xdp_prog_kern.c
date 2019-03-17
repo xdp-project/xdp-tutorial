@@ -4,6 +4,15 @@
 
 #include "common_kern_user.h" /* defines: struct datarec; */
 
+#define _BPF_ANNOTATE_KV_PAIR(name, type_key, type_val)		\
+	struct ____btf_map_##name {					\
+		type_key key;						\
+		type_val value;					\
+	};								\
+	struct ____btf_map_##name					\
+	__attribute__ ((section(".maps." #name), used))		\
+		____btf_map_##name = { }
+
 /* Lesson: See how a map is defined.
  * - Here an array with XDP_ACTION_MAX (max_)entries are created.
  * - The idea is to keep stats per (enum) xdp_action
@@ -14,6 +23,8 @@ struct bpf_map_def SEC("maps") xdp_stats_map = {
 	.value_size  = sizeof(struct datarec),
 	.max_entries = XDP_ACTION_MAX,
 };
+_BPF_ANNOTATE_KV_PAIR(xdp_stats_map, int, struct datarec);
+
 
 /* LLVM maps __sync_fetch_and_add() as a built-in function to the BPF atomic add
  * instruction (that is BPF_STX | BPF_XADD | BPF_W for word sizes)
