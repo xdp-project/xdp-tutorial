@@ -121,4 +121,5 @@
       - bash-completion
       - redhat-lsb-core
       - stow
+      - socat
     state: installed
