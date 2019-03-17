@@ -182,3 +182,8 @@ cd /usr/local/stow/
 stow pahole-git01
 sudo ldconfig
 #+end_example
+
+** Kernel samples/bpf/
+
+Uploaded a compiled version of kernel samples/bpf/ directory.
+The =xdp_monitor= tool could come in handy for participants.
