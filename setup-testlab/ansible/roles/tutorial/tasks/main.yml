@@ -125,4 +125,5 @@
       - nmap-ncat
       - nmap
       - hping3
+      - sysstat
     state: installed
