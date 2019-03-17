@@ -3,7 +3,9 @@
 XDP_BTF_TARGETS := xdp_prog_kern
 XDP_BTF_OBJ = ${XDP_BTF_TARGETS:=.o}
 
-_all: llvm-check pahole-check $(XDP_BTF_OBJ)
+_all: llvm-check pahole-check $(XDP_BTF_OBJ) xdp_loader
+
+COPY_LOADER := xdp_loader
 
 COMMON_DIR = ../common/
 include $(COMMON_DIR)/common.mk
