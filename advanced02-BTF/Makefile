@@ -30,6 +30,9 @@ pahole-check: $(PAHOLE)
 		echo "Using pahole to encode BTF info in ELF-object"; \
 	fi
 
+#LLC_FLAGS += -mcpu=probe
+LLC_FLAGS += -mattr=dwarfris
+
 $(XDP_BTF_OBJ): %.o: %.c  Makefile $(COMMON_MK)
 	$(CLANG) -S \
 	    -target bpf \
@@ -41,5 +44,5 @@ $(XDP_BTF_OBJ): %.o: %.c  Makefile $(COMMON_MK)
 	    -Wno-compare-distinct-pointer-types \
 	    -Werror \
 	    -O2 -emit-llvm -c -g $<
-	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
+	$(LLC) -march=bpf $(LLC_FLAGS) -filetype=obj -o $@ ${@:.o=.ll}
 	$(PAHOLE) --btf_encode $@
