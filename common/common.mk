@@ -23,7 +23,7 @@ USER_OBJ := ${USER_C:.c=.o}
 COMMON_DIR ?= ../common/
 
 COPY_LOADER ?=
-LOADER_DIR := $(COMMON_DIR)/../basic04-pinning-maps
+LOADER_DIR ?= $(COMMON_DIR)/../basic04-pinning-maps
 
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
@@ -44,14 +44,14 @@ LDFLAGS ?= -L$(LIBBPF_DIR)
 
 LIBS = -lbpf -lelf
 
-all: llvm-check $(USER_TARGETS) $(XDP_OBJ) $(COPY_LOADER)
+all: llvm-check $(USER_TARGETS) $(XDP_OBJ) $(COPY_LOADER) $(COPY_STATS)
 
 .PHONY: clean $(CLANG) $(LLC)
 
 clean:
 	$(MAKE) -C $(LIBBPF_DIR) clean
 	$(MAKE) -C $(COMMON_DIR) clean
-	rm -f $(USER_TARGETS) $(XDP_OBJ) $(USER_OBJ) $(COPY_LOADER)
+	rm -f $(USER_TARGETS) $(XDP_OBJ) $(USER_OBJ) $(COPY_LOADER) $(COPY_STATS)
 	rm -f *.ll
 	rm -f *~
 
@@ -59,6 +59,12 @@ ifdef COPY_LOADER
 $(COPY_LOADER): $(LOADER_DIR)/${COPY_LOADER:=.c} $(COMMON_H)
 	make -C $(LOADER_DIR) $(COPY_LOADER)
 	cp $(LOADER_DIR)/$(COPY_LOADER) $(COPY_LOADER)
+endif
+
+ifdef COPY_STATS
+$(COPY_STATS): $(LOADER_DIR)/${COPY_STATS:=.c} $(COMMON_H)
+	make -C $(LOADER_DIR) $(COPY_STATS)
+	cp $(LOADER_DIR)/$(COPY_STATS) $(COPY_STATS)
 endif
 
 # For build dependency on this file, if it gets updated
