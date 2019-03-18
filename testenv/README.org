@@ -2,23 +2,39 @@
 #+TITLE: Test environment script
 #+OPTIONS: ^:nil
 
-This directory contains a test environment setup script that you can use to
-create test environments for testing your XDP programs. It works by creating
-virtual ethernet (veth) interface pairs and moving one end of each pair to
-another namespace. You can load the XDP program in the other namespace and
+This directory contains a setup script that you can use to create test
+environments for testing your XDP programs. It works by creating virtual
+ethernet (veth) interface pairs and moving one end of each pair to another
+network namespace. You can load the XDP program in the other namespace and
 send traffic to it through the interface that is visible in the root
 namespace.
+
+Run =./testenv.sh= with no parameter to get a list of available commands, or
+run =./testenv.sh --help= to get the full help listing with all options. The
+script can maintain several environments active at the same time, and you
+can switch between them using the =--name= option.
+
+If you don't specify a name, the most recently used environment will be
+used. If you don't specify a name when setting up a new environment, a
+random name will be generated for you.
 
 Examples:
 
 Setup new environment named "test":
-=./testenv.sh create test=
+=./testenv.sh setup --name=test=
 
-Enter the environment:
-=./testenv.sh enter test=
+Create a shell alias for easy use of script from anywhere:
+=eval $(./testenv.sh alias)=
+
+See the currently active environment, and a list of all active environment
+names (with alias defined as above):
+=t status=
+
+Enter the currently active environment:
+=t enter=
 
 Execute a command inside the environment:
-=./testenv ns_exec test ip a=
+=t exec -- ip a=
 
 Teardown the environment:
-=./testenv teardown test=
+=t teardown=

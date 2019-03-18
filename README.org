@@ -52,6 +52,10 @@ Before you can start completing step in this tutorial, you will need to
 install a few dependencies on your system. These are are described in
 [[file:setup_dependencies.org]].
 
+We also provide a helper script that will set up a test environment with
+virtual interfaces for you to test your code on. This is introduced in the
+basic lessons, and also has [[file:testenv/README.org][it's own README file]].
+
 * How the lessons are organised
 The tutorial is organised into a number of lessons; each lesson has its own
 subdirectory, and the lessons are grouped by category:
