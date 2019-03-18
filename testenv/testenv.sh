@@ -25,6 +25,7 @@ STATEFILE=
 CMD=
 NS=
 XDP_LOADER=./xdp_loader
+XDP_STATS=./xdp_stats
 LEGACY_IP=0
 USE_VLAN=0
 RUN_ON_INNER=0
@@ -413,6 +414,14 @@ xdp_unload()
     $XDP_LOADER --dev "$NS" --unload "$@"
 }
 
+xdp_stats()
+{
+    get_nsname && ensure_nsname
+
+    [ -x "$XDP_STATS" ] || die "Stats tool '$XDP_STATS' is not executable"
+    $XDP_STATS --dev "$NS" "$@"
+}
+
 usage()
 {
     local FULL=${1:-}
@@ -452,6 +461,11 @@ usage()
     echo "                    command line options passed after --."
     echo "                    Default: '$XDP_LOADER'"
     echo ""
+    echo "-s, --stats <prog>  Specify program to use for getting statistics."
+    echo "                    Device name will be passed to it, along with any additional"
+    echo "                    command line options passed after --."
+    echo "                    Default: '$XDP_STATS'"
+    echo ""
     echo "    --legacy-ip     Enable legacy IP (IPv4) support."
     echo "                    For setup and reset commands this enables configuration of legacy"
     echo "                    IP addresses on the interface, for the ping command it switches to"
@@ -470,8 +484,8 @@ usage()
 }
 
 
-OPTS="hn:gl:"
-LONGOPTS="help,name:,gen-new,loader:,legacy-ip,vlan,inner"
+OPTS="hn:gl:s:"
+LONGOPTS="help,name:,gen-new,loader:,stats:,legacy-ip,vlan,inner"
 
 OPTIONS=$(getopt -o "$OPTS" --long "$LONGOPTS" -- "$@")
 [ "$?" -ne "0" ] && usage >&2 || true
@@ -493,6 +507,10 @@ while true; do
             ;;
         -l | --loader)
             XDP_LOADER="$1"
+            shift
+            ;;
+        -s | --stats)
+            XDP_STATS="$1"
             shift
             ;;
         -g | --gen-new)
@@ -522,7 +540,7 @@ case "$1" in
     setup|teardown|reset|enter)
         CMD="$1"
         ;;
-    load|unload)
+    load|unload|stats)
         CMD="xdp_$1"
         ;;
     "exec")
