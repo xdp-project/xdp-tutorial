@@ -204,7 +204,10 @@ assignments below will gradually build up towards this goal.
 The starting point for this assignment is the packet parsing program in
 [[file:xdp_prog_kern.c]], which will parse the packet Ethernet header using a
 helper function. Each assignment will extend this program by adding new
-features.
+features. The program includes the stats helper from basic04 which you can
+use to monitor what actions the program takes as you develop it. Use =t
+stats= to run the stats monitoring application (after you have loaded your
+BPF program).
 
 ** Assignment 1: Fix the bounds checking error
 The parser function in =xdp_prog_kern.c= will parse the Ethernet header, do
