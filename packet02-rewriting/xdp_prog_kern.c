@@ -7,6 +7,10 @@
 // The parsing helper functions from the packet01 lesson have moved here
 #include "../common/parsing_helpers.h"
 
+/* Defines xdp_stats_map */
+#include "../common/xdp_stats_kern_user.h"
+#include "../common/xdp_stats_kern.h"
+
 /* Pops the outermost VLAN tag off the packet. Returns the popped VLAN ID on
  * success or -1 on failure.
  */
@@ -141,7 +145,7 @@ int  xdp_parser_func(struct xdp_md *ctx)
                         action = XDP_DROP;
         }
 out:
-	return action;
+	return xdp_stats_record_action(ctx, action);
 }
 
 char _license[] SEC("license") = "GPL";
