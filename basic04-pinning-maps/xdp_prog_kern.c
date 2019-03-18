@@ -23,7 +23,7 @@ struct bpf_map_def SEC("maps") xdp_stats_map = {
 #endif
 
 static __always_inline
-__u32 record_xdp_stats_action(struct xdp_md *ctx, __u32 action)
+__u32 xdp_stats_record_action(struct xdp_md *ctx, __u32 action)
 {
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data     = (void *)(long)ctx->data;
@@ -54,7 +54,7 @@ int  xdp_pass_func(struct xdp_md *ctx)
 {
 	__u32 action = XDP_PASS; /* XDP_PASS = 2 */
 
-	return record_xdp_stats_action(ctx, action);
+	return xdp_stats_record_action(ctx, action);
 }
 
 SEC("xdp_drop")
@@ -62,7 +62,7 @@ int  xdp_drop_func(struct xdp_md *ctx)
 {
 	__u32 action = XDP_DROP;
 
-	return record_xdp_stats_action(ctx, action);
+	return xdp_stats_record_action(ctx, action);
 }
 
 SEC("xdp_abort")
@@ -70,7 +70,7 @@ int  xdp_abort_func(struct xdp_md *ctx)
 {
 	__u32 action = XDP_ABORTED;
 
-	return record_xdp_stats_action(ctx, action);
+	return xdp_stats_record_action(ctx, action);
 }
 
 char _license[] SEC("license") = "GPL";
