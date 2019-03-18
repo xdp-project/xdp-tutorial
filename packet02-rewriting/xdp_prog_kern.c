@@ -7,7 +7,6 @@
 // The parsing helper functions from the packet01 lesson have moved here
 #include "../common/parsing_helpers.h"
 
-
 /* Pops the outermost VLAN tag off the packet. Returns the popped VLAN ID on
  * success or -1 on failure.
  */
@@ -92,6 +91,12 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
 
+	/* Default action XDP_PASS, imply everything we couldn't parse, or that
+	 * we don't want to deal with, we just pass up the stack and let the
+	 * kernel deal with it.
+	 */
+        __u32 action = XDP_PASS; /* Default action */
+
         /* These keep track of the next header type and iterator pointer */
 	struct hdr_cursor nh;
 	int nh_type;
@@ -118,7 +123,7 @@ int  xdp_parser_func(struct xdp_md *ctx)
                         goto out;
 
                 if (bpf_ntohs(icmp6h->icmp6_sequence) % 2 == 0)
-                        return XDP_DROP;
+                        action = XDP_DROP;
 
         } else if (nh_type == ETH_P_IP) {
                 struct iphdr *iph;
@@ -133,13 +138,10 @@ int  xdp_parser_func(struct xdp_md *ctx)
                         goto out;
 
                 if (bpf_ntohs(icmph->un.echo.sequence) % 2 == 0)
-                        return XDP_DROP;
+                        action = XDP_DROP;
         }
 out:
-	/* Everything we couldn't parse, or that we don't want to deal with, we
-	 * just pass up the stack and let the kernel deal with it.
-	 */
-	return XDP_PASS;
+	return action;
 }
 
 char _license[] SEC("license") = "GPL";
