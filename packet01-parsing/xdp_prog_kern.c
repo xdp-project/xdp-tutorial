@@ -8,6 +8,9 @@
 #include <linux/icmpv6.h>
 #include "bpf_helpers.h"
 #include "bpf_endian.h"
+/* Defines xdp_stats_map from packet04 */
+#include "../common/xdp_stats_kern_user.h"
+#include "../common/xdp_stats_kern.h"
 
 /* Header cursor to keep track of current parsing position */
 struct hdr_cursor {
@@ -63,6 +66,12 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	void *data = (void *)(long)ctx->data;
 	struct ethhdr *eth;
 
+	/* Default action XDP_PASS, imply everything we couldn't parse, or that
+	 * we don't want to deal with, we just pass up the stack and let the
+	 * kernel deal with it.
+	 */
+	__u32 action = XDP_PASS; /* Default action */
+
         /* These keep track of the next header type and iterator pointer */
 	struct hdr_cursor nh;
 	int nh_type;
@@ -80,13 +89,9 @@ int  xdp_parser_func(struct xdp_md *ctx)
 
 	/* Assignment additions go below here */
 
-	return XDP_DROP;
-
+	action = XDP_DROP;
 out:
-	/* Everything we couldn't parse, or that we don't want to deal with, we
-	 * just pass up the stack and let the kernel deal with it.
-	 */
-	return XDP_PASS;
+	return xdp_stats_record_action(ctx, action); /* read via xdp_stats */
 }
 
 char _license[] SEC("license") = "GPL";

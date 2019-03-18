@@ -99,7 +99,7 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 * we don't want to deal with, we just pass up the stack and let the
 	 * kernel deal with it.
 	 */
-        __u32 action = XDP_PASS; /* Default action */
+	__u32 action = XDP_PASS; /* Default action */
 
         /* These keep track of the next header type and iterator pointer */
 	struct hdr_cursor nh;
