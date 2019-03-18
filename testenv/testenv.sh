@@ -440,6 +440,7 @@ usage()
     echo "load                Load XDP program on outer interface"
     echo "unload              Unload XDP program on outer interface"
     echo "tcpdump             Run on outer interface (or inner with --inner)"
+    echo "stats               Run the XDP statistics program"
     echo ""
 
     if [ -z "$FULL" ] ; then
@@ -461,7 +462,7 @@ usage()
     echo "                    command line options passed after --."
     echo "                    Default: '$XDP_LOADER'"
     echo ""
-    echo "-s, --stats <prog>  Specify program to use for getting statistics."
+    echo "-s, --stats <prog>  Specify program to use for getting statistics ('stats' command)."
     echo "                    Device name will be passed to it, along with any additional"
     echo "                    command line options passed after --."
     echo "                    Default: '$XDP_STATS'"
