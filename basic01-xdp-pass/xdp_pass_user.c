@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 {
 	struct bpf_prog_info info = {};
 	__u32 info_len = sizeof(info);
-	char filename[256];
+	char filename[256] = "xdp_pass_kern.o";
 	int prog_fd, err;
 
 	struct config cfg = {
@@ -129,9 +129,6 @@ int main(int argc, char **argv)
 	}
 	if (cfg.do_unload)
 		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags);
-
-	/* Locate BPF-ELF object file:  xdp_pass_kern.o */
-	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
 
 	/* Load the BPF-ELF object file and get back first BPF_prog FD */
 	prog_fd = load_bpf_object_file__simple(filename);
