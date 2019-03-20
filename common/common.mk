@@ -36,7 +36,7 @@ COMMON_H := ${COMMON_OBJS:.o=.h}
 EXTRA_DEPS +=
 
 # BPF-prog kern and userspace shares struct via header file:
-KERN_USER_H ?= $(wildcard "common_kern_user.h")
+KERN_USER_H ?= $(wildcard common_kern_user.h)
 
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/
 CFLAGS += -I../headers/
