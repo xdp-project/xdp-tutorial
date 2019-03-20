@@ -41,7 +41,7 @@ with the =iproute2= suite of tools, but assume no prior experience with eBPF
 or XDP.
 
 The tutorial is a work in progress, and will be trial-run at the [[https://www.netdevconf.org/0x13/session.html?tutorial-XDP-hands-on][Netdev
-Conference]] in Prague i March 2019. However, we intend for it to (eventually)
+Conference]] in Prague in March 2019. However, we intend for it to (eventually)
 be self-contained and something that anyone can go through to learn the XDP
 basics. Input and contributions to advance towards this goal are very
 welcome; just open issues or pull requests in the [[https://github.com/xdp-project/xdp-tutorial/][Github repository]].

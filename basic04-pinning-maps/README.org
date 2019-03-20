@@ -10,7 +10,7 @@ and reading the stats from the map. This was practical as the map
 file descriptor was readily available; however it is often limiting that a
 map can only be accessed from the same program that loads it.
 
-In this lesson we will split the program  into two separate programss:
+In this lesson we will split the program into two separate programs:
  - one focused on BPF/XDP loading ([[file:xdp_loader.c]]) and
  - one focused on reading and printing stats ([[file:xdp_stats.c]]).
 
