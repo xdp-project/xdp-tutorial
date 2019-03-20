@@ -126,7 +126,7 @@ $ ip link show dev lo
 
 Removing the XDP program again from the device:
 #+begin_example
- ip link set dev lo xdp off
+ ip link set dev lo xdpgeneric off
 #+end_example
 
 ** Loading using xdp_pass_user
