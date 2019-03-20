@@ -16,7 +16,7 @@ source "$(dirname "$0")/config.sh"
 
 NEEDED_TOOLS="ethtool ip tc ping"
 MAX_NAMELEN=15
-
+MIN_ULIMIT_L=1024
 
 # Global state variables that will be set by options etc below
 GENERATE_NEW=0
@@ -63,6 +63,8 @@ check_prereq()
     fi
 
     [ -d "$STATEDIR" ] || mkdir -p "$STATEDIR" || die "Unable to create state dir $STATEDIR"
+
+    [ "$(ulimit -l)" -ge "$MIN_ULIMIT_L" ] || ulimit -l "$MIN_ULIMIT_L" || die "Unable to set ulimit"
 }
 
 get_nsname()
