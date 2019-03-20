@@ -52,7 +52,8 @@ git clone --recurse-submodules https://github.com/xdp-project/xdp-tutorial
 The main dependencies are =libbpf=, =llvm=, =clang= and =libelf=. LLVM+clang
 compiles our restricted-C programs into BPF-byte-code, which is stored in an
 ELF object file (=libelf=), that is loaded by =libbpf= into the kernel via
-the =bpf= syscall.
+the =bpf= syscall. Some of the lessons also use the =perf= utility to
+track the kernel behaviour through tracepoints.
 
 The Makefiles in this repo will try to detect if you are missing some
 dependencies, and give you some pointers.
@@ -63,7 +64,7 @@ On a machine running the Fedora Linux distribution, install the packages:
 
 #+begin_example
  $ sudo dnf install clang llvm
- $ sudo dnf install elfutils-libelf-devel
+ $ sudo dnf install elfutils-libelf-devel perf
 #+end_example
 
 ** Packages on Debian/Ubuntu
@@ -71,7 +72,7 @@ On a machine running the Fedora Linux distribution, install the packages:
 On Debian and Ubuntu installations, install the dependencies like this:
 
 #+begin_example
- $ sudo apt install clang llvm libelf-dev
+ $ sudo apt install clang llvm libelf-dev linux-perf
 #+end_example
 
 * Kernel headers dependency
