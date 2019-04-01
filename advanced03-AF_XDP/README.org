@@ -78,3 +78,14 @@ Alternative work-arounds:
 2. For testing purposes reduce RXQ number to 1,
    e.g. via command =ethtool -L <interface> combined 1=
 
+* Missing elements
+
+*Lesson incomplete*
+
+This lesson is missing some assignments, but first we need to provide an
+AF_XDP sample program. The sample should use the libbpf API for AF_XDP
+sockets. It also need to include an actual XDP bpf program that is more
+robust, and demonstrate how to read the RXQ-info about the RX-queue number,
+and only redirect if the RX-queue id match, and maybe give stats on redirect
+vs. XDP_PASS (not matching RX-queue id) packets.
+
