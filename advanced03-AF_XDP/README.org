@@ -56,4 +56,25 @@ tells the application that *TX is done* for a packet area (which then can be
 reused). This scheme is for transferring ownership of UMEM packet areas
 between the kernel and the userspace application.
 
+** Gotcha by RX-queue id binding
+
+The most common mistake: Why am I not seeing any traffic on the AF_XDP
+socket?
+
+As you just learned from above, the AF_XDP socket bound to a *single
+RX-queue id* (for performance reasons). Thus, your userspace program is only
+receiving raw-frames from a specific RX-queue id number. NICs will by
+default spread flows with RSS-hashing over all available RX-queues. Thus,
+traffic likely not hitting queue you expect.
+
+You *MUST* configure NIC *HW filters* to /steer to RX-queue id/. This can be
+configured by use of ethtool or TC HW offloading filter setup.
+
+TODO: This lesson should contain some examples on howto use ethtool.
+
+Alternative work-arounds:
+1. Create as many AF_XDP sockets as RXQs, and have userspace poll()/select
+   on all sockets.
+2. For testing purposes reduce RXQ number to 1,
+   e.g. via command =ethtool -L <interface> combined 1=
 
