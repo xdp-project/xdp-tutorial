@@ -25,11 +25,11 @@ driver RX-queue into an (AF_XDP) socket.
 The basic queues used by AF_XDP are Single-Producer/Single-Consumer (SPSC)
 descriptor ring queues:
 
-- The *Single*-/Producer/ (SP) bind to specific RX-*queue id*, and
+- The *Single-Producer* (SP) bind to specific RX *queue id*, and
   NAPI-softirq assures only 1-CPU process 1-RX-queue id (per scheduler
   interval).
 
-- The *Single*-/Consumer/ (SC) is one-application, reading descriptors from
+- The *Single-Consumer* (SC) is one-application, reading descriptors from
   a ring, that point into UMEM area.
 
 There are *no memory allocation* per packet. Instead the UMEM memory area
