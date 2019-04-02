@@ -78,6 +78,25 @@ Alternative work-arounds:
 2. For testing purposes reduce RXQ number to 1,
    e.g. via command =ethtool -L <interface> combined 1=
 
+** Driver support and zero-copy mode
+
+As hinted in the intro (driver level) support for AF_XDP depend on drivers
+implementing the XDP_REDIRECT action. For all driver implementing the basic
+XDP_REDIRECT action, AF_XDP in "copy-mode" is supported. The "copy-mode" is
+surprisingly fast, and does a single-copy of the frame (including any XDP
+placed meta-data) into the UMEM area. The userspace API remains the same.
+
+For AF_XDP "zero-copy" support the driver need to implement and expose the
+API for registering and using the UMEM area directly in the NIC RX-ring
+structure for DMA delivery.
+
+Depending on your use-case, it can still make sense to use the "copy-mode"
+on a "zero-copy" capable driver. If for some-reason, not all traffic on a
+RX-queue is for the AF_XDP socket, and the XDP program multiplex between
+XDP_REDIRECT and XDP_PASS, then "copy-mode" can be relevant. As in
+"zero-copy" mode doing XDP_PASS have a fairly high cost, which involves
+allocating memory and copying over the frame.
+
 * Missing elements
 
 *Lesson incomplete*
