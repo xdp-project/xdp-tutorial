@@ -9,9 +9,7 @@ facility. XDP is an *in-kernel* fast-path, that operates on raw-frames
 To support fast delivery of /raw-frames into userspace/, XDP can *bypass*
 the Linux Kernel network stack via XDP_REDIRECT'ing into a special BPF-map
 containing AF_XDP sockets. The AF_XDP socket is an new Address Family type.
-
-The kernel documentation for AF_XDP:
-- https://www.kernel.org/doc/html/latest/networking/af_xdp.html
+([[https://www.kernel.org/doc/html/latest/networking/af_xdp.html][The kernel documentation for AF_XDP]]).
 
 * Lessons
 
