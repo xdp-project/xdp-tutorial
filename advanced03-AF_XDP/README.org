@@ -89,3 +89,6 @@ robust, and demonstrate how to read the RXQ-info about the RX-queue number,
 and only redirect if the RX-queue id match, and maybe give stats on redirect
 vs. XDP_PASS (not matching RX-queue id) packets.
 
+Note: One of the reasons for providing a BPF C-code example is that the
+kernel removed =samples/bpf/xdpsock_kern.c=, when libbpf was extended with
+static BPF-instructions for AF_XDP redirect.
