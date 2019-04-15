@@ -17,6 +17,20 @@ int xdp_link_attach(int ifindex, __u32 xdp_flags, int prog_fd)
 
 	/* libbpf provide the XDP net_device link-level hook attach helper */
 	err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags);
+	if (err == -EEXIST && !(xdp_flags & XDP_FLAGS_UPDATE_IF_NOEXIST)) {
+		/* Force mode didn't work, probably because a program of the
+		 * opposite type is loaded. Let's unload that and try loading
+		 * again.
+		 */
+
+		__u32 old_flags = xdp_flags;
+
+		xdp_flags &= ~XDP_FLAGS_MODES;
+		xdp_flags |= (old_flags & XDP_FLAGS_SKB_MODE) ? XDP_FLAGS_DRV_MODE : XDP_FLAGS_SKB_MODE;
+		err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags);
+		if (!err)
+			err = bpf_set_link_xdp_fd(ifindex, prog_fd, old_flags);
+	}
 	if (err < 0) {
 		fprintf(stderr, "ERR: "
 			"ifindex(%d) link set xdp fd failed (%d): %s\n",
@@ -24,6 +38,7 @@ int xdp_link_attach(int ifindex, __u32 xdp_flags, int prog_fd)
 
 		switch (-err) {
 		case EBUSY:
+		case EEXIST:
 			fprintf(stderr, "Hint: XDP already loaded on device"
 				" use --force to swap/replace\n");
 			break;
