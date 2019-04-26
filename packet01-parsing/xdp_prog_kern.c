@@ -53,7 +53,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 }*/
 
 /* Assignment 3: Implement and use this */
-/*static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,,
+/*static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,
 					  void *data_end,
 					  struct icmp6hdr **icmp6hdr)
 {
