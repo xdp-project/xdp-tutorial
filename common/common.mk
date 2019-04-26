@@ -66,7 +66,8 @@ $(COPY_STATS): $(LOADER_DIR)/${COPY_STATS:=.c} $(COMMON_H)
 	make -C $(LOADER_DIR) $(COPY_STATS)
 	cp $(LOADER_DIR)/$(COPY_STATS) $(COPY_STATS)
 # Needing xdp_stats imply depending on header files:
-EXTRA_DEPS := $(COMMON_DIR)/xdp_stats_kern.h $(COMMON_DIR)/xdp_stats_kern_user.h
+vpath %.h ../headers
+EXTRA_DEPS := xdp_stats_kern.h xdp_stats_kern_user.h
 endif
 
 # For build dependency on this file, if it gets updated

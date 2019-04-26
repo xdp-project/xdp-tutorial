@@ -9,8 +9,8 @@
 #include "bpf_helpers.h"
 #include "bpf_endian.h"
 /* Defines xdp_stats_map from packet04 */
-#include "../common/xdp_stats_kern_user.h"
-#include "../common/xdp_stats_kern.h"
+#include "xdp_stats_kern_user.h"
+#include "xdp_stats_kern.h"
 
 /* Header cursor to keep track of current parsing position */
 struct hdr_cursor {

@@ -5,11 +5,11 @@
 #include "bpf_endian.h"
 
 // The parsing helper functions from the packet01 lesson have moved here
-#include "../common/parsing_helpers.h"
+#include "parsing_helpers.h"
 
 /* Defines xdp_stats_map */
-#include "../common/xdp_stats_kern_user.h"
-#include "../common/xdp_stats_kern.h"
+#include "xdp_stats_kern_user.h"
+#include "xdp_stats_kern.h"
 
 /* Pops the outermost VLAN tag off the packet. Returns the popped VLAN ID on
  * success or -1 on failure.
