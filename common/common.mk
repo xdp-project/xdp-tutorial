@@ -42,7 +42,7 @@ CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/ -g
 CFLAGS += -I../headers/
 LDFLAGS ?= -L$(LIBBPF_DIR)
 
-LIBS = -l:libbpf.a -lelf
+LIBS = -l:libbpf.a -lelf $(USER_LIBS)
 
 all: llvm-check $(USER_TARGETS) $(XDP_OBJ) $(COPY_LOADER) $(COPY_STATS)
 
