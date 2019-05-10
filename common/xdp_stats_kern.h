@@ -23,9 +23,6 @@ struct bpf_map_def SEC("maps") xdp_stats_map = {
 static __always_inline
 __u32 xdp_stats_record_action(struct xdp_md *ctx, __u32 action)
 {
-	void *data_end = (void *)(long)ctx->data_end;
-	void *data     = (void *)(long)ctx->data;
-
 	if (action >= XDP_ACTION_MAX)
 		return XDP_ABORTED;
 
@@ -34,15 +31,12 @@ __u32 xdp_stats_record_action(struct xdp_md *ctx, __u32 action)
 	if (!rec)
 		return XDP_ABORTED;
 
-	/* Calculate packet length */
-	__u64 bytes = data_end - data;
-
 	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
 	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
 	 * without atomic operations.
 	 */
 	rec->rx_packets++;
-	rec->rx_bytes += bytes;
+	rec->rx_bytes += (ctx->data_end - ctx->data);
 
 	return action;
 }
