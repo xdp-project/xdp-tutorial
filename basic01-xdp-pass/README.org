@@ -100,7 +100,7 @@ as an XDP hook on a network device.
 ** Loading via iproute2 ip
 
 It does seem overkill to write a C program to simply load and attach a
-specific BPF-program. However, we still include this in the the tutorial
+specific BPF-program. However, we still include this in the tutorial
 since it will help you integrate BPF into other Open Source projects.
 
 As an alternative to writing a new loader, the standard iproute2 tool also
