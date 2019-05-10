@@ -27,15 +27,7 @@ GitHub under https://github.com/libbpf/libbpf.
 
 ** libbpf as git-submodule
 
-This repository uses [[https://github.com/libbpf/libbpf][libbpf]] as a git-submodule.
-
-If you need to add this to your own project, you can use the the command:
-
-#+begin_example
-git submodule add https://github.com/libbpf/libbpf/ libbpf
-#+end_example
-
-After cloning this repository you need to run the command:
+This repository uses [[https://github.com/libbpf/libbpf][libbpf]] as a git-submodule. After cloning this repository you need to run the command:
 
 #+begin_example
 git submodule update --init
@@ -45,6 +37,12 @@ If you want submodules to be part of the clone, you can use this command:
 
 #+begin_example
 git clone --recurse-submodules https://github.com/xdp-project/xdp-tutorial
+#+end_example
+
+If you need to add this to your own project, you can use the command:
+
+#+begin_example
+git submodule add https://github.com/libbpf/libbpf/ libbpf
 #+end_example
 
 * Dependencies
