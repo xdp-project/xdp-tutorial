@@ -57,8 +57,8 @@ There are a few things to be aware of when using this helper:
    program needs to perform new bounds checks *including re-evaluating the
    data and data_end pointers* after adjusting the packet size.
 
-There is also a =bpf_xdp_adjust_tail()= which be used to move the end of the
-packet data, but this only supports shrinking the packet, not extending it;
+There is also a =bpf_xdp_adjust_tail()= which can be used to move the end of
+the packet data, but this only supports shrinking the packet, not extending it;
 but otherwise it functions identically to =bpf_xdp_adjust_head()=.
 
 * Assignments

@@ -11,7 +11,7 @@ eBPF network hook in the Linux Traffic Control (TC) system, both at
 ** XDP meta-data to TC
 
 To transfer info between XDP and network stack there are a number of
-options. On option is that XDP can *modify packet headers* before netstack,
+options. One option is that XDP can *modify packet headers* before netstack,
 e.g. pop/push headers influence RX-handler in netstack, or e.g. modify
 MAC-src and match that with a iptables rule.
 
