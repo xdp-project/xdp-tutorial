@@ -1,6 +1,10 @@
 #ifndef __COMMON_DEFINES_H
 #define __COMMON_DEFINES_H
 
+#include <net/if.h>
+#include <linux/types.h>
+#include <stdbool.h>
+
 struct config {
 	__u32 xdp_flags;
 	int ifindex;
