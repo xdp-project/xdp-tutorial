@@ -1,5 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /* Copied from $(LINUX)/tools/testing/selftests/bpf/bpf_helpers.h */
+
+/* Added to fix compilation on old Ubuntu systems - please preserve when
+   updating file! */
+#ifndef __always_inline
+# define __always_inline	inline __attribute__((always_inline))
+#endif
+
 #ifndef __BPF_HELPERS_H
 #define __BPF_HELPERS_H
 
