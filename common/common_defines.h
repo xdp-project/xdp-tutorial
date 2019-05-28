@@ -6,6 +6,9 @@ struct config {
 	int ifindex;
 	char *ifname;
 	char ifname_buf[IF_NAMESIZE];
+	int redirect_ifindex;
+	char *redirect_ifname;
+	char redirect_ifname_buf[IF_NAMESIZE];
 	bool do_unload;
 	char filename[512];
 	char progsec[32];

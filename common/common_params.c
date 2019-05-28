@@ -91,7 +91,7 @@ void parse_cmdline_args(int argc, char **argv,
 	}
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:ASNFUq",
+	while ((opt = getopt_long(argc, argv, "hd:r:ASNFUq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
@@ -106,6 +106,21 @@ void parse_cmdline_args(int argc, char **argv,
 				fprintf(stderr,
 					"ERR: --dev name unknown err(%d):%s\n",
 					errno, strerror(errno));
+				goto error;
+			}
+			break;
+		case 'r':
+			if (strlen(optarg) >= IF_NAMESIZE) {
+				fprintf(stderr, "ERR: --redirect-dev name too long\n");
+				goto error;
+			}
+			cfg->redirect_ifname = (char *)&cfg->redirect_ifname_buf;
+			strncpy(cfg->redirect_ifname, optarg, IF_NAMESIZE);
+			cfg->redirect_ifindex = if_nametoindex(cfg->redirect_ifname);
+			if (cfg->redirect_ifindex == 0) {
+				fprintf(stderr,
+						"ERR: --redirect-dev name unknown err(%d):%s\n",
+						errno, strerror(errno));
 				goto error;
 			}
 			break;
