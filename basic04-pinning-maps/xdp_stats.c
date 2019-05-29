@@ -112,8 +112,8 @@ static void stats_print(struct stats_record *stats_rec,
 		bytes   = rec->total.rx_bytes   - prev->total.rx_bytes;
 		bps     = (bytes * 8)/ period / 1000000;
 
-		printf(fmt, action, rec->total.rx_packets, pps,
-		       rec->total.rx_bytes / 1000 , bps,
+		printf(fmt, action, packets, pps,
+		       bytes / 1000 , bps,
 		       period);
 	}
 	printf("\n");
