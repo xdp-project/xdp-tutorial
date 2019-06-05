@@ -39,6 +39,8 @@ EXTRA_DEPS +=
 KERN_USER_H ?= $(wildcard common_kern_user.h)
 
 CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/ -g
+# Extra include for Ubuntu issue #44
+CFLAGS += -I/usr/include/x86_64-linux-gnu
 CFLAGS += -I../headers/
 LDFLAGS ?= -L$(LIBBPF_DIR)
 
