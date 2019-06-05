@@ -38,11 +38,13 @@ EXTRA_DEPS +=
 # BPF-prog kern and userspace shares struct via header file:
 KERN_USER_H ?= $(wildcard common_kern_user.h)
 
-CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/ -I/usr/include/x86_64-linux-gnu
+CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/ -g
+# Extra include for Ubuntu issue #44
+CFLAGS += -I/usr/include/x86_64-linux-gnu
 CFLAGS += -I../headers/
 LDFLAGS ?= -L$(LIBBPF_DIR)
 
-LIBS = -l:libbpf.a -lelf
+LIBS = -l:libbpf.a -lelf $(USER_LIBS)
 
 all: llvm-check $(USER_TARGETS) $(XDP_OBJ) $(COPY_LOADER) $(COPY_STATS)
 

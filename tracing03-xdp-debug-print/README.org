@@ -1,0 +1,131 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Tracing03 - debug print
+#+OPTIONS: ^:nil
+
+In this lesson we will show how to print message from eBPF program
+into tracefs buffer.
+
+* Table of Contents                                                     :TOC:
+- [[#bpf-trace-printk][eBPF trace printk helper]]
+- [[#tracefs-pipe-reader][The tracefs pipe reader]]
+- [[#assignments][Assignments]]
+  - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
+  - [[#assignment-2-bpf-trace-printk][Assignment 2: Run debug code]]
+
+
+* eBPF trace printk helper
+
+The bpf_trace_print helper function is very useful when debugging or
+when there's need for immediate feedback from the eBPF program.
+
+It offers limited trace_printk capability and basically stores message
+into the tracefs buffer.
+
+The bpf_trace_printk interface is:
+
+#+begin_example sh
+/*
+ * Only limited trace_printk() conversion specifiers allowed:
+ * %d %i %u %x %ld %li %lu %lx %lld %lli %llu %llx %p %s
+ */
+BPF_CALL_5(bpf_trace_printk, char *, fmt, u32, fmt_size, u64, arg1,
+           u64, arg2, u64, arg3)
+#+end_example
+
+Because the above interface requires to put the size of the format
+string it's more convenient to use following macro, which allows
+alone string argument to be passed:
+
+#+begin_example sh
+#define bpf_printk(fmt, ...)                                    \
+({                                                              \
+        char ____fmt[] = fmt;                                   \
+        bpf_trace_printk(____fmt, sizeof(____fmt),              \
+                         ##__VA_ARGS__);                        \
+})
+
+SEC("xdp")
+int xdp_prog_simple(struct xdp_md *ctx)
+{
+        bpf_printk("...");
+        return XDP_PASS;
+}
+#+end_example
+
+* The tracefs pipe reader
+
+To retrieve the message printed by bpf_trace_printk, you can either
+read tracefs buffer directly:
+
+#+begin_example sh
+$ sudo cat /sys/kernel/debug/tracing/trace_pipe
+#+end_example
+
+Or you can use standard C file-reading/parsing code to get the data:
+
+#+begin_example sh
+stream = fopen(TRACEFS_PIPE, "r");
+
+...
+
+while ((nread = getline(&line, &len, stream)) != -1) {
+#+end_example
+
+for more details please check on trace_read.c file.
+
+* Assignments
+
+** Assignment 1: Setting up your test lab
+
+In this lesson we will use the setup of the previous lesson:
+Basic02 - loading a program by name [[https://github.com/xdp-project/xdp-tutorial/tree/master/basic02-prog-by-name#assignment-2-add-xdp_abort-program]]
+
+Setup the environment:
+
+#+begin_example sh
+$ sudo ../testenv/testenv.sh setup --name veth-basic02
+#+end_example
+
+Load XDP program from xdp_prog_kern.o that will print
+ethertnet header on every incoming packet:
+
+#+begin_example sh
+$ sudo ../basic02-prog-by-name/xdp_loader --dev veth-basic02 --force --progsec xdp
+#+end_example
+
+and make some packets:
+
+#+begin_example sh
+$ sudo ../testenv/testenv.sh enter --name veth-basic02
+# ping  fc00:dead:cafe:1::1
+PING fc00:dead:cafe:1::1(fc00:dead:cafe:1::1) 56 data bytes
+#+end_example
+
+- Assignment 2: Run debug code
+
+#+begin_example sh
+bpf_printk("src: %llu, dst: %llu, proto: %u\n",
+           ether_addr_to_u64(eth->h_source),
+           ether_addr_to_u64(eth->h_dest),
+           bpf_ntohs(eth->h_proto));
+#+end_example
+
+You can monitor the message either via tracefs:
+
+#+begin_example sh
+$ sudo cat /sys/kernel/debug/tracing/trace_pipe
+ping-28172 [001] ..s1 155229.100016: 0: src: 99726513069783, dst: 63819112930922, proto: 56710
+ping-28172 [001] ..s1 155230.124054: 0: src: 99726513069783, dst: 63819112930922, proto: 56710
+ping-28172 [001] ..s1 155231.148018: 0: src: 99726513069783, dst: 63819112930922, proto: 56710
+ping-28172 [001] ..s1 155232.172022: 0: src: 99726513069783, dst: 63819112930922, proto: 56710
+#+end_example
+
+or with the trace_read application:
+
+#+begin_example sh
+$ sudo ./trace_read
+src: 5a:b3:63:62:de:d7 dst: 3a:b:b:8e:5e:6a proto: 56710
+src: 5a:b3:63:62:de:d7 dst: 3a:b:b:8e:5e:6a proto: 56710
+src: 5a:b3:63:62:de:d7 dst: 3a:b:b:8e:5e:6a proto: 56710
+...
+#+end_example
