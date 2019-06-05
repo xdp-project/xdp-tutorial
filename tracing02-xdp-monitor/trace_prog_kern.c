@@ -211,6 +211,7 @@ struct bpf_map_def SEC("maps") devmap_xmit_cnt = {
 	.value_size	= sizeof(struct datarec),
 	.max_entries	= 1,
 };
+BPF_ANNOTATE_KV_PAIR(devmap_xmit_cnt, int, struct datarec);
 
 /* Tracepoint: /sys/kernel/debug/tracing/events/xdp/xdp_devmap_xmit/format
  * Code in:         kernel/include/trace/events/xdp.h
