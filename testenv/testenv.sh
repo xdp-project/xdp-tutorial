@@ -54,6 +54,8 @@ die()
 
 check_prereq()
 {
+    local max_locked_mem=$(ulimit -l)
+
     for t in $NEEDED_TOOLS; do
         which "$t" > /dev/null || die "Missing required tools: $t"
     done
@@ -64,7 +66,11 @@ check_prereq()
 
     [ -d "$STATEDIR" ] || mkdir -p "$STATEDIR" || die "Unable to create state dir $STATEDIR"
 
-    [ "$(ulimit -l)" -ge "$MIN_ULIMIT_L" ] || ulimit -l "$MIN_ULIMIT_L" || die "Unable to set ulimit"
+    if [ "$max_locked_mem" != "unlimited" ]; then
+	if [ "$max_locked_mem" -ge "$MIN_ULIMIT_L" ]; then
+	    ulimit -l "$MIN_ULIMIT_L" || die "Unable to set ulimit"
+	fi
+    fi
 }
 
 get_nsname()
