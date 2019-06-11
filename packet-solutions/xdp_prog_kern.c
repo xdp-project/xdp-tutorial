@@ -6,6 +6,7 @@
 
 // The parsing helper functions from the packet01 lesson have moved here
 #include "../common/parsing_helpers.h"
+#include "../common/rewrite_helpers.h"
 
 /* Defines xdp_stats_map */
 #include "../common/xdp_stats_kern_user.h"
@@ -28,97 +29,6 @@ struct bpf_map_def SEC("maps") redirect_params = {
 	.value_size = ETH_ALEN,
 	.max_entries = 1,
 };
-
-/* Pops the outermost VLAN tag off the packet. Returns the popped VLAN ID on
- * success or negative errno on failure.
- */
-static __always_inline int vlan_tag_pop(struct xdp_md *ctx, struct ethhdr *eth)
-{
-	void *data_end = (void *)(long)ctx->data_end;
-        struct ethhdr eth_cpy;
-        struct vlan_hdr *vlh;
-        __be16 h_proto;
-        int vlid;
-
-        if (!proto_is_vlan(eth->h_proto))
-                return -1;
-
-        /* Careful with the parenthesis here */
-        vlh = (void *)(eth + 1);
-
-        /* Still need to do bounds checking */
-        if (vlh + 1 > data_end)
-                return -1;
-
-        /* Save vlan ID for returning, h_proto for updating Ethernet header */
-        vlid = bpf_ntohs(vlh->h_vlan_TCI);
-        h_proto = vlh->h_vlan_encapsulated_proto;
-
-        /* Make a copy of the outer Ethernet header before we cut it off */
-        __builtin_memcpy(&eth_cpy, eth, sizeof(eth_cpy));
-
-        /* Actually adjust the head pointer */
-        if (bpf_xdp_adjust_head(ctx, (int)sizeof(*vlh)))
-                return -1;
-
-        /* Need to re-evaluate data *and* data_end and do new bounds checking
-         * after adjusting head
-         */
-        eth = (void *)(long)ctx->data;
-        data_end = (void *)(long)ctx->data_end;
-        if (eth + 1 > data_end)
-                return -1;
-
-        /* Copy back the old Ethernet header and update the proto type */
-        __builtin_memcpy(eth, &eth_cpy, sizeof(*eth));
-        eth->h_proto = h_proto;
-
-        return vlid;
-}
-
-/* Pushes a new VLAN tag after the Ethernet header. Returns 0 on success,
- * -1 on failure.
- */
-static __always_inline int vlan_tag_push(struct xdp_md *ctx,
-                                         struct ethhdr *eth, int vlid)
-{
-	void *data_end = (void *)(long)ctx->data_end;
-        struct ethhdr eth_cpy;
-        struct vlan_hdr *vlh;
-
-        /* First copy the original Ethernet header */
-        __builtin_memcpy(&eth_cpy, eth, sizeof(eth_cpy));
-
-        /* Then add space in front of the packet */
-        if (bpf_xdp_adjust_head(ctx, 0 - (int)sizeof(*vlh)))
-                return -1;
-
-        /* Need to re-evaluate data_end and data after head adjustment, and
-         * bounds check, even though we know there is enough space (as we
-         * increased it).
-         */
-        data_end = (void *)(long)ctx->data_end;
-        eth = (void *)(long)ctx->data;
-
-        if (eth + 1 > data_end)
-                return -1;
-
-        /* Copy back the Ethernet header in the right place, populate the VLAN
-         * tag with the ID and proto, and set the outer Ethernet header to VLAN
-         * type. */
-        __builtin_memcpy(eth, &eth_cpy, sizeof(*eth));
-
-        vlh = (void *)(eth +1);
-
-        if (vlh + 1 > data_end)
-                return -1;
-
-        vlh->h_vlan_TCI = bpf_htons(vlid);
-        vlh->h_vlan_encapsulated_proto = eth->h_proto;
-
-        eth->h_proto = bpf_htons(ETH_P_8021Q);
-        return 0;
-}
 
 /* Solution to the assignments in lesson packet02: Will pop outermost VLAN tag
  * if it exists, otherwise push a new one with ID 1
@@ -145,28 +55,6 @@ int xdp_vlan_swap_func(struct xdp_md *ctx)
                 vlan_tag_push(ctx, eth, 1);
 
         return XDP_PASS;
-}
-
-static __always_inline void swap_src_dst_mac(struct ethhdr *eth)
-{
-	__u8 h_tmp[ETH_ALEN];
-	memcpy(h_tmp, eth->h_source, ETH_ALEN);
-	memcpy(eth->h_source, eth->h_dest, ETH_ALEN);
-	memcpy(eth->h_dest, h_tmp, ETH_ALEN);
-}
-
-static __always_inline void swap_src_dst_ipv6(struct ipv6hdr *ipv6)
-{
-	struct in6_addr tmp = ipv6->saddr;
-	ipv6->saddr = ipv6->daddr;
-	ipv6->daddr = tmp;
-}
-
-static __always_inline void swap_src_dst_ipv4(struct iphdr *iphdr)
-{
-	__be32 tmp = iphdr->saddr;
-	iphdr->saddr = iphdr->daddr;
-	iphdr->daddr = tmp;
 }
 
 static __always_inline __u16 csum16_add(__u16 csum, __u16 addend)
