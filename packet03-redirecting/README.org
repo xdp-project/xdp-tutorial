@@ -232,12 +232,19 @@ and return =XDP_PASS= when packets destined to outer interfaces, but this
 doesn't cover all cases and wouldn't it be better to dynamically lookup
 where each packet should go?
 
-This assignment teaches to use the =bpf_fib_lookup= helper. For the most
-part, reproduces the [[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp_fwd_kern.c][xdp_fwd_kern.c]]
+This assignment teaches to use the =bpf_fib_lookup= helper. This function lets
+XDP and TC programs to access the kernel routing table and will return an
+ifindex of interface to forward packet to.  As was noted the =bpf_redirect_map=
+function accepts virtual ports, so to use ifindexes you will need to update the
+=xdp_prog_user.c= program to setup 1-1 mapping between virtual ports and
+network devices where each virtual port corresponds to a device with the same
+ifindex.
+
+The Assignment, for the most part, reproduces the
+[[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp_fwd_kern.c][xdp_fwd_kern.c]]
 example from the Linux kernel, but was patched to update statistics as in other
-examples and to check all the return values from the =bpf_fib_lookup()= function.
-Don't forget to update the =xdp_prog_user.c= program to setup 1-1 mapping
-between virtual ports and network devices.
+examples and to check all the return values from the =bpf_fib_lookup()=
+function.
 
 To test the router check that you can get a ping and/or establish
 a TCP connection between any two interfaces: inner-inner, inner-outer,
