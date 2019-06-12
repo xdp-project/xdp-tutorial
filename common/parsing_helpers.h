@@ -42,6 +42,16 @@ struct vlan_hdr {
 	__be16	h_vlan_encapsulated_proto;
 };
 
+/*
+ * Struct icmphdr_common represents the common part of the icmphdr and icmp6hdr
+ * structures.
+ */
+struct icmphdr_common {
+	__u8		type;
+	__u8		code;
+	__sum16		cksum;
+};
+
 #define VLAN_MAX_DEPTH 5
 
 static __always_inline int proto_is_vlan(__u16 h_proto)
@@ -158,6 +168,21 @@ static __always_inline int parse_icmphdr(struct hdr_cursor *nh,
 	*icmphdr = icmph;
 
 	return icmph->type;
+}
+
+static __always_inline int parse_icmphdr_common(struct hdr_cursor *nh,
+						void *data_end,
+						struct icmphdr_common **icmphdr)
+{
+	struct icmphdr_common *h = nh->pos;
+
+	if (h + 1 > data_end)
+		return -1;
+
+	nh->pos  = h + 1;
+	*icmphdr = h;
+
+	return h->type;
 }
 
 static __always_inline struct ethhdr *get_ethhdr(struct hdr_cursor *nh,

@@ -58,7 +58,7 @@ int xdp_icmp_echo_func(struct xdp_md *ctx)
 	struct iphdr *iphdr;
 	struct ipv6hdr *ipv6hdr;
 	__u16 echo_reply;
-	struct icmphdr *icmphdr;
+	struct icmphdr_common *icmphdr;
 	__u32 action = XDP_PASS;
 
 	/* These keep track of the next header type and iterator pointer */
@@ -78,7 +78,13 @@ int xdp_icmp_echo_func(struct xdp_md *ctx)
 		goto out;
 	}
 
-	icmp_type = parse_icmphdr(&nh, data_end, &icmphdr);
+	/*
+	 * We are using a special parser here which returns a stucture
+	 * containing the "protocol-independent" part of an ICMP or ICMPv6
+	 * header.  For purposes of this Assignment we are not interested in
+	 * the rest of the structure.
+	 */
+	icmp_type = parse_icmphdr_common(&nh, data_end, &icmphdr);
 	if (eth_type == ETH_P_IP && icmp_type == ICMP_ECHO) {
 		/* Swap IP source and destination */
 		swap_src_dst_ipv4(iphdr);
