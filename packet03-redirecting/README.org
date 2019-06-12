@@ -81,10 +81,10 @@ Use the =XDP_TX= functionality to implement an ICMP/ICMPv6 echo server.
 Namely, swap destination and source MAC addresses, then swap IP/IPv6 addresses,
 and, finally, replace the ICMP/ICMPv6 =Type= field with an appropriate value.
 
-Note that changing the =Type= field will affect the ICMP checksum. However,
-as only a small part of the packet is changing, the Incremental Internet
-Checksum (RFC 1624) can be used. Hint: see the =csum_replace2= function inside
-the Linux kernel, or use the =bpf_csum_diff= kernel helper.
+Note that changing the =Type= field will affect the ICMP checksum. However, as
+only a small part of the packet is changing, the Incremental Internet Checksum
+(RFC 1624) can be used, so use the =bpf_csum_diff= helper to update the
+checksum.
 
 To test the echo server create a new environment with both address families
 supported and load the XDP program:
