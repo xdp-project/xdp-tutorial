@@ -63,15 +63,10 @@ Assignment 4 shows how to use this helper to write a program for full
 redirection.
 
 One thing to note when using the =bpf_fib_lookup()= function is that it will
-return an error code if forwarding is disabled, so enable forwarding before
-running code from the Assignment 4.
-#+begin_src sh
-$ sudo sysctl net.ipv6.conf.all.forwarding=1
-net.ipv6.conf.all.forwarding = 1
-$ sudo sysctl net.ipv4.ip_forward=1
-net.ipv4.ip_forward = 1
-#+end_src
-
+return an error code if forwarding is disabled for the ingress interface, so we
+need to enable forwarding before running code from the Assignment 4. Note that
+enabling forwarding is not required by the =bpf_redirect_map= or =bpf_redirect=
+functions, only for =bpf_fib_lookup=.
 
 * Assignments
 
@@ -253,11 +248,21 @@ and =XDP_FORWARD= for inner-inner.
 
 Try more than two test environments. Run the =xdp_stats= program to verify that
 this is the XDP program does forwarding, and not the network stack (as
-forwarding should be enabled for this Assignment as noted above):
+forwarding should be enabled for this Assignment as noted above). Don't forget
+to enable forwarding for the interfaces.
+
 #+begin_src sh
 $ t setup -n uno --legacy-ip
 $ t setup -n dos --legacy-ip
 $ t setup -n tres --legacy-ip
+
+$ sudo sysctl net.ipv4.conf.uno.forwarding=1
+$ sudo sysctl net.ipv4.conf.dos.forwarding=1
+$ sudo sysctl net.ipv4.conf.tres.forwarding=1
+
+$ sudo sysctl net.ipv6.conf.uno.forwarding=1
+$ sudo sysctl net.ipv6.conf.dos.forwarding=1
+$ sudo sysctl net.ipv6.conf.tres.forwarding=1
 
 $ sudo ./xdp_loader -d uno --progsec xdp_router --skb -F
 $ sudo ./xdp_loader -d dos --progsec xdp_router --skb -F
