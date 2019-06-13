@@ -38,26 +38,26 @@ static const struct option_wrapper long_options[] = {
 	{{"redirect-dev",         required_argument,	NULL, 'r' },
 	 "Redirect to device <ifname>", "<ifname>", true},
 
+	{{"src-mac", required_argument, NULL, 'L' },
+	 "Source MAC address of <dev>", "<mac>", true },
+
+	{{"dest-mac", required_argument, NULL, 'R' },
+	 "Destination MAC address of <redirect-dev>", "<mac>", true },
+
 	{{"quiet",       no_argument,		NULL, 'q' },
 	 "Quiet mode (no output)"},
 
 	{{0, 0, NULL,  0 }, NULL, false}
 };
 
-static void veth_inner_mac(const char *ifname, unsigned char mac[ETH_ALEN])
+static int parse_mac(char *str, unsigned char mac[ETH_ALEN])
 {
-	/* Assignment 3: put the MAC address of the ifname's veth peer device
-	 * to the mac array */
+	/* Assignment 3: parse a MAC address in this function and place the
+	 * result in the mac array */
 }
 
-static int write_iface_params(int map_fd, struct config *cfg)
+static int write_iface_params(int map_fd, unsigned char *src, unsigned char *dest)
 {
-	unsigned char src[ETH_ALEN];
-	unsigned char dest[ETH_ALEN];
-
-	veth_inner_mac(cfg->ifname, src);
-	veth_inner_mac(cfg->redirect_ifname, dest);
-
 	if (bpf_map_update_elem(map_fd, src, dest, 0) < 0) {
 		fprintf(stderr,
 			"WARN: Failed to update bpf map file: err(%d):%s\n",
@@ -86,6 +86,8 @@ int main(int argc, char **argv)
 	int map_fd;
 	bool redirect_map;
 	char pin_dir[PATH_MAX];
+	unsigned char src[ETH_ALEN];
+	unsigned char dest[ETH_ALEN];
 
 	struct config cfg = {
 		.ifindex   = -1,
@@ -109,6 +111,17 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
+	if (parse_mac(cfg.src_mac, src) < 0) {
+		fprintf(stderr, "ERR: can't parse mac address %s\n", cfg.src_mac);
+		return EXIT_FAIL_OPTION;
+	}
+
+	if (parse_mac(cfg.dest_mac, dest) < 0) {
+		fprintf(stderr, "ERR: can't parse mac address %s\n", cfg.dest_mac);
+		return EXIT_FAIL_OPTION;
+	}
+
+
 	/* Assignment 3: open the tx_port map corresponding to the cfg.ifname interface */
 	map_fd = -1;
 
@@ -124,7 +137,7 @@ int main(int argc, char **argv)
 		map_fd = -1;
 
 		/* Setup the mapping containing MAC addresses */
-		if (write_iface_params(map_fd, &cfg) < 0) {
+		if (write_iface_params(map_fd, src, dest) < 0) {
 			fprintf(stderr, "can't write iface params\n");
 			return 1;
 		}

@@ -38,57 +38,52 @@ static const struct option_wrapper long_options[] = {
 	{{"redirect-dev",         required_argument,	NULL, 'r' },
 	 "Redirect to device <ifname>", "<ifname>", true},
 
+	{{"src-mac", required_argument, NULL, 'L' },
+	 "Source MAC address of <dev>", "<mac>", true },
+
+	{{"dest-mac", required_argument, NULL, 'R' },
+	 "Destination MAC address of <redirect-dev>", "<mac>", true },
+
 	{{"quiet",       no_argument,		NULL, 'q' },
 	 "Quiet mode (no output)"},
 
 	{{0, 0, NULL,  0 }, NULL, false}
 };
 
-static void read_output(const char *cmd, char *str, size_t str_size)
+static int parse_u8(char *str, unsigned char *x)
 {
-	FILE *f = popen(cmd, "r");
-	if (!f) {
-		fprintf(stderr, "can't execute %s", cmd);
-		exit(EXIT_FAILURE);
-	}
+	unsigned long z;
 
-	if (fgets(str, str_size, f) == NULL) {
-		fprintf(stderr, "can't read from popen(%s)", cmd);
-		exit(EXIT_FAILURE);
-	}
+	z = strtoul(str, 0, 16);
+	if (z > 0xff)
+		return -1;
 
-	pclose(f);
+	if (x)
+		*x = z;
+
+	return 0;
 }
 
-static void parse_mac(char *str, unsigned char mac[ETH_ALEN])
+static int parse_mac(char *str, unsigned char mac[ETH_ALEN])
 {
-	mac[0] = strtoul(str,    0, 16);
-	mac[1] = strtoul(str+3,  0, 16);
-	mac[2] = strtoul(str+6,  0, 16);
-	mac[3] = strtoul(str+9,  0, 16);
-	mac[4] = strtoul(str+12, 0, 16);
-	mac[5] = strtoul(str+15, 0, 16);
+	if (parse_u8(str, &mac[0]) < 0)
+		return -1;
+	if (parse_u8(str + 3, &mac[1]) < 0)
+		return -1;
+	if (parse_u8(str + 6, &mac[2]) < 0)
+		return -1;
+	if (parse_u8(str + 9, &mac[3]) < 0)
+		return -1;
+	if (parse_u8(str + 12, &mac[4]) < 0)
+		return -1;
+	if (parse_u8(str + 15, &mac[5]) < 0)
+		return -1;
+
+	return 0;
 }
 
-static void veth_inner_mac(const char *ifname, unsigned char mac[ETH_ALEN])
+static int write_iface_params(int map_fd, unsigned char *src, unsigned char *dest)
 {
-	char str[64];
-	char cmd[128];
-	const char *fmt = "sudo ip netns exec %s cat /sys/class/net/veth0/address";
-
-	snprintf(cmd, sizeof(cmd), fmt, ifname);
-	read_output(cmd, str, sizeof(str));
-	parse_mac(str, mac);
-}
-
-static int write_iface_params(int map_fd, struct config *cfg)
-{
-	unsigned char src[ETH_ALEN];
-	unsigned char dest[ETH_ALEN];
-
-	veth_inner_mac(cfg->ifname, src);
-	veth_inner_mac(cfg->redirect_ifname, dest);
-
 	if (bpf_map_update_elem(map_fd, src, dest, 0) < 0) {
 		fprintf(stderr,
 			"WARN: Failed to update bpf map file: err(%d):%s\n",
@@ -138,6 +133,8 @@ int main(int argc, char **argv)
 	int map_fd;
 	bool redirect_map;
 	char pin_dir[PATH_MAX];
+	unsigned char src[ETH_ALEN];
+	unsigned char dest[ETH_ALEN];
 
 	struct config cfg = {
 		.ifindex   = -1,
@@ -158,6 +155,16 @@ int main(int argc, char **argv)
 	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, cfg.ifname);
 	if (len < 0) {
 		fprintf(stderr, "ERR: creating pin dirname\n");
+		return EXIT_FAIL_OPTION;
+	}
+
+	if (parse_mac(cfg.src_mac, src) < 0) {
+		fprintf(stderr, "ERR: can't parse mac address %s\n", cfg.src_mac);
+		return EXIT_FAIL_OPTION;
+	}
+
+	if (parse_mac(cfg.dest_mac, dest) < 0) {
+		fprintf(stderr, "ERR: can't parse mac address %s\n", cfg.dest_mac);
 		return EXIT_FAIL_OPTION;
 	}
 
@@ -182,7 +189,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Setup the mapping containing MAC addresses */
-		if (write_iface_params(map_fd, &cfg) < 0) {
+		if (write_iface_params(map_fd, src, dest) < 0) {
 			fprintf(stderr, "can't write iface params\n");
 			return 1;
 		}

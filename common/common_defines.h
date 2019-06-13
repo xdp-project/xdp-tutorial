@@ -12,6 +12,8 @@ struct config {
 	bool do_unload;
 	char filename[512];
 	char progsec[32];
+	char src_mac[18];
+	char dest_mac[18];
 };
 
 /* Defined in common_params.o */

@@ -91,7 +91,7 @@ void parse_cmdline_args(int argc, char **argv,
 	}
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:r:ASNFUq",
+	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFUq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
@@ -159,6 +159,14 @@ void parse_cmdline_args(int argc, char **argv,
 		case 'h':
 			full_help = true;
 			/* fall-through */
+		case 'L': /* --src-mac */
+			dest  = (char *)&cfg->src_mac;
+			strncpy(dest, optarg, sizeof(cfg->src_mac));
+			break;
+		case 'R': /* --dest-mac */
+			dest  = (char *)&cfg->dest_mac;
+			strncpy(dest, optarg, sizeof(cfg->dest_mac));
+			break;
 		error:
 		default:
 			usage(argv[0], doc, options_wrapper, full_help);

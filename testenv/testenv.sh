@@ -400,6 +400,23 @@ print_alias()
     echo "alias t='$sudo$scriptname'"
 }
 
+#
+# This command can be used to set maps for the assignment 3 of the
+# packet03-redirecting lesson. It takes two arguments: the source and the
+# destination interface names.
+#
+set_redirect_map()
+{
+    local src="$1"
+    local dest="$2"
+    local src_mac=$(ip netns exec $src cat /sys/class/net/veth0/address)
+    local dest_mac=$(ip netns exec $dest cat /sys/class/net/veth0/address)
+
+    # set bidirectional forwarding
+    ./xdp_prog_user -d $src -r $dest --src-mac $src_mac --dest-mac $dest_mac
+    ./xdp_prog_user -d $dest -r $src --src-mac $dest_mac --dest-mac $src_mac
+}
+
 xdp_load()
 {
     get_nsname && ensure_nsname
@@ -443,6 +460,7 @@ usage()
     echo "unload              Unload XDP program on outer interface"
     echo "tcpdump             Run on outer interface (or inner with --inner)"
     echo "stats               Run the XDP statistics program"
+    echo "set_redirect_map    Setup redirect maps for packet03 lessons"
     echo ""
 
     if [ -z "$FULL" ] ; then
@@ -551,6 +569,10 @@ case "$1" in
         ;;
     ping|tcpdump)
         CMD="run_$1"
+        ;;
+    set_redirect_map)
+        CMD="set_redirect_map $2 $3"
+        shift 2
         ;;
     "alias")
         print_alias

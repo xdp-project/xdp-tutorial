@@ -176,10 +176,12 @@ To test the code, configure environment as in the Assignment 2 and install the
 $ sudo ./xdp_loader -d left -F --progsec xdp_redirect_map --skb
 $ sudo ./xdp_loader -d right -F --progsec xdp_redirect_map --skb
 #+end_src
-Configure parameters for both interfaces using the new =xdp_prog_user= helper:
+Configure parameters for both interfaces using the new =xdp_prog_user= helper.
+For simplicity there is a new special helper, =t set_redirect_map=, which will
+do the work for you.  See its implementation to see how it obtains inner MAC
+addresses by interface names.
 #+begin_src sh
-$ sudo ./xdp_prog_user -d left -r right
-$ sudo ./xdp_prog_user -d right -r left
+$ t set_redirect_map right left
 #+end_src
 Pings between the two inner interfaces should pass now. Check that they are
 actually forwarded by our programs by running =xdp_stats= on both interfaces:
