@@ -28,12 +28,16 @@ interface it came from.  This functionality can be used to implement load
 balancers, to send simple ICMP replies, etc.  We will use this functionality in
 the Assignment 1 to implement a simple ICMP echo server.
 
-Note that in all our assignments below we are using the =skb= (i.e.,
-=xdpgeneric=) mode to load programs.  We are doing this because =veth= devices
-won't deliver redirected/retransmitted XDP frames unless there is an XDP
-program attached to the receiving side of the target =veth= interface. Physical
-hardware will likely behave the same. XDP maintainers are currently working on
-fixing this behaviour upstream.
+Note that in order to the transmit and/or redirect functionality to work, *all*
+involved devices should have an attached XDP program, including both veth
+peers.  We have to do this because =veth= devices won't deliver
+redirected/retransmitted XDP frames unless there is an XDP program attached to
+the receiving side of the target =veth= interface. Physical hardware will
+likely behave the same. XDP maintainers are currently working on fixing this
+behaviour upstream. See the
+[[https://www.netdevconf.org/0x13/session.html?talk-veth-xdp][Veth XDP: XDP for containers]]
+talk which describes the reasons behind this problem.  (The =xdpgeneric= mode
+may be used without this limitation.)
 
 ** Redirecting packets to other interfaces
 
@@ -82,10 +86,14 @@ only a small part of the packet is changing, the Incremental Internet Checksum
 checksum.
 
 To test the echo server create a new environment with both address families
-supported and load the XDP program:
+supported and load the XDP program. Note that we also need to load a dummy
+=xdp_pass= program for the peer device as well, as explained in the
+[[#sending-packets-back-to-the-interface-they-came-from][Sending packets back to the interface they came from]]
+section.
 #+begin_src sh
 $ t setup -n test --legacy-ip
-$ sudo ./xdp_loader -d test --skb -F --progsec xdp_icmp_echo
+$ t exec -n test -- ./xdp_loader -d veth0 -F --progsec xdp_pass
+$ t load -n test -- -F --progsec xdp_icmp_echo
 #+end_src
 Ping the host and use the =xdp_stat= program to check that the ICMP echo server
 actually returned =XDP_TX=. Repeat for both address families (you can pass
@@ -122,9 +130,13 @@ Env 1                         Env 2
     veth0 (MAC=X1)  <-----------  veth1 (MAC=Y1)
 #+end_src
 Setup the two environments, patch the =xdp_redirect= program accordingly, and
-attach it to the =right= interface.  To test load the program, enter the right
-environment, and ping the inner interface of the left environment (your IPv6
-address may be different):
+attach it to the =right= interface.  Don't forget to attach a dummy program to
+the left inner interface like this:
+#+begin_src sh
+$ t exec -n left -- ./xdp_loader -d veth0 -F --progsec xdp_pass
+#+end_src
+To test load the program, enter the right environment, and ping the inner
+interface of the left environment (your IPv6 address may be different):
 #+begin_src sh
 $ t enter -n right
 $ ping fc00:dead:cafe:10::2
@@ -173,8 +185,13 @@ the =xdp_prog_user.c= program.
 To test the code, configure environment as in the Assignment 2 and install the
 =xdp_redirect_map= program on both interfaces:
 #+begin_src sh
-$ sudo ./xdp_loader -d left -F --progsec xdp_redirect_map --skb
-$ sudo ./xdp_loader -d right -F --progsec xdp_redirect_map --skb
+$ t load -n left -- -F --progsec xdp_redirect_map
+$ t load -n right -- -F --progsec xdp_redirect_map
+#+end_src
+Don't forget about dummy programs for inner interfaces:
+#+begin_src sh
+$ t exec -n left -- ./xdp_loader -d veth0 -F --progsec xdp_pass
+$ t exec -n right -- ./xdp_loader -d veth0 -F --progsec xdp_pass
 #+end_src
 Configure parameters for both interfaces using the new =xdp_prog_user= helper.
 For simplicity there is a new special helper, =t set_redirect_map=, which will
@@ -258,17 +275,16 @@ $ t setup -n uno --legacy-ip
 $ t setup -n dos --legacy-ip
 $ t setup -n tres --legacy-ip
 
-$ sudo sysctl net.ipv4.conf.uno.forwarding=1
-$ sudo sysctl net.ipv4.conf.dos.forwarding=1
-$ sudo sysctl net.ipv4.conf.tres.forwarding=1
+$ sudo sysctl net.ipv4.conf.all.forwarding=1
+$ sudo sysctl net.ipv6.conf.all.forwarding=1
 
-$ sudo sysctl net.ipv6.conf.uno.forwarding=1
-$ sudo sysctl net.ipv6.conf.dos.forwarding=1
-$ sudo sysctl net.ipv6.conf.tres.forwarding=1
+$ t load -n uno -- -F --progsec xdp_router
+$ t load -n dos -- -F --progsec xdp_router
+$ t load -n tres -- -F --progsec xdp_router
 
-$ sudo ./xdp_loader -d uno --progsec xdp_router --skb -F
-$ sudo ./xdp_loader -d dos --progsec xdp_router --skb -F
-$ sudo ./xdp_loader -d tres --progsec xdp_router --skb -F
+$ t exec -n uno -- ./xdp_loader -d veth0 -F --progsec xdp_pass
+$ t exec -n dos -- ./xdp_loader -d veth0 -F --progsec xdp_pass
+$ t exec -n tres -- ./xdp_loader -d veth0 -F --progsec xdp_pass
 
 $ sudo ./xdp_prog_user -d uno
 $ sudo ./xdp_prog_user -d dos
