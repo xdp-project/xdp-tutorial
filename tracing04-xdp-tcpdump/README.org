@@ -100,7 +100,9 @@ PING fc00:dead:cafe:1::1(fc00:dead:cafe:1::1) 56 data bytes
 
 ** Assignment 2: The PCAP dump file
 
-Load the eBPF kernel packets dump program and store the packets to the dump file:
+Build the =xdp_sample_pkts_user= dump program; to do so you might have to
+install the =libpcap-dev= and the 32 bit libc dev packages.  Load the eBPF
+kernel packets dump program and store the packets to the dump file:
 
 #+begin_example sh
 $ sudo ./xdp_sample_pkts_user -d veth-basic02 -F
