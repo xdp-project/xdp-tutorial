@@ -6,11 +6,11 @@ In this lesson we will show how to print message from eBPF program
 into tracefs buffer.
 
 * Table of Contents                                                     :TOC:
-- [[#bpf-trace-printk][eBPF trace printk helper]]
-- [[#tracefs-pipe-reader][The tracefs pipe reader]]
+- [[#ebpf-trace-printk-helper][eBPF trace printk helper]]
+- [[#the-tracefs-pipe-reader][The tracefs pipe reader]]
 - [[#assignments][Assignments]]
   - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
-  - [[#assignment-2-bpf-trace-printk][Assignment 2: Run debug code]]
+  - [[#assignment-2-run-debug-code][Assignment 2: Run debug code]]
 
 
 * eBPF trace printk helper
@@ -90,7 +90,7 @@ Load XDP program from xdp_prog_kern.o that will print
 ethertnet header on every incoming packet:
 
 #+begin_example sh
-$ sudo ../basic02-prog-by-name/xdp_loader --dev veth-basic02 --force --progsec xdp
+$ sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp
 #+end_example
 
 and make some packets:
@@ -101,7 +101,7 @@ $ sudo ../testenv/testenv.sh enter --name veth-basic02
 PING fc00:dead:cafe:1::1(fc00:dead:cafe:1::1) 56 data bytes
 #+end_example
 
-- Assignment 2: Run debug code
+** Assignment 2: Run debug code
 
 #+begin_example sh
 bpf_printk("src: %llu, dst: %llu, proto: %u\n",
