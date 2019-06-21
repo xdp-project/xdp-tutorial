@@ -90,7 +90,7 @@ Load XDP program from xdp_prog_kern.o that will print
 ethertnet header on every incoming packet:
 
 #+begin_example sh
-$ sudo ../basic02-prog-by-name/xdp_loader --dev veth-basic02 --force --progsec xdp
+$ sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp
 #+end_example
 
 and make some packets:

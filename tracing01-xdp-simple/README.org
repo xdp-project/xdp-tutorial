@@ -171,7 +171,7 @@ $ sudo ../testenv/testenv.sh setup --name veth-basic02
 Load the XDP program, tak produces aborted packets:
 
 #+begin_example sh
-$ sudo ../basic02-prog-by-name/xdp_loader --dev veth-basic02 --force --progsec xdp_abort
+$ sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_abort
 #+end_example
 
 and make some packets:
