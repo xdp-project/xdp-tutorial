@@ -7,21 +7,20 @@ hooks on xdp:exception tracepoint and get its values to user space
 stats application.
 
 * Table of Contents                                                     :TOC:
-- [[#using-libbpf][XDP tracepoints]]
-  - [[#xdp-tracepoints][XDP tracepoints]]
+- [[#xdp-tracepoints][XDP tracepoints]]
   - [[#tracepoint-program-section][Tracepoint program section]]
   - [[#tracepoint-arguments][Tracepoint arguments]]
   - [[#tracepoint-attaching][Tracepoint attaching]]
   - [[#hash-map][HASH map]]
 - [[#assignments][Assignments]]
-  - [[#assignment-1][Assignment 1: Setting up your test lab]]
-  - [[#assignment-2][Assignment 2: Load tracepoint monitor program]]
+  - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
+  - [[#assignment-2-load-tracepoint-monitor-program][Assignment 2: Load tracepoint monitor program]]
 
 
 * XDP tracepoints
 
 The eBPF programs can be attached also to tracepoints. There are
-several tracepoints related to xdp:
+several tracepoints related to the xdp tracepoint subsystem:
 
 #+begin_example sh
 ls /sys/kernel/debug/tracing/events/xdp/
@@ -41,13 +40,11 @@ The bpf library expects the tracepoint eBPF program to be stored
 in a section with following name:
 
 #+begin_example sh
-tracepoint/sys/tracepoint
+tracepoint/<sys>/<tracepoint>
 #+end_example
 
-where 'sys' is the tracepoint subsystem and 'tracepoint' is
-the tracepoint name.
-
-which can be done with following construct:
+where =<sys>= is the tracepoint subsystem and =<tracepoint>= is
+the tracepoint name, which can be done with following construct:
 
 #+begin_example sh
 SEC("tracepoint/xdp/xdp_exception")

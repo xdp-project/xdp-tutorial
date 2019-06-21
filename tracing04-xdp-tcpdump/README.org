@@ -9,8 +9,8 @@ from XDP program all the way to the pcap dump file.
 * Table of Contents                                                     :TOC:
 - [[#dump-the-packet-sample][Dump the packet sample]]
 - [[#assignments][Assignments]]
-  - [[#assignment-1-setup][Assignment 1: Setting up your test lab]]
-  - [[#assignment-2-pcap-dump][Assignment 2: The PCAP dump file]]
+  - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
+  - [[#assignment-2-the-pcap-dump-file][Assignment 2: The PCAP dump file]]
 
 * Dump the packet sample
 

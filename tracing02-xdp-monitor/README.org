@@ -7,10 +7,9 @@ xdp related raw tracepoints and some related info to user space
 stat application.
 
 * Table of Contents                                                     :TOC:
-- [[#raw-tracepoint][RAW tracepoints]]
-  - [[#todo][TODO]]
+- [[#raw-tracepoints][RAW tracepoints]]
 - [[#assignments][Assignments]]
-  - [[#assignment-1][Assignment 1: Monitor all xdp tracepoints]]
+  - [[#assignment-1-monitor-all-xdp-tracepoints][Assignment 1: Monitor all xdp tracepoints]]
 
 * RAW tracepoints
 
@@ -22,10 +21,10 @@ The bpf library expects the raw tracepoint eBPF program to be stored
 in a section with following name:
 
 #+begin_example sh
-raw_tracepoint/tracepoint/sys/tracepoint
+raw_tracepoint/<sys>/<tracepoint>
 #+end_example
 
-where 'sys' is the tracepoint subsystem and 'tracepoint' is
+where =<sys>= is the tracepoint subsystem and =<tracepoint>= is
 the tracepoint name, which can be done with following construct:
 
 #+begin_example sh
@@ -34,7 +33,7 @@ int trace_xdp_exception(struct xdp_exception_ctx *ctx)
 #+end_example
 
 The libbpf library exports interface to load and attach raw tracepoint
-programs, following call will load every program in the cfg->filename
+programs, following call will load every program in the =cfg->filename=
 object as raw tracepoint programs:
 
 #+begin_example sh
