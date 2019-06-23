@@ -406,6 +406,23 @@ print_alias()
     echo "alias t='$sudo$scriptname'"
 }
 
+#
+# This command can be used to populate maps for the assignment 3 of the
+# packet03-redirecting lesson. It takes two arguments: the source and the
+# destination environment names.
+#
+populate_redirect_map()
+{
+    local src="$1"
+    local dest="$2"
+    local src_mac=$(ip netns exec $src cat /sys/class/net/veth0/address)
+    local dest_mac=$(ip netns exec $dest cat /sys/class/net/veth0/address)
+
+    # set bidirectional forwarding
+    ./xdp_prog_user -d $src -r $dest --src-mac $src_mac --dest-mac $dest_mac
+    ./xdp_prog_user -d $dest -r $src --src-mac $dest_mac --dest-mac $src_mac
+}
+
 xdp_load()
 {
     get_nsname && ensure_nsname
@@ -437,18 +454,19 @@ usage()
     echo "Usage: $0 [options] <command> [param]"
     echo ""
     echo "Commands:"
-    echo "setup               Setup and initialise new environment"
-    echo "teardown            Tear down existing environment"
-    echo "reset               Reset environment to original state"
-    echo "exec <command>      Exec <command> inside test environment"
-    echo "enter               Execute shell inside test environment"
-    echo "ping                Run ping inside test environment"
-    echo "alias               Print shell alias for easy access to this script"
-    echo "status (or st)      Show status of test environment"
-    echo "load                Load XDP program on outer interface"
-    echo "unload              Unload XDP program on outer interface"
-    echo "tcpdump             Run on outer interface (or inner with --inner)"
-    echo "stats               Run the XDP statistics program"
+    echo "setup                   Setup and initialise new environment"
+    echo "teardown                Tear down existing environment"
+    echo "reset                   Reset environment to original state"
+    echo "exec <command>          Exec <command> inside test environment"
+    echo "enter                   Execute shell inside test environment"
+    echo "ping                    Run ping inside test environment"
+    echo "alias                   Print shell alias for easy access to this script"
+    echo "status (or st)          Show status of test environment"
+    echo "load                    Load XDP program on outer interface"
+    echo "unload                  Unload XDP program on outer interface"
+    echo "tcpdump                 Run on outer interface (or inner with --inner)"
+    echo "stats                   Run the XDP statistics program"
+    echo "redirect <env1> <env2>  Setup redirects for packet03 lessons"
     echo ""
 
     if [ -z "$FULL" ] ; then
@@ -557,6 +575,9 @@ case "$1" in
         ;;
     ping|tcpdump)
         CMD="run_$1"
+        ;;
+    redirect)
+        CMD=populate_redirect_map
         ;;
     "alias")
         print_alias

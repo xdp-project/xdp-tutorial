@@ -1,0 +1,8 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Packet - solutions
+#+OPTIONS: ^:nil
+
+This directory contains solutions to all the assignments in the
+[[file:../packet01-parsing/][packet01]],
+[[file:../packet02-rewriting/][packet02]], and
+[[file:../packet03-redirecting/][packet03]] lessons.
