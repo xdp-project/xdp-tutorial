@@ -177,7 +177,7 @@ static __always_inline int ip_decrease_ttl(struct iphdr *iph)
 	return --iph->ttl;
 }
 
-/* Solution to packet03/assignment-4 */
+/* Assignment 4: Complete this router program */
 SEC("xdp_router")
 int xdp_router_func(struct xdp_md *ctx)
 {
