@@ -401,11 +401,11 @@ print_alias()
 }
 
 #
-# This command can be used to set maps for the assignment 3 of the
+# This command can be used to populate maps for the assignment 3 of the
 # packet03-redirecting lesson. It takes two arguments: the source and the
-# destination interface names.
+# destination environment names.
 #
-set_redirect_map()
+populate_redirect_map()
 {
     local src="$1"
     local dest="$2"
@@ -448,19 +448,19 @@ usage()
     echo "Usage: $0 [options] <command> [param]"
     echo ""
     echo "Commands:"
-    echo "setup               Setup and initialise new environment"
-    echo "teardown            Tear down existing environment"
-    echo "reset               Reset environment to original state"
-    echo "exec <command>      Exec <command> inside test environment"
-    echo "enter               Execute shell inside test environment"
-    echo "ping                Run ping inside test environment"
-    echo "alias               Print shell alias for easy access to this script"
-    echo "status (or st)      Show status of test environment"
-    echo "load                Load XDP program on outer interface"
-    echo "unload              Unload XDP program on outer interface"
-    echo "tcpdump             Run on outer interface (or inner with --inner)"
-    echo "stats               Run the XDP statistics program"
-    echo "set_redirect_map    Setup redirect maps for packet03 lessons"
+    echo "setup                   Setup and initialise new environment"
+    echo "teardown                Tear down existing environment"
+    echo "reset                   Reset environment to original state"
+    echo "exec <command>          Exec <command> inside test environment"
+    echo "enter                   Execute shell inside test environment"
+    echo "ping                    Run ping inside test environment"
+    echo "alias                   Print shell alias for easy access to this script"
+    echo "status (or st)          Show status of test environment"
+    echo "load                    Load XDP program on outer interface"
+    echo "unload                  Unload XDP program on outer interface"
+    echo "tcpdump                 Run on outer interface (or inner with --inner)"
+    echo "stats                   Run the XDP statistics program"
+    echo "redirect <env1> <env2>  Setup redirects for packet03 lessons"
     echo ""
 
     if [ -z "$FULL" ] ; then
@@ -570,9 +570,8 @@ case "$1" in
     ping|tcpdump)
         CMD="run_$1"
         ;;
-    set_redirect_map)
-        CMD="set_redirect_map $2 $3"
-        shift 2
+    redirect)
+        CMD=populate_redirect_map
         ;;
     "alias")
         print_alias
