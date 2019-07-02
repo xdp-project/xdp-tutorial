@@ -65,10 +65,23 @@ receiving raw-frames from a specific RX-queue id number. NICs will by
 default spread flows with RSS-hashing over all available RX-queues. Thus,
 traffic likely not hitting queue you expect.
 
-You *MUST* configure NIC *HW filters* to /steer to RX-queue id/. This can be
-configured by use of ethtool or TC HW offloading filter setup.
+In order to fix that problem, you *MUST* configure the NIC to steer flow to a specific RX-queue.
+This can be done via ethtool or TC HW offloading filter setup. 
 
-TODO: This lesson should contain some examples on howto use ethtool.
+The following example shows how to configure the NIC to steer all UDP ipv4 traffic
+to /RX-queue id/ 42: 
+
+#+begin_example sh
+ethtool -N <interface> flow-type udp4 action 42
+#+end_example
+
+The parameter /action/ specifies the id of the target /RX-queue/.
+
+In general, a flow rule is composed of a matching criteria and an action. 
+L2, L3 and L4 header values can be used to specify the matching criteria.
+For a comprehensive documentation, please check out the man page of ethtool. 
+It documents all available header values that can be used as part of the matching criteria. 
+
 
 Alternative work-arounds:
 1. Create as many AF_XDP sockets as RXQs, and have userspace poll()/select
