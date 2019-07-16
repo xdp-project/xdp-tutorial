@@ -20,9 +20,9 @@ programs.
 - [[#assignments][Assignments]]
   - [[#assignment-1-fix-the-bounds-checking-error][Assignment 1: Fix the bounds checking error]]
   - [[#assignment-2-parsing-the-ip-header][Assignment 2: Parsing the IP header]]
-  - [[#assignment-2-parsing-the-icmpv6-header-and-reacting-to-it][Assignment 2: Parsing the ICMPv6 header and reacting to it]]
-  - [[#assignment-3-adding-vlan-support][Assignment 3: Adding VLAN support]]
-  - [[#assignment-4-adding-ipv4-support][Assignment 4: Adding IPv4 support]]
+  - [[#assignment-3-parsing-the-icmpv6-header-and-reacting-to-it][Assignment 3: Parsing the ICMPv6 header and reacting to it]]
+  - [[#assignment-4-adding-vlan-support][Assignment 4: Adding VLAN support]]
+  - [[#assignment-5-adding-ipv4-support][Assignment 5: Adding IPv4 support]]
 
 * Setup notes
 
@@ -249,7 +249,7 @@ To check that your program works, test that it compiles and loads. You can
 also change the return code to drop IP packets, and check that this works
 using either =t tcpdump= or =t ping=.
 
-** Assignment 2: Parsing the ICMPv6 header and reacting to it
+** Assignment 3: Parsing the ICMPv6 header and reacting to it
 
 Now that we can successfully parse packets down to the IP header, we will
 need to add parsing of the payload that we are interested in. I.e., the
@@ -281,7 +281,7 @@ PING fc00:dead:cafe:1::1(fc00:dead:cafe:1::1) 56 data bytes
 rtt min/avg/max/mdev = 0.059/0.097/0.135/0.038 ms
 #+end_src
 
-** Assignment 3: Adding VLAN support
+** Assignment 4: Adding VLAN support
 
 Now that we have the basic functionality working, we can improve it to also
 correctly handle VLAN tags on the Ethernet packets, as an example of how to
@@ -364,7 +364,7 @@ devices, using ethtool:
 
 
 
-** Assignment 4: Adding IPv4 support
+** Assignment 5: Adding IPv4 support
 
 While we would obviously all like IPv6 to be ubiquitous everywhere,
 sometimes it is still necessary to handle legacy IPv4 packets. To this end,
