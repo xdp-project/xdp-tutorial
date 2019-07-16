@@ -26,6 +26,8 @@
 #include <linux/ipv6.h>
 #include <linux/icmp.h>
 #include <linux/icmpv6.h>
+#include <linux/udp.h>
+#include <linux/tcp.h>
 
 /* Header cursor to keep track of current parsing position */
 struct hdr_cursor {
@@ -183,6 +185,52 @@ static __always_inline int parse_icmphdr_common(struct hdr_cursor *nh,
 	*icmphdr = h;
 
 	return h->type;
+}
+
+/*
+ * parse_tcphdr: parse the udp header and return the length of the udp payload
+ */
+static __always_inline int parse_udphdr(struct hdr_cursor *nh,
+					void *data_end,
+					struct udphdr **udphdr)
+{
+	int len;
+	struct udphdr *h = nh->pos;
+
+	if (h + 1 > data_end)
+		return -1;
+
+	nh->pos  = h + 1;
+	*udphdr = h;
+
+	len = bpf_ntohs(h->len) - sizeof(struct udphdr);
+	if (len < 0)
+		return -1;
+
+	return len;
+}
+
+/*
+ * parse_tcphdr: parse and return the length of the tcp header
+ */
+static __always_inline int parse_tcphdr(struct hdr_cursor *nh,
+					void *data_end,
+					struct tcphdr **tcphdr)
+{
+	int len;
+	struct tcphdr *h = nh->pos;
+
+	if (h + 1 > data_end)
+		return -1;
+
+	len = h->doff * 4;
+	if ((void *) h + len > data_end)
+		return -1;
+
+	nh->pos  = h + 1;
+	*tcphdr = h;
+
+	return len;
 }
 
 #endif /* __PARSING_HELPERS_H */
