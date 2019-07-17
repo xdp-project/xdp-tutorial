@@ -6,3 +6,71 @@ This directory contains solutions to all the assignments in the
 [[file:../packet01-parsing/][packet01]],
 [[file:../packet02-rewriting/][packet02]], and
 [[file:../packet03-redirecting/][packet03]] lessons.
+
+* Table of Contents                                                     :TOC:
+- [[#solutions][Solutions]]
+  - [[#packet01-packet-parsing][Packet01: packet parsing]]
+  - [[#packet02-packet-rewriting][Packet02: packet rewriting]]
+  - [[#packet03-redirecting-packets][Packet03: redirecting packets]]
+
+* Solutions
+
+** Packet01: packet parsing
+
+*** Assignment 1: Fix the bounds checking error
+
+See the =parse_ethhdr= function from the [[file:../common/parsing_helpers.h][parsing_helpers.h]] file.
+
+*** Assignment 2: Parsing the IP header
+
+See the =parse_ip6hdr= function from the [[file:../common/parsing_helpers.h][parsing_helpers.h]] file.
+
+*** Assignment 3: Parsing the ICMPv6 header and reacting to it
+
+See the =parse_icmp6hdr= function from the [[file:../common/parsing_helpers.h][parsing_helpers.h]]
+file.  The sequence number should be accessed as =bpf_ntohs(icmp6h->icmp6_sequence)=
+as it is a 2-byte value in the network order.
+
+*** Assignment 4: Adding VLAN support
+
+See the =parse_ethhdr= function from the [[file:../common/parsing_helpers.h][parsing_helpers.h]] file.
+
+*** Assignment 5: Adding IPv4 support
+
+See the =parse_iphdr= and =parse_icmphdr= functions from the [[file:../common/parsing_helpers.h][parsing_helpers.h]] file.
+
+** Packet02: packet rewriting
+
+*** Assignment 1: Rewrite port numbers
+
+An example XDP program can be found in the =xdp_patch_ports= section in the [[file:xdp_prog_kern_02.c][xdp_prog_kern_02.c]] file. The program will decrease by one destination port number in any TCP or UDP packet.
+
+*** Assignment 2: Remove the outermost VLAN tag
+
+See the =vlan_tag_pop= function from the [[file:../common/rewrite_helpers.h][rewrite_helpers.h]] file.
+An example XDP program can be found in the =xdp_vlan_swap= section in the [[file:xdp_prog_kern_02.c][xdp_prog_kern_02.c]] file.
+
+*** Assignment 3: Add back a missing VLAN tag
+
+See the =vlan_tag_push= function from the [[file:../common/rewrite_helpers.h][rewrite_helpers.h]] file.
+An example XDP program can be found in the =xdp_vlan_swap= section in the [[file:xdp_prog_kern_02.c][xdp_prog_kern_02.c]] file.
+
+** Packet03: redirecting packets
+
+*** Assignment 1: Send packets back where they came from
+
+See the =xdp_icmp_echo= program in the [[file:xdp_prog_kern_03.c][xdp_prog_kern_03.c]] file.
+
+*** Assignment 2: Redirect packets between two interfaces
+
+See the =xdp_redirect= program in the [[file:xdp_prog_kern_03.c][xdp_prog_kern_03.c]] file.
+
+*** Assignment 3: Extend to a bidirectional router
+
+See the =xdp_redirect_map= program in the [[file:xdp_prog_kern_03.c][xdp_prog_kern_03.c]] file.
+Userspace part of the assignment is implemented in the [[file:xdp_prog_user.c][xdp_prog_user.c]] file.
+
+*** Assignment 4: Use the BPF helper for routing
+
+See the =xdp_router= program in the [[file:xdp_prog_kern_03.c][xdp_prog_kern_03.c]] file.
+Userspace part of the assignment is implemented in the [[file:xdp_prog_user.c][xdp_prog_user.c]] file.
