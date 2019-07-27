@@ -53,5 +53,15 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# The xdp_loader program
+# Userspace programs
 xdp_loader
+xdp_stats
+xdp_pass_user
+xdp_load_and_stats
+xdp_prog_user
+
+# tracing userspace programs
+trace_load_and_stats
+trace_load_and_stats
+trace_read
+xdp_sample_pkts_user

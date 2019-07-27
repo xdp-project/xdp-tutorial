@@ -26,6 +26,8 @@
 #include <linux/ipv6.h>
 #include <linux/icmp.h>
 #include <linux/icmpv6.h>
+#include <linux/udp.h>
+#include <linux/tcp.h>
 
 /* Header cursor to keep track of current parsing position */
 struct hdr_cursor {
@@ -185,77 +187,50 @@ static __always_inline int parse_icmphdr_common(struct hdr_cursor *nh,
 	return h->type;
 }
 
-static __always_inline struct ethhdr *get_ethhdr(struct hdr_cursor *nh,
-						 void *data_end)
+/*
+ * parse_tcphdr: parse the udp header and return the length of the udp payload
+ */
+static __always_inline int parse_udphdr(struct hdr_cursor *nh,
+					void *data_end,
+					struct udphdr **udphdr)
 {
-	struct ethhdr *eth = nh->pos;
-	int hdrsize = sizeof(*eth);
+	int len;
+	struct udphdr *h = nh->pos;
 
-	/* Byte-count bounds check; check if current pointer + size of header
-	 * is after data_end.
-	 */
-	if (nh->pos + hdrsize > data_end)
-		return NULL;
+	if (h + 1 > data_end)
+		return -1;
 
-	nh->pos += hdrsize;
-	return eth;
+	nh->pos  = h + 1;
+	*udphdr = h;
+
+	len = bpf_ntohs(h->len) - sizeof(struct udphdr);
+	if (len < 0)
+		return -1;
+
+	return len;
 }
 
-static __always_inline struct ipv6hdr *get_ip6hdr(struct ethhdr *eth,
-                                                  struct hdr_cursor *nh,
-                                                  void *data_end)
+/*
+ * parse_tcphdr: parse and return the length of the tcp header
+ */
+static __always_inline int parse_tcphdr(struct hdr_cursor *nh,
+					void *data_end,
+					struct tcphdr **tcphdr)
 {
-        struct vlan_hdr *vlh = nh->pos;
-        __u16 h_proto = eth->h_proto;
-	struct ipv6hdr *ip6h;
-        int i;
+	int len;
+	struct tcphdr *h = nh->pos;
 
-        /* Use loop unrolling to avoid the verifier restriction on loops;
-         * support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
-         */
-        #pragma unroll
-        for (i = 0; i < VLAN_MAX_DEPTH; i++) {
-                if (!(h_proto == bpf_htons(ETH_P_8021Q) ||
-                      h_proto == bpf_htons(ETH_P_8021AD)))
-                        break;
+	if (h + 1 > data_end)
+		return -1;
 
-                if (vlh + 1 > data_end)
-                        return NULL;
+	len = h->doff * 4;
+	if ((void *) h + len > data_end)
+		return -1;
 
-                h_proto = vlh->h_vlan_encapsulated_proto;
-                vlh++;
-        }
+	nh->pos  = h + 1;
+	*tcphdr = h;
 
-        ip6h = (void *)vlh;
-
-	if (h_proto != bpf_htons(ETH_P_IPV6))
-		return NULL;
-
-	/* Pointer-arithmetic bounds check; pointer +1 points to after end of
-	 * thing being pointed to. We will be using this style in the remainder
-	 * of the tutorial.
-	 */
-	if (ip6h + 1 > data_end)
-		return NULL;
-
-	nh->pos = ip6h + 1;
-	return ip6h;
-}
-
-static __always_inline struct icmp6hdr *get_icmp6hdr(struct ipv6hdr *ip6h,
-                                                     struct hdr_cursor *nh,
-                                                     void *data_end)
-{
-	struct icmp6hdr *icmp6h = nh->pos;
-
-	if (ip6h->nexthdr != IPPROTO_ICMPV6)
-		return NULL;
-
-	if (icmp6h + 1 > data_end)
-		return NULL;
-
-	nh->pos = icmp6h + 1;
-	return icmp6h;
+	return len;
 }
 
 #endif /* __PARSING_HELPERS_H */

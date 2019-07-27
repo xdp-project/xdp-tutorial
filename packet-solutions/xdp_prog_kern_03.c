@@ -30,33 +30,6 @@ struct bpf_map_def SEC("maps") redirect_params = {
 	.max_entries = 1,
 };
 
-/* Solution to the assignments in lesson packet02: Will pop outermost VLAN tag
- * if it exists, otherwise push a new one with ID 1
- */
-SEC("xdp_vlan_swap")
-int xdp_vlan_swap_func(struct xdp_md *ctx)
-{
-	void *data_end = (void *)(long)ctx->data_end;
-	void *data = (void *)(long)ctx->data;
-
-        /* These keep track of the next header type and iterator pointer */
-	struct hdr_cursor nh;
-	int nh_type;
-        nh.pos = data;
-
-	struct ethhdr *eth;
-	nh_type = parse_ethhdr(&nh, data_end, &eth);
-        if (nh_type < 0)
-                return XDP_PASS;
-
-        if (proto_is_vlan(eth->h_proto))
-                vlan_tag_pop(ctx, eth);
-        else
-                vlan_tag_push(ctx, eth, 1);
-
-        return XDP_PASS;
-}
-
 static __always_inline __u16 csum_fold_helper(__u32 csum)
 {
 	return ~((csum & 0xffff) + (csum >> 16));
@@ -172,7 +145,7 @@ out:
 	return xdp_stats_record_action(ctx, action);
 }
 
-/* Assignment 2 */
+/* Solution to packet03/assignment-2 */
 SEC("xdp_redirect")
 int xdp_redirect_func(struct xdp_md *ctx)
 {
@@ -201,7 +174,7 @@ out:
 	return xdp_stats_record_action(ctx, action);
 }
 
-/* Assignment 3 */
+/* Solution to packet03/assignment-3 */
 SEC("xdp_redirect_map")
 int xdp_redirect_map_func(struct xdp_md *ctx)
 {

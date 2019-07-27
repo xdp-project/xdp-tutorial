@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
 
-XDP_TARGETS  := xdp_prog_kern
+XDP_TARGETS  := xdp_prog_kern_02 xdp_prog_kern_03
 USER_TARGETS := xdp_prog_user
 
 LIBBPF_DIR = ../libbpf/src/
