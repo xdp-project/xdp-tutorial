@@ -200,23 +200,9 @@ const char *action2str(__u32 action)
         return NULL;
 }
 
-int check_map_fd_info(int map_fd, struct bpf_map_info *info,
-		      struct bpf_map_info *exp)
+int check_map_fd_info(const struct bpf_map_info *info,
+		      const struct bpf_map_info *exp)
 {
-	__u32 info_len = sizeof(*info);
-	int err;
-
-	if (map_fd < 0)
-		return EXIT_FAIL;
-
-        /* BPF-info via bpf-syscall */
-	err = bpf_obj_get_info_by_fd(map_fd, info, &info_len);
-	if (err) {
-		fprintf(stderr, "ERR: %s() can't get info - %s\n",
-			__func__,  strerror(errno));
-		return EXIT_FAIL_BPF;
-	}
-
 	if (exp->key_size && exp->key_size != info->key_size) {
 		fprintf(stderr, "ERR: %s() "
 			"Map key size(%d) mismatch expected size(%d)\n",
@@ -243,4 +229,41 @@ int check_map_fd_info(int map_fd, struct bpf_map_info *info,
 	}
 
 	return 0;
+}
+
+int open_bpf_map_file(const char *pin_dir,
+		      const char *mapname,
+		      struct bpf_map_info *info)
+{
+	char filename[PATH_MAX];
+	int err, len, fd;
+	__u32 info_len = sizeof(*info);
+
+	len = snprintf(filename, PATH_MAX, "%s/%s", pin_dir, mapname);
+	if (len < 0) {
+		fprintf(stderr, "ERR: constructing full mapname path\n");
+		return -1;
+	}
+
+	/* Lesson#1: There is only a weak dependency to libbpf here as
+	 * bpf_obj_get is a simple wrapper around the bpf-syscall
+	 */
+	fd = bpf_obj_get(filename);
+	if (fd < 0) {
+		fprintf(stderr,
+			"WARN: Failed to open bpf map file:%s err(%d):%s\n",
+			filename, errno, strerror(errno));
+		return fd;
+	}
+
+	if (info) {
+		err = bpf_obj_get_info_by_fd(fd, info, &info_len);
+		if (err) {
+			fprintf(stderr, "ERR: %s() can't get info - %s\n",
+				__func__,  strerror(errno));
+			return EXIT_FAIL_BPF;
+		}
+	}
+
+	return fd;
 }

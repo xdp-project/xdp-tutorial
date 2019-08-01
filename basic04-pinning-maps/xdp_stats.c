@@ -214,30 +214,6 @@ static void stats_poll(int map_fd, __u32 map_type, int interval)
 #define PATH_MAX	4096
 #endif
 
-int open_bpf_map_file(const char *pin_dir, const char *mapname)
-{
-	char filename[PATH_MAX];
-	int len, fd;
-
-	len = snprintf(filename, PATH_MAX, "%s/%s", pin_dir, mapname);
-	if (len < 0) {
-		fprintf(stderr, "ERR: constructing full mapname path\n");
-		return -1;
-	}
-
-	/* Lesson#1: There is only a weak dependency to libbpf here as
-	 * bpf_obj_get is a simple wrapper around the bpf-syscall
-	 */
-	fd = bpf_obj_get(filename);
-	if (fd < 0) {
-		fprintf(stderr,
-			"WARN: Failed to open bpf map file:%s err(%d):%s\n",
-			filename, errno, strerror(errno));
-		return fd;
-	}
-	return fd;
-}
-
 const char *pin_basedir =  "/sys/fs/bpf";
 
 int main(int argc, char **argv)
@@ -271,7 +247,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
-	stats_map_fd = open_bpf_map_file(pin_dir, "xdp_stats_map");
+	stats_map_fd = open_bpf_map_file(pin_dir, "xdp_stats_map", &info);
 	if (stats_map_fd < 0) {
 		return EXIT_FAIL_BPF;
 	}
@@ -280,7 +256,7 @@ int main(int argc, char **argv)
 	map_expect.key_size    = sizeof(__u32);
 	map_expect.value_size  = sizeof(struct datarec);
 	map_expect.max_entries = XDP_ACTION_MAX;
-	err = check_map_fd_info(stats_map_fd, &info, &map_expect);
+	err = check_map_fd_info(&info, &map_expect);
 	if (err) {
 		fprintf(stderr, "ERR: map via FD not compatible\n");
 		return err;
