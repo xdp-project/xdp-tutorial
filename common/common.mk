@@ -23,7 +23,7 @@ USER_OBJ := ${USER_C:.c=.o}
 COMMON_DIR ?= ../common/
 
 COPY_LOADER ?=
-LOADER_DIR ?= $(COMMON_DIR)/../basic04-pinning-maps
+LOADER_DIR ?= $(COMMON_DIR)/../basic-solutions
 
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
