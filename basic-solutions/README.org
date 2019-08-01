@@ -67,4 +67,4 @@ See the [[file:xdp_stats.c][xdp_stats.c]] program in this directory.
 
 *** Assignment 2: (xdp_loader.c) reuse pinned map
 
-TBD
+See the [[file:xdp_loader.c][xdp_loader.c]] program in this directory.
