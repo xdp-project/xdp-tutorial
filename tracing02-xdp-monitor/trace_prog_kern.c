@@ -19,18 +19,18 @@ struct bpf_map_def SEC("maps") exception_cnt = {
 };
 
 /* Tracepoint format: /sys/kernel/debug/tracing/events/xdp/xdp_redirect/format
+ * Notice: For raw_tracepoints first 8 bytes are not part of 'format' struct
  * Code in:                kernel/include/trace/events/xdp.h
  */
 struct xdp_redirect_ctx {
-	__u64 __pad;		// First 8 bytes are not accessible by bpf code
-	int prog_id;		//	offset:8;  size:4; signed:1;
-	__u32 act;		//	offset:12  size:4; signed:0;
-	int ifindex;		//	offset:16  size:4; signed:1;
-	int err;		//	offset:20  size:4; signed:1;
-	int to_ifindex;		//	offset:24  size:4; signed:1;
-	__u32 map_id;		//	offset:28  size:4; signed:0;
-	int map_index;		//	offset:32  size:4; signed:1;
-};				//	offset:36
+	int prog_id;		//	offset: 0; size:4; signed:1;
+	__u32 act;		//	offset: 4  size:4; signed:0;
+	int ifindex;		//	offset: 8  size:4; signed:1;
+	int err;		//	offset:12  size:4; signed:1;
+	int to_ifindex; 	//	offset:16  size:4; signed:1;
+	__u32 map_id;		//	offset:20  size:4; signed:0;
+	int map_index;		//	offset:24  size:4; signed:1;
+};				//	offset:28
 
 enum {
 	XDP_REDIRECT_SUCCESS = 0,
@@ -88,13 +88,13 @@ int trace_xdp_redirect_map(struct xdp_redirect_ctx *ctx)
 }
 
 /* Tracepoint format: /sys/kernel/debug/tracing/events/xdp/xdp_exception/format
+ * Notice: For raw_tracepoints first 8 bytes are not part of 'format' struct
  * Code in:                kernel/include/trace/events/xdp.h
  */
 struct xdp_exception_ctx {
-	__u64 __pad;	// First 8 bytes are not accessible by bpf code
-	int prog_id;	//	offset:8;  size:4; signed:1;
-	__u32 act;	//	offset:12; size:4; signed:0;
-	int ifindex;	//	offset:16; size:4; signed:1;
+	int prog_id;	//	offset:0; size:4; signed:1;
+	__u32 act;	//	offset:4; size:4; signed:0;
+	int ifindex;	//	offset:8; size:4; signed:1;
 };
 
 SEC("raw_tracepoint/xdp/xdp_exception")
@@ -139,16 +139,16 @@ struct bpf_map_def SEC("maps") cpumap_kthread_cnt = {
 };
 
 /* Tracepoint: /sys/kernel/debug/tracing/events/xdp/xdp_cpumap_enqueue/format
+ * Notice: For raw_tracepoints first 8 bytes are not part of 'format' struct
  * Code in:         kernel/include/trace/events/xdp.h
  */
 struct cpumap_enqueue_ctx {
-	__u64 __pad;		// First 8 bytes are not accessible by bpf code
-	int map_id;		//	offset:8;  size:4; signed:1;
-	__u32 act;		//	offset:12; size:4; signed:0;
-	int cpu;		//	offset:16; size:4; signed:1;
-	unsigned int drops;	//	offset:20; size:4; signed:0;
-	unsigned int processed;	//	offset:24; size:4; signed:0;
-	int to_cpu;		//	offset:28; size:4; signed:1;
+	int map_id;		//	offset: 0; size:4; signed:1;
+	__u32 act;		//	offset: 4; size:4; signed:0;
+	int cpu;		//	offset: 8; size:4; signed:1;
+	unsigned int drops;	//	offset:12; size:4; signed:0;
+	unsigned int processed; //	offset:16; size:4; signed:0;
+	int to_cpu;		//	offset:20; size:4; signed:1;
 };
 
 SEC("raw_tracepoint/xdp/xdp_cpumap_enqueue")
@@ -174,16 +174,16 @@ int trace_xdp_cpumap_enqueue(struct cpumap_enqueue_ctx *ctx)
 }
 
 /* Tracepoint: /sys/kernel/debug/tracing/events/xdp/xdp_cpumap_kthread/format
+ * Notice: For raw_tracepoints first 8 bytes are not part of 'format' struct
  * Code in:         kernel/include/trace/events/xdp.h
  */
 struct cpumap_kthread_ctx {
-	__u64 __pad;		// First 8 bytes are not accessible by bpf code
-	int map_id;		//	offset:8;  size:4; signed:1;
-	__u32 act;		//	offset:12; size:4; signed:0;
-	int cpu;		//	offset:16; size:4; signed:1;
-	unsigned int drops;	//	offset:20; size:4; signed:0;
-	unsigned int processed;	//	offset:24; size:4; signed:0;
-	int sched;		//	offset:28; size:4; signed:1;
+	int map_id;		//	offset: 0; size:4; signed:1;
+	__u32 act;		//	offset: 4; size:4; signed:0;
+	int cpu;		//	offset: 8; size:4; signed:1;
+	unsigned int drops;	//	offset:12; size:4; signed:0;
+	unsigned int processed; //	offset:16; size:4; signed:0;
+	int sched;		//	offset:20; size:4; signed:1;
 };
 
 SEC("raw_tracepoint/xdp/xdp_cpumap_kthread")
@@ -214,18 +214,18 @@ struct bpf_map_def SEC("maps") devmap_xmit_cnt = {
 BPF_ANNOTATE_KV_PAIR(devmap_xmit_cnt, int, struct datarec);
 
 /* Tracepoint: /sys/kernel/debug/tracing/events/xdp/xdp_devmap_xmit/format
+ * Notice: For raw_tracepoints first 8 bytes are not part of 'format' struct
  * Code in:         kernel/include/trace/events/xdp.h
  */
 struct devmap_xmit_ctx {
-	__u64 __pad;		// First 8 bytes are not accessible by bpf code
-	int map_id;		//	offset:8;  size:4; signed:1;
-	__u32 act;		//	offset:12; size:4; signed:0;
-	__u32 map_index;		//	offset:16; size:4; signed:0;
-	int drops;		//	offset:20; size:4; signed:1;
-	int sent;		//	offset:24; size:4; signed:1;
-	int from_ifindex;	//	offset:28; size:4; signed:1;
-	int to_ifindex;		//	offset:32; size:4; signed:1;
-	int err;		//	offset:36; size:4; signed:1;
+	int map_id;		//	offset: 0; size:4; signed:1;
+	__u32 act;		//	offset: 4; size:4; signed:0;
+	__u32 map_index;	//	offset: 8; size:4; signed:0;
+	int drops;		//	offset:12; size:4; signed:1;
+	int sent;		//	offset:16; size:4; signed:1;
+	int from_ifindex;	//	offset:20; size:4; signed:1;
+	int to_ifindex;	//	offset:24; size:4; signed:1;
+	int err;		//	offset:28; size:4; signed:1;
 };
 
 SEC("raw_tracepoint/xdp/xdp_devmap_xmit")
