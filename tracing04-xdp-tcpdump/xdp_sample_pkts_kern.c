@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
 #include <linux/bpf.h>
-#include <string.h>
 #include "bpf_helpers.h"
 
 #define SAMPLE_SIZE 1024ul
