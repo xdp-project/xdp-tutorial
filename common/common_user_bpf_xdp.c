@@ -359,9 +359,6 @@ int open_bpf_map_file(const char *pin_dir,
 		return -1;
 	}
 
-	/* Lesson#1: There is only a weak dependency to libbpf here as
-	 * bpf_obj_get is a simple wrapper around the bpf-syscall
-	 */
 	fd = bpf_obj_get(filename);
 	if (fd < 0) {
 		fprintf(stderr,
