@@ -54,6 +54,8 @@ static int parse_mac(char *str, unsigned char mac[ETH_ALEN])
 {
 	/* Assignment 3: parse a MAC address in this function and place the
 	 * result in the mac array */
+
+	return 0;
 }
 
 static int write_iface_params(int map_fd, unsigned char *src, unsigned char *dest)

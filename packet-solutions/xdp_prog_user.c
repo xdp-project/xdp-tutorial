@@ -103,27 +103,6 @@ static int write_iface_params(int map_fd, unsigned char *src, unsigned char *des
 #define PATH_MAX 4096
 #endif
 
-int open_bpf_map_file(const char *pin_dir, const char *mapname)
-{
-	char filename[PATH_MAX];
-	int len, fd;
-
-	len = snprintf(filename, PATH_MAX, "%s/%s", pin_dir, mapname);
-	if (len < 0) {
-		fprintf(stderr, "ERR: constructing full mapname path\n");
-		return -1;
-	}
-
-	fd = bpf_obj_get(filename);
-	if (fd < 0) {
-		fprintf(stderr,
-			"WARN: Failed to open bpf map file:%s err(%d):%s\n",
-			filename, errno, strerror(errno));
-		return fd;
-	}
-	return fd;
-}
-
 const char *pin_basedir =  "/sys/fs/bpf";
 
 int main(int argc, char **argv)
@@ -169,7 +148,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Open the tx_port map corresponding to the cfg.ifname interface */
-	map_fd = open_bpf_map_file(pin_dir, "tx_port");
+	map_fd = open_bpf_map_file(pin_dir, "tx_port", NULL);
 	if (map_fd < 0) {
 		return EXIT_FAIL_BPF;
 	}
@@ -183,7 +162,7 @@ int main(int argc, char **argv)
 		printf("redirect from ifnum=%d to ifnum=%d\n", cfg.ifindex, cfg.redirect_ifindex);
 
 		/* Open the redirect_params map */
-		map_fd = open_bpf_map_file(pin_dir, "redirect_params");
+		map_fd = open_bpf_map_file(pin_dir, "redirect_params", NULL);
 		if (map_fd < 0) {
 			return EXIT_FAIL_BPF;
 		}

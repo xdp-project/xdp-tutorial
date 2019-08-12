@@ -91,7 +91,7 @@ void parse_cmdline_args(int argc, char **argv,
 	}
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFUq",
+	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFUMq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
@@ -141,6 +141,9 @@ void parse_cmdline_args(int argc, char **argv,
 			break;
 		case 'F':
 			cfg->xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
+			break;
+		case 'M':
+			cfg->reuse_maps = true;
 			break;
 		case 'U':
 			cfg->do_unload = true;

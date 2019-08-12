@@ -1,0 +1,70 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Packet - solutions
+#+OPTIONS: ^:nil
+
+This directory contains solutions to all the assignments in the
+[[file:../basic01-xdp-pass/][basic01]],
+[[file:../basic02-prog-by-name/][basic02]],
+[[file:../basic03-map-counter/][basic03]], and
+[[file:../basic04-pinning-maps/][basic04]] lessons.
+
+* Table of Contents                                                     :TOC:
+- [[#solutions][Solutions]]
+  - [[#basic01-loading-your-first-bpf-program][Basic01: loading your first BPF program]]
+  - [[#basic02-loading-a-program-by-name][Basic02: loading a program by name]]
+  - [[#basic03-counting-with-bpf-maps][Basic03: counting with BPF maps]]
+  - [[#basic04-pinning-of-maps][Basic04: pinning of maps]]
+
+* Solutions
+
+** Basic01: loading your first BPF program
+
+This lesson doesn't contain any assignments except to repeat the steps listed
+in the lesson readme file.
+
+** Basic02: loading a program by name
+
+*** Assignment 1: Setting up your test lab
+
+No code is needed, just repeat the steps listed in the assignment description.
+
+*** Assignment 2: Add xdp_abort program
+
+Just add the following section to the
+[[file:../basic02-prog-by-name/xdp_prog_kern.c][xdp_prog_kern.c]] program and
+follow the steps listed in the assignment description:
+#+begin_example c
+SEC("xdp_abort")
+int  xdp_abort_func(struct xdp_md *ctx)
+{
+    return XDP_ABORTED;
+}
+#+end_example
+
+** Basic03: counting with BPF maps
+
+The solutions to all three assignments can be found in the following files:
+
+ * The [[file:../basic04-pinning-maps/common_kern_user.h][common_kern_user.h]] file contains the new structure =datarec= definition.
+ * The [[file:../basic04-pinning-maps/xdp_prog_kern.c][xdp_prog_kern.c]] file contains the new =xdp_stats_map= map definition and the updated =xdp_stats_record_action= function.
+
+Note that for use in later lessons/assignments the code was moved to the following files:
+[[file:../common/xdp_stats_kern_user.h][xdp_stats_kern_user.h]] and
+[[file:../common/xdp_stats_kern.h][xdp_stats_kern.h]]. So in order to use the
+=xdp_stats_record_action= function in later XDP programs, just include the
+following header files:
+#+begin_example c
+#include "../common/xdp_stats_kern_user.h"
+#include "../common/xdp_stats_kern.h"
+#+end_example
+For a user-space application, only the former header is needed.
+
+** Basic04: pinning of maps
+
+*** Assignment 1: (xdp_stats.c) reload map file-descriptor
+
+See the [[file:xdp_stats.c][xdp_stats.c]] program in this directory.
+
+*** Assignment 2: (xdp_loader.c) reuse pinned map
+
+See the [[file:xdp_loader.c][xdp_loader.c]] program in this directory.
