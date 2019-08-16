@@ -66,10 +66,10 @@ default spread flows with RSS-hashing over all available RX-queues. Thus,
 traffic likely not hitting queue you expect.
 
 In order to fix that problem, you *MUST* configure the NIC to steer flow to a specific RX-queue.
-This can be done via ethtool or TC HW offloading filter setup. 
+This can be done via ethtool or TC HW offloading filter setup.
 
 The following example shows how to configure the NIC to steer all UDP ipv4 traffic
-to /RX-queue id/ 42: 
+to /RX-queue id/ 42:
 
 #+begin_example sh
 ethtool -N <interface> flow-type udp4 action 42
@@ -77,10 +77,10 @@ ethtool -N <interface> flow-type udp4 action 42
 
 The parameter /action/ specifies the id of the target /RX-queue/.
 
-In general, a flow rule is composed of a matching criteria and an action. 
+In general, a flow rule is composed of a matching criteria and an action.
 L2, L3 and L4 header values can be used to specify the matching criteria.
-For a comprehensive documentation, please check out the man page of ethtool. 
-It documents all available header values that can be used as part of the matching criteria. 
+For a comprehensive documentation, please check out the man page of ethtool.
+It documents all available header values that can be used as part of the matching criteria.
 
 
 Alternative work-arounds:
@@ -108,17 +108,85 @@ XDP_REDIRECT and XDP_PASS, then "copy-mode" can be relevant. As in
 "zero-copy" mode doing XDP_PASS have a fairly high cost, which involves
 allocating memory and copying over the frame.
 
-* Missing elements
+* Assignments
+The end goal of this lesson is to build an AF_XDP program that will send
+packets to userspace and if they are IPv6 ping packets reply.
 
-*Lesson incomplete*
+We will do using the automatically installed XDP program, but one of the
+assignments it to implement this manually.
 
-This lesson is missing some assignments, but first we need to provide an
-AF_XDP sample program. The sample should use the libbpf API for AF_XDP
-sockets. It also need to include an actual XDP bpf program that is more
-robust, and demonstrate how to read the RXQ-info about the RX-queue number,
-and only redirect if the RX-queue id match, and maybe give stats on redirect
-vs. XDP_PASS (not matching RX-queue id) packets.
+** Assignment 1: Run the example program to eat all packets
+First, you need to set up the test lab environment and start an infinite
+ping. You do this by running the following:
+#+begin_example sh
+$ eval $(../testenv/testenv.sh alias)
+$ t setup --name veth-adv03
+$ t ping
+#+end_example
 
-Note: One of the reasons for providing a BPF C-code example is that the
-kernel removed =samples/bpf/xdpsock_kern.c=, when libbpf was extended with
-static BPF-instructions for AF_XDP redirect.
+Now you can start the af_xdp_user application and see all the pings being
+eaten by it:
+
+#+begin_example sh
+$ sudo ./af_xdp_user -d veth-adv03
+[sudo] password for echaudro:
+AF_XDP RX:             2 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000185
+       TX:             0 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000185
+
+AF_XDP RX:             4 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000152
+       TX:             0 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000152
+#+end_example
+
+** Assignment 2: Write an XDP program to process every other packet
+For this exercise, you need to write an eBPF program that will count the
+packets received, and use this value to determine if the packet needs to be
+sent down the AF_XDP socket. We want every other packet to be sent to the
+AF_XDP socket.
+
+This should result in every other ping packet being replied too. Here is the
+expected output from the ping command, notice the icmp_seq numbers:
+#+begin_example sh
+$ t ping
+Running ping from inside test environment:
+
+PING fc00:dead:cafe:1::1(fc00:dead:cafe:1::1) 56 data bytes
+64 bytes from fc00:dead:cafe:1::1: icmp_seq=2 ttl=64 time=0.038 ms
+64 bytes from fc00:dead:cafe:1::1: icmp_seq=4 ttl=64 time=0.047 ms
+64 bytes from fc00:dead:cafe:1::1: icmp_seq=6 ttl=64 time=0.062 ms
+64 bytes from fc00:dead:cafe:1::1: icmp_seq=8 ttl=64 time=0.083 ms
+#+end_example
+
+If you have your custom program ready you can bind it using the --filename
+option:
+
+#+begin_example sh
+$ sudo ./af_xdp_user -d veth-adv03 --filename af_xdp_kern.o
+AF_XDP RX:             1 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000171
+       TX:             0 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000171
+
+AF_XDP RX:             2 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000133
+       TX:             0 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000133
+#+end_example
+
+Note that the full solution is included in the af_xdp_kern.c file.
+
+
+** Assignment 3: Write an userspace program to reply to IPv6 ping packets
+For the final exercise, you need to write some userspace code that will
+reply to the ping packets. This needs be done inside the process_packet()
+function.
+
+Once you have done this all pings should receive a reply:
+#+begin_example sh
+$ sudo ./af_xdp_user -d veth-adv03
+AF_XDP RX:             2 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000175
+       TX:             2 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000175
+
+AF_XDP RX:             4 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000146
+       TX:             4 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000146
+
+AF_XDP RX:             6 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000118
+       TX:             6 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000118
+#+end_example
+
+Note that the full solution is present in the ad_xdp_user.c file.

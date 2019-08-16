@@ -8,6 +8,7 @@
 
 #include <net/if.h>
 #include <linux/if_link.h> /* XDP_FLAGS_* depend on kernel-headers installed */
+#include <linux/if_xdp.h>
 
 #include "common_params.h"
 
@@ -91,7 +92,7 @@ void parse_cmdline_args(int argc, char **argv,
 	}
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFUMq",
+	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFUMQ:czpq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
@@ -130,6 +131,8 @@ void parse_cmdline_args(int argc, char **argv,
 		case 'S':
 			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
 			cfg->xdp_flags |= XDP_FLAGS_SKB_MODE;  /* Set   flag */
+			cfg->xsk_bind_flags &= XDP_ZEROCOPY;
+			cfg->xsk_bind_flags |= XDP_COPY;
 			break;
 		case 'N':
 			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
@@ -148,8 +151,14 @@ void parse_cmdline_args(int argc, char **argv,
 		case 'U':
 			cfg->do_unload = true;
 			break;
+		case 'p':
+			cfg->xsk_poll_mode = true;
+			break;
 		case 'q':
 			verbose = false;
+			break;
+		case 'Q':
+			cfg->xsk_if_queue = atoi(optarg);
 			break;
 		case 1: /* --filename */
 			dest  = (char *)&cfg->filename;
@@ -166,6 +175,13 @@ void parse_cmdline_args(int argc, char **argv,
 		case 'R': /* --dest-mac */
 			dest  = (char *)&cfg->dest_mac;
 			strncpy(dest, optarg, sizeof(cfg->dest_mac));
+		case 'c':
+			cfg->xsk_bind_flags &= XDP_ZEROCOPY;
+			cfg->xsk_bind_flags |= XDP_COPY;
+			break;
+		case 'z':
+			cfg->xsk_bind_flags &= XDP_COPY;
+			cfg->xsk_bind_flags |= XDP_ZEROCOPY;
 			break;
 		case 'h':
 			full_help = true;
