@@ -62,6 +62,11 @@ static __always_inline int proto_is_vlan(__u16 h_proto)
                   h_proto == bpf_htons(ETH_P_8021AD));
 }
 
+/* Notice, parse_ethhdr() will skip VLAN tags, by advancing nh->pos and returns
+ * next header EtherType, BUT the ethhdr pointer supplied still points to the
+ * Ethernet header. Thus, caller can look at eth->h_proto to see if this was a
+ * VLAN tagged packet.
+ */
 static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end,
 					struct ethhdr **ethhdr)
 {
