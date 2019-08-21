@@ -59,6 +59,7 @@ xdp_stats
 xdp_pass_user
 xdp_load_and_stats
 xdp_prog_user
+af_xdp_user
 
 # tracing userspace programs
 trace_load_and_stats
