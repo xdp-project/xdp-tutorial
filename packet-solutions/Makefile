@@ -2,6 +2,7 @@
 
 XDP_TARGETS  := xdp_prog_kern_02 xdp_prog_kern_03
 XDP_TARGETS  += xdp_vlan01_kern
+XDP_TARGETS  += xdp_vlan02_kern
 USER_TARGETS := xdp_prog_user
 
 LIBBPF_DIR = ../libbpf/src/
