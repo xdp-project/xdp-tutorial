@@ -65,6 +65,18 @@ On a machine running the Fedora Linux distribution, install the packages:
  $ sudo dnf install elfutils-libelf-devel perf
 #+end_example
 
+Note also that Fedora by default sets a limit on the amount of locked memory
+the kernel will allow, which can interfere with loading BPF maps. The
+=testenv.sh= script will adjust this for you, but if you're not using that
+you will probably run into problems. Use this command to raise the limit:
+
+#+begin_example
+  # ulimit -l 1024
+#+end_example
+
+Note that you need to do this in the shell you are using to load programs
+(in particular, it won't work with =sudo=).
+
 ** Packages on Debian/Ubuntu
 
 On Debian and Ubuntu installations, install the dependencies like this:
