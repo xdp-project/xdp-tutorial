@@ -16,46 +16,48 @@
  */
 static __always_inline int vlan_tag_pop(struct xdp_md *ctx, struct ethhdr *eth)
 {
-	/*void *data_end = (void *)(long)ctx->data_end;
-        struct ethhdr eth_cpy;
-        struct vlan_hdr *vlh;
-        __be16 h_proto;*/
-        int vlid = -1;
+	/*
+	void *data_end = (void *)(long)ctx->data_end;
+	struct ethhdr eth_cpy;
+	struct vlan_hdr *vlh;
+	__be16 h_proto;
+	*/
+	int vlid = -1;
 
-        /* Check if there is a vlan tag to pop */
+	/* Check if there is a vlan tag to pop */
 
-        /* Still need to do bounds checking */
+	/* Still need to do bounds checking */
 
-        /* Save vlan ID for returning, h_proto for updating Ethernet header */
+	/* Save vlan ID for returning, h_proto for updating Ethernet header */
 
-        /* Make a copy of the outer Ethernet header before we cut it off */
+	/* Make a copy of the outer Ethernet header before we cut it off */
 
-        /* Actually adjust the head pointer */
+	/* Actually adjust the head pointer */
 
-        /* Need to re-evaluate data *and* data_end and do new bounds checking
-         * after adjusting head
-         */
+	/* Need to re-evaluate data *and* data_end and do new bounds checking
+	 * after adjusting head
+	 */
 
-        /* Copy back the old Ethernet header and update the proto type */
+	/* Copy back the old Ethernet header and update the proto type */
 
 
-        return vlid;
+	return vlid;
 }
 
 /* Pushes a new VLAN tag after the Ethernet header. Returns 0 on success,
  * -1 on failure.
  */
 static __always_inline int vlan_tag_push(struct xdp_md *ctx,
-                                         struct ethhdr *eth, int vlid)
+					 struct ethhdr *eth, int vlid)
 {
-        return 0;
+	return 0;
 }
 
 /* Implement assignment 1 in this section */
 SEC("xdp_port_rewrite")
 int xdp_port_rewrite_func(struct xdp_md *ctx)
 {
-        return XDP_PASS;
+	return XDP_PASS;
 }
 
 /* VLAN swapper; will pop outermost VLAN tag if it exists, otherwise push a new
@@ -67,23 +69,23 @@ int xdp_vlan_swap_func(struct xdp_md *ctx)
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
 
-        /* These keep track of the next header type and iterator pointer */
+	/* These keep track of the next header type and iterator pointer */
 	struct hdr_cursor nh;
 	int nh_type;
-        nh.pos = data;
+	nh.pos = data;
 
 	struct ethhdr *eth;
 	nh_type = parse_ethhdr(&nh, data_end, &eth);
-        if (nh_type < 0)
-                return XDP_PASS;
+	if (nh_type < 0)
+		return XDP_PASS;
 
-        /* Assignment 2 and 3 will implement these. For now they do nothing */
-        if (proto_is_vlan(eth->h_proto))
-                vlan_tag_pop(ctx, eth);
-        else
-                vlan_tag_push(ctx, eth, 1);
+	/* Assignment 2 and 3 will implement these. For now they do nothing */
+	if (proto_is_vlan(eth->h_proto))
+		vlan_tag_pop(ctx, eth);
+	else
+		vlan_tag_push(ctx, eth, 1);
 
-        return XDP_PASS;
+	return XDP_PASS;
 }
 
 /* Solution to the parsing exercise in lesson packet01. Handles VLANs and legacy
@@ -101,10 +103,10 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 */
 	__u32 action = XDP_PASS; /* Default action */
 
-        /* These keep track of the next header type and iterator pointer */
+	/* These keep track of the next header type and iterator pointer */
 	struct hdr_cursor nh;
 	int nh_type;
-        nh.pos = data;
+	nh.pos = data;
 
 	struct ethhdr *eth;
 
@@ -114,37 +116,37 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 */
 	nh_type = parse_ethhdr(&nh, data_end, &eth);
 
-        if (nh_type == ETH_P_IPV6) {
-                struct ipv6hdr *ip6h;
-                struct icmp6hdr *icmp6h;
+	if (nh_type == ETH_P_IPV6) {
+		struct ipv6hdr *ip6h;
+		struct icmp6hdr *icmp6h;
 
-                nh_type = parse_ip6hdr(&nh, data_end, &ip6h);
-                if (nh_type != IPPROTO_ICMPV6)
-                        goto out;
+		nh_type = parse_ip6hdr(&nh, data_end, &ip6h);
+		if (nh_type != IPPROTO_ICMPV6)
+			goto out;
 
-                nh_type = parse_icmp6hdr(&nh, data_end, &icmp6h);
-                if (nh_type != ICMPV6_ECHO_REQUEST)
-                        goto out;
+		nh_type = parse_icmp6hdr(&nh, data_end, &icmp6h);
+		if (nh_type != ICMPV6_ECHO_REQUEST)
+			goto out;
 
-                if (bpf_ntohs(icmp6h->icmp6_sequence) % 2 == 0)
-                        action = XDP_DROP;
+		if (bpf_ntohs(icmp6h->icmp6_sequence) % 2 == 0)
+			action = XDP_DROP;
 
-        } else if (nh_type == ETH_P_IP) {
-                struct iphdr *iph;
-                struct icmphdr *icmph;
+	} else if (nh_type == ETH_P_IP) {
+		struct iphdr *iph;
+		struct icmphdr *icmph;
 
-                nh_type = parse_iphdr(&nh, data_end, &iph);
-                if (nh_type != IPPROTO_ICMP)
-                        goto out;
+		nh_type = parse_iphdr(&nh, data_end, &iph);
+		if (nh_type != IPPROTO_ICMP)
+			goto out;
 
-                nh_type = parse_icmphdr(&nh, data_end, &icmph);
-                if (nh_type != ICMP_ECHO)
-                        goto out;
+		nh_type = parse_icmphdr(&nh, data_end, &icmph);
+		if (nh_type != ICMP_ECHO)
+			goto out;
 
-                if (bpf_ntohs(icmph->un.echo.sequence) % 2 == 0)
-                        action = XDP_DROP;
-        }
-out:
+		if (bpf_ntohs(icmph->un.echo.sequence) % 2 == 0)
+			action = XDP_DROP;
+	}
+ out:
 	return xdp_stats_record_action(ctx, action);
 }
 
