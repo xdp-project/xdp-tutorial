@@ -30,6 +30,9 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
+#ifdef XDP_USE_NEED_WAKEUP
+#define HAS_XDP_NEED_WAKEUP 1
+#endif
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -186,6 +189,9 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	xsk_cfg.libbpf_flags = 0;
 	xsk_cfg.xdp_flags = cfg->xdp_flags;
 	xsk_cfg.bind_flags = cfg->xsk_bind_flags;
+#ifdef HAS_XDP_NEED_WAKEUP
+	xsk_cfg.bind_flags |= XDP_USE_NEED_WAKEUP;
+#endif
 	ret = xsk_socket__create(&xsk_info->xsk, cfg->ifname,
 				 cfg->xsk_if_queue, umem->umem, &xsk_info->rx,
 				 &xsk_info->tx, &xsk_cfg);
@@ -234,7 +240,11 @@ static void complete_tx(struct xsk_socket_info *xsk)
 	if (!xsk->outstanding_tx)
 		return;
 
-	sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+#ifdef HAVE_XDP_NEED_WAKEUP
+	if (xsk_ring_prod__needs_wakeup(&xsk->tx))
+#endif
+		sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT,
+		       NULL, 0);
 
 
 	/* Collect/free completed TX buffers */
@@ -343,8 +353,19 @@ static void handle_receive_packets(struct xsk_socket_info *xsk)
 	int ret;
 
 	rcvd = xsk_ring_cons__peek(&xsk->rx, RX_BATCH_SIZE, &idx_rx);
-	if (!rcvd)
+	if (!rcvd) {
+#ifdef HAS_XDP_NEED_WAKEUP
+		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq)) {
+			struct pollfd fds[2];
+
+			memset(fds, 0, sizeof(fds));
+			fds[0].fd = xsk_socket__fd(xsk->xsk);
+			fds[0].events = POLLIN;
+			poll(fds, 1, 0);
+		}
+#endif
 		return;
+	}
 
 	/* Stuff the ring with as much frames as possible */
 	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
