@@ -56,7 +56,7 @@ struct icmphdr_common {
 
 /* Allow users of header file to redefine VLAN max depth */
 #ifndef VLAN_MAX_DEPTH
-#define VLAN_MAX_DEPTH 4
+#define VLAN_MAX_DEPTH 2
 #endif
 
 static __always_inline int proto_is_vlan(__u16 h_proto)
