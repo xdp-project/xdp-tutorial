@@ -35,8 +35,8 @@ struct hdr_cursor {
 };
 
 /*
- * 	struct vlan_hdr - vlan header
- * 	@h_vlan_TCI: priority and VLAN ID
+ *	struct vlan_hdr - vlan header
+ *	@h_vlan_TCI: priority and VLAN ID
  *	@h_vlan_encapsulated_proto: packet type ID or len
  */
 struct vlan_hdr {
@@ -51,7 +51,7 @@ struct vlan_hdr {
 struct icmphdr_common {
 	__u8		type;
 	__u8		code;
-	__sum16		cksum;
+	__sum16	cksum;
 };
 
 /* Allow users of header file to redefine VLAN max depth */
@@ -61,8 +61,8 @@ struct icmphdr_common {
 
 static __always_inline int proto_is_vlan(__u16 h_proto)
 {
-        return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
-                  h_proto == bpf_htons(ETH_P_8021AD));
+	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
+		  h_proto == bpf_htons(ETH_P_8021AD));
 }
 
 /* Notice, parse_ethhdr() will skip VLAN tags, by advancing nh->pos and returns
@@ -75,9 +75,9 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end,
 {
 	struct ethhdr *eth = nh->pos;
 	int hdrsize = sizeof(*eth);
-        struct vlan_hdr *vlh;
-        __u16 h_proto;
-        int i;
+	struct vlan_hdr *vlh;
+	__u16 h_proto;
+	int i;
 
 	/* Byte-count bounds check; check if current pointer + size of header
 	 * is after data_end.
@@ -87,25 +87,25 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end,
 
 	nh->pos += hdrsize;
 	*ethhdr = eth;
-        vlh = nh->pos;
-        h_proto = eth->h_proto;
+	vlh = nh->pos;
+	h_proto = eth->h_proto;
 
-        /* Use loop unrolling to avoid the verifier restriction on loops;
-         * support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
-         */
-        #pragma unroll
-        for (i = 0; i < VLAN_MAX_DEPTH; i++) {
-                if (!proto_is_vlan(h_proto))
-                        break;
+	/* Use loop unrolling to avoid the verifier restriction on loops;
+	 * support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
+	 */
+	#pragma unroll
+	for (i = 0; i < VLAN_MAX_DEPTH; i++) {
+		if (!proto_is_vlan(h_proto))
+			break;
 
-                if (vlh + 1 > data_end)
-                        break;
+		if (vlh + 1 > data_end)
+			break;
 
-                h_proto = vlh->h_vlan_encapsulated_proto;
-                vlh++;
-        }
+		h_proto = vlh->h_vlan_encapsulated_proto;
+		vlh++;
+	}
 
-        nh->pos = vlh;
+	nh->pos = vlh;
 	return bpf_ntohs(h_proto);
 }
 
@@ -129,8 +129,8 @@ static __always_inline int parse_ip6hdr(struct hdr_cursor *nh,
 }
 
 static __always_inline int parse_iphdr(struct hdr_cursor *nh,
-                                       void *data_end,
-                                       struct iphdr **iphdr)
+				       void *data_end,
+				       struct iphdr **iphdr)
 {
 	struct iphdr *iph = nh->pos;
 	int hdrsize;
@@ -138,11 +138,11 @@ static __always_inline int parse_iphdr(struct hdr_cursor *nh,
 	if (iph + 1 > data_end)
 		return -1;
 
-        hdrsize = iph->ihl * 4;
+	hdrsize = iph->ihl * 4;
 
-        /* Variable-length IPv4 header, need to use byte-based arithmetic */
-        if (nh->pos + hdrsize > data_end)
-                return -1;
+	/* Variable-length IPv4 header, need to use byte-based arithmetic */
+	if (nh->pos + hdrsize > data_end)
+		return -1;
 
 	nh->pos += hdrsize;
 	*iphdr = iph;
@@ -166,8 +166,8 @@ static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,
 }
 
 static __always_inline int parse_icmphdr(struct hdr_cursor *nh,
-                                         void *data_end,
-                                         struct icmphdr **icmphdr)
+					 void *data_end,
+					 struct icmphdr **icmphdr)
 {
 	struct icmphdr *icmph = nh->pos;
 
