@@ -1,0 +1,77 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Vagrant image for xdp-tutorial with latest bpf-next kernel
+#+OPTIONS: ^:nil
+
+This Vagrant configuration can be used to test the xdp-tutorial using a
+virtual machine based on Fedora29 with the latest bpf-next kernel.
+
+* Configure Vagrant
+This example uses the libvirt back-end, which needs to be installed:
+
+#+begin_example sh
+vagrant plugin install vagrant-libvirt
+#+end_example
+
+In addition, we also need the /reload/ plugin to reboot the machine:
+
+#+begin_example sh
+vagrant plugin install vagrant-reload
+#+end_example
+
+
+* Configure the virtual machine
+The more cores and memory you will assign to the VM the faster it will build
+the kernel. Please modify the Valgrantfile to change the default 8 cores and
+4G of memory:
+
+#+begin_example ruby
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.cpus = 8
+    libvirt.memory = 4096
+    libvirt.storage :file, :size => '50G', :bus => 'scsi'
+  end
+#+end_example
+
+
+* Start the Vagrant vm
+To start the virtual machine you need to execute the below from the vagrant
+directory:
+
+#+begin_example sh
+$ vagrant up
+Bringing machine 'default' up with 'libvirt' provider...
+==> default: Checking if box 'generic/fedora29' version '1.9.24' is up to date...
+==> default: Creating image (snapshot of base box volume).
+==> default: Creating domain with the following settings...
+==> default:  -- Name:              vagrant_default
+==> default:  -- Domain type:       kvm
+==> default:  -- Cpus:              8
+==> default:  -- Feature:           acpi
+...
+...
+    default:     -D __BPF_TRACING__ \
+    default:     -I../libbpf/src//root/usr/include/ -g -I/usr/include/x86_64-linux-gnu -I../headers/ \
+    default:     -Wall \
+    default:     -Wno-unused-value \
+    default:     -Wno-pointer-sign \
+    default:     -Wno-compare-distinct-pointer-types \
+    default:     -Werror \
+    default:     -O2 -emit-llvm -c -g -o af_xdp_kern.ll af_xdp_kern.c
+    default: llc -march=bpf -filetype=obj -o af_xdp_kern.o af_xdp_kern.ll
+    default: make[1]: Leaving directory '/home/vagrant/xdp-tutorial/advanced03-AF_XDP'
+#+end_example
+
+NOTE: The above will take some time as it will build the kernel from scratch.
+
+If the installation completed successfully you can access the VM as follows:
+
+#+begin_example sh
+$ vagrant ssh default
+[vagrant@xdp-tutorial ~]$ ls
+dp-tutorial
+[vagrant@xdp-tutorial ~]$ cd xdp-tutorial/advanced03-AF_XDP/
+[vagrant@xdp-tutorial advanced03-AF_XDP]$
+[vagrant@xdp-tutorial advanced03-AF_XDP]$ ls
+af_xdp_kern.c   af_xdp_kern.o  af_xdp_user.c  README.org
+af_xdp_kern.ll  af_xdp_user    Makefile
+#+end_example
