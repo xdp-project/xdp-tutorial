@@ -57,7 +57,7 @@ static __always_inline int __parse_ethhdr_vlan(struct hdr_cursor *nh,
 	}
 
 	nh->pos = vlh;
-	return bpf_ntohs(h_proto);
+	return h_proto; /* network-byte-order */
 }
 
 SEC("xdp_vlan02")
@@ -102,7 +102,7 @@ int xdp_vlan_02(struct xdp_md *ctx)
 #if 0
 	int ip_type;
 	struct iphdr *iphdr;
-	if (eth_type == ETH_P_IP) {
+	if (eth_type == bpf_htons(ETH_P_IP)) {
 		ip_type = parse_iphdr(&nh, data_end, &iphdr);
 		if (eth_type < 0)
 			return XDP_ABORTED;

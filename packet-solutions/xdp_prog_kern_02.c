@@ -37,9 +37,9 @@ int xdp_patch_ports_func(struct xdp_md *ctx)
 		goto out;
 	}
 
-	if (eth_type == ETH_P_IP) {
+	if (eth_type == bpf_htons(ETH_P_IP)) {
 		ip_type = parse_iphdr(&nh, data_end, &iphdr);
-	} else if (eth_type == ETH_P_IPV6) {
+	} else if (eth_type == bpf_htons(ETH_P_IPV6)) {
 		ip_type = parse_ip6hdr(&nh, data_end, &ipv6hdr);
 	} else {
 		goto out;
