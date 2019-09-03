@@ -51,7 +51,8 @@ static __always_inline int __parse_ethhdr_vlan(struct hdr_cursor *nh,
 
 		h_proto = vlh->h_vlan_encapsulated_proto;
 		if (vlans) {
-			vlans->id[i] =  vlh->h_vlan_TCI & VLAN_VID_MASK;
+			vlans->id[i] =
+				bpf_ntohs(vlh->h_vlan_TCI) & VLAN_VID_MASK;
 		}
 		vlh++;
 	}
