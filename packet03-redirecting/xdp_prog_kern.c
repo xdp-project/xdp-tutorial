@@ -66,11 +66,11 @@ int xdp_icmp_echo_func(struct xdp_md *ctx)
 
 	/* Parse Ethernet and IP/IPv6 headers */
 	eth_type = parse_ethhdr(&nh, data_end, &eth);
-	if (eth_type == ETH_P_IP) {
+	if (eth_type == bpf_htons(ETH_P_IP)) {
 		ip_type = parse_iphdr(&nh, data_end, &iphdr);
 		if (ip_type != IPPROTO_ICMP)
 			goto out;
-	} else if (eth_type == ETH_P_IPV6) {
+	} else if (eth_type == bpf_htons(ETH_P_IPV6)) {
 		ip_type = parse_ip6hdr(&nh, data_end, &ipv6hdr);
 		if (ip_type != IPPROTO_ICMPV6)
 			goto out;
@@ -85,11 +85,12 @@ int xdp_icmp_echo_func(struct xdp_md *ctx)
 	 * the rest of the structure.
 	 */
 	icmp_type = parse_icmphdr_common(&nh, data_end, &icmphdr);
-	if (eth_type == ETH_P_IP && icmp_type == ICMP_ECHO) {
+	if (eth_type == bpf_htons(ETH_P_IP) && icmp_type == ICMP_ECHO) {
 		/* Swap IP source and destination */
 		swap_src_dst_ipv4(iphdr);
 		echo_reply = ICMP_ECHOREPLY;
-	} else if (eth_type == ETH_P_IPV6 && icmp_type == ICMPV6_ECHO_REQUEST) {
+	} else if (eth_type == bpf_htons(ETH_P_IPV6)
+		   && icmp_type == ICMPV6_ECHO_REQUEST) {
 		/* Swap IPv6 source and destination */
 		swap_src_dst_ipv6(ipv6hdr);
 		echo_reply = ICMPV6_ECHO_REPLY;

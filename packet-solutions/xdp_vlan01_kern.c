@@ -75,7 +75,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end,
 	}
 
 	nh->pos = vlh;
-	return bpf_ntohs(h_proto);
+	return h_proto; /* network-byte-order */
 }
 
 SEC("xdp_vlan01")

@@ -116,7 +116,7 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 */
 	nh_type = parse_ethhdr(&nh, data_end, &eth);
 
-	if (nh_type == ETH_P_IPV6) {
+	if (nh_type == bpf_htons(ETH_P_IPV6)) {
 		struct ipv6hdr *ip6h;
 		struct icmp6hdr *icmp6h;
 
@@ -131,7 +131,7 @@ int  xdp_parser_func(struct xdp_md *ctx)
 		if (bpf_ntohs(icmp6h->icmp6_sequence) % 2 == 0)
 			action = XDP_DROP;
 
-	} else if (nh_type == ETH_P_IP) {
+	} else if (nh_type == bpf_htons(ETH_P_IP)) {
 		struct iphdr *iph;
 		struct icmphdr *icmph;
 

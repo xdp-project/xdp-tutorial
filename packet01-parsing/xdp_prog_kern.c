@@ -42,7 +42,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 	nh->pos += hdrsize;
 	*ethhdr = eth;
 
-	return bpf_ntohs(eth->h_proto);
+	return eth->h_proto; /* network-byte-order */
 }
 
 /* Assignment 2: Implement and use this */
@@ -84,7 +84,7 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 * header type in the packet correct?), and bounds checking.
 	 */
 	nh_type = parse_ethhdr(&nh, data_end, &eth);
-	if (nh_type != ETH_P_IPV6)
+	if (nh_type != bpf_htons(ETH_P_IPV6))
 		goto out;
 
 	/* Assignment additions go below here */
