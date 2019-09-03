@@ -10,11 +10,14 @@
 #define VLAN_MAX_DEPTH 10
 #include "../common/parsing_helpers.h"
 
+#if 0
 #define VLAN_VID_MASK		0x0fff /* VLAN Identifier */
 struct vlans {
 	__u16 id[VLAN_MAX_DEPTH];
 };
+#endif
 
+#if 0 /* moved to parsing_helpers.h */
 /* Based on parse_ethhdr() */
 static __always_inline int __parse_ethhdr_vlan(struct hdr_cursor *nh,
 					       void *data_end,
@@ -60,6 +63,7 @@ static __always_inline int __parse_ethhdr_vlan(struct hdr_cursor *nh,
 	nh->pos = vlh;
 	return h_proto; /* network-byte-order */
 }
+#endif
 
 SEC("xdp_vlan02")
 int xdp_vlan_02(struct xdp_md *ctx)
@@ -75,7 +79,7 @@ int xdp_vlan_02(struct xdp_md *ctx)
 	struct vlans vlans;
 
 	struct ethhdr *eth;
-	eth_type = __parse_ethhdr_vlan(&nh, data_end, &eth, &vlans);
+	eth_type = parse_ethhdr_vlan(&nh, data_end, &eth, &vlans);
 
 	if (eth_type < 0)
 		return XDP_ABORTED;
