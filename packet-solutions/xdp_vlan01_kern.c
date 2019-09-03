@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause) */
+// SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
 #include <linux/bpf.h>
 #include <linux/if_ether.h>
 
@@ -20,13 +20,13 @@ struct hdr_cursor {
 
 static __always_inline int proto_is_vlan(__u16 h_proto)
 {
-        return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
-                  h_proto == bpf_htons(ETH_P_8021AD));
+	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
+		  h_proto == bpf_htons(ETH_P_8021AD));
 }
 
 /*
- * 	struct vlan_hdr - vlan header
- * 	@h_vlan_TCI: priority and VLAN ID
+ *	struct vlan_hdr - vlan header
+ *	@h_vlan_TCI: priority and VLAN ID
  *	@h_vlan_encapsulated_proto: packet type ID or len
  */
 struct vlan_hdr {
@@ -44,9 +44,9 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end,
 {
 	struct ethhdr *eth = nh->pos;
 	int hdrsize = sizeof(*eth);
-        struct vlan_hdr *vlh;
-        __u16 h_proto;
-        int i;
+	struct vlan_hdr *vlh;
+	__u16 h_proto;
+	int i;
 
 	/* Byte-count bounds check; check if current pointer + size of header
 	 * is after data_end.
@@ -56,25 +56,25 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end,
 
 	nh->pos += hdrsize;
 	*ethhdr = eth;
-        vlh = nh->pos;
-        h_proto = eth->h_proto;
+	vlh = nh->pos;
+	h_proto = eth->h_proto;
 
-        /* Use loop unrolling to avoid the verifier restriction on loops;
-         * support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
-         */
-        #pragma unroll
-        for (i = 0; i < VLAN_MAX_DEPTH; i++) {
-                if (!proto_is_vlan(h_proto))
-                        break;
+	/* Use loop unrolling to avoid the verifier restriction on loops;
+	 * support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
+	 */
+	#pragma unroll
+	for (i = 0; i < VLAN_MAX_DEPTH; i++) {
+		if (!proto_is_vlan(h_proto))
+			break;
 
-                if (vlh + 1 > data_end)
-                        break;
+		if (vlh + 1 > data_end)
+			break;
 
-                h_proto = vlh->h_vlan_encapsulated_proto;
-                vlh++;
-        }
+		h_proto = vlh->h_vlan_encapsulated_proto;
+		vlh++;
+	}
 
-        nh->pos = vlh;
+	nh->pos = vlh;
 	return bpf_ntohs(h_proto);
 }
 

@@ -90,12 +90,12 @@ static __always_inline int vlan_tag_push(struct xdp_md *ctx,
 	if (eth + 1 > data_end)
 		return -1;
 
-	/* Copy back the Ethernet header in the right place, populate the VLAN
-	 * tag with the ID and proto, and set the outer Ethernet header to VLAN
-	 * type. */
+	/* Copy back Ethernet header in the right place, populate VLAN tag with
+	 * ID and proto, and set outer Ethernet header to VLAN type.
+	 */
 	__builtin_memcpy(eth, &eth_cpy, sizeof(*eth));
 
-	vlh = (void *)(eth +1);
+	vlh = (void *)(eth + 1);
 
 	if (vlh + 1 > data_end)
 		return -1;
@@ -113,6 +113,7 @@ static __always_inline int vlan_tag_push(struct xdp_md *ctx,
 static __always_inline void swap_src_dst_mac(struct ethhdr *eth)
 {
 	__u8 h_tmp[ETH_ALEN];
+
 	__builtin_memcpy(h_tmp, eth->h_source, ETH_ALEN);
 	__builtin_memcpy(eth->h_source, eth->h_dest, ETH_ALEN);
 	__builtin_memcpy(eth->h_dest, h_tmp, ETH_ALEN);
@@ -124,6 +125,7 @@ static __always_inline void swap_src_dst_mac(struct ethhdr *eth)
 static __always_inline void swap_src_dst_ipv6(struct ipv6hdr *ipv6)
 {
 	struct in6_addr tmp = ipv6->saddr;
+
 	ipv6->saddr = ipv6->daddr;
 	ipv6->daddr = tmp;
 }
@@ -134,6 +136,7 @@ static __always_inline void swap_src_dst_ipv6(struct ipv6hdr *ipv6)
 static __always_inline void swap_src_dst_ipv4(struct iphdr *iphdr)
 {
 	__be32 tmp = iphdr->saddr;
+
 	iphdr->saddr = iphdr->daddr;
 	iphdr->daddr = tmp;
 }
