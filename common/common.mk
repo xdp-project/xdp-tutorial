@@ -21,6 +21,7 @@ USER_OBJ := ${USER_C:.c=.o}
 
 # Expect this is defined by including Makefile, but define if not
 COMMON_DIR ?= ../common/
+LIBBPF_DIR ?= ../libbpf/src/
 
 COPY_LOADER ?=
 LOADER_DIR ?= $(COMMON_DIR)/../basic-solutions
