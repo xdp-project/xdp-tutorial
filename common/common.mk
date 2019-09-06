@@ -38,7 +38,7 @@ EXTRA_DEPS +=
 # BPF-prog kern and userspace shares struct via header file:
 KERN_USER_H ?= $(wildcard common_kern_user.h)
 
-CFLAGS ?= -I$(LIBBPF_DIR)/root/usr/include/ -g
+CFLAGS ?= -I$(LIBBPF_DIR)/build/usr/include/ -g
 # Extra include for Ubuntu issue #44
 CFLAGS += -I/usr/include/x86_64-linux-gnu
 CFLAGS += -I../headers/
@@ -51,6 +51,7 @@ all: llvm-check $(USER_TARGETS) $(XDP_OBJ) $(COPY_LOADER) $(COPY_STATS)
 .PHONY: clean $(CLANG) $(LLC)
 
 clean:
+	rm -rf $(LIBBPF_DIR)/build
 	$(MAKE) -C $(LIBBPF_DIR) clean
 	$(MAKE) -C $(COMMON_DIR) clean
 	rm -f $(USER_TARGETS) $(XDP_OBJ) $(USER_OBJ) $(COPY_LOADER) $(COPY_STATS)
@@ -89,7 +90,7 @@ $(OBJECT_LIBBPF):
 		exit 1; \
 	else \
 		cd $(LIBBPF_DIR) && $(MAKE) all; \
-		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
+		mkdir -p build; DESTDIR=build $(MAKE) install_headers; \
 	fi
 
 # Create dependency: detect if C-file change and touch H-file, to trigger
