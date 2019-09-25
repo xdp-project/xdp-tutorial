@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include <sys/resource.h>
+#include <sys/utsname.h>
 
 #include <bpf/bpf.h>
 #include <bpf/xsk.h>
@@ -534,6 +535,29 @@ int main(int argc, char **argv)
 	struct xsk_socket_info *xsk_socket;
 	struct bpf_object *bpf_obj = NULL;
 	pthread_t stats_poll_thread;
+	struct utsname uname_info;
+	unsigned int major, minor, revision;
+
+	/* Some basic version checking for AF_XDP */
+	if (uname(&uname_info) == -1) {
+		fprintf(stderr, "ERROR: failed calling uname(): %s\n",
+				strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	if (sscanf(uname_info.release, "%u.%u.%u-",
+		   &major, &minor, &revision) != 3) {
+		fprintf(stderr, "ERROR: failed to extract Kernel version\n");
+		exit(EXIT_FAILURE);
+	}
+	if (major < 5 || (major == 5 && minor < 2)) {
+		printf("WARNING: For AF_XDP you need at least an upstream "
+		       "kernel of 5.2!\n");
+	}
+	if (major == 5 && minor == 2) {
+		printf("WARNING: Although AF_XDP is supported in upstream "
+		       "kernel 5.2, due to known libbpf issues it's "
+		       "recommended to use at least version 5.3!\n");
+	}
 
 	/* Global shutdown handler */
 	signal(SIGINT, exit_application);
@@ -602,7 +626,8 @@ int main(int argc, char **argv)
 	/* Open and configure the AF_XDP (xsk) socket */
 	xsk_socket = xsk_configure_socket(&cfg, umem);
 	if (xsk_socket == NULL) {
-		fprintf(stderr, "ERROR: Can't setup AF_XDP socket \"%s\"\n",
+		fprintf(stderr, "ERROR: Can't setup AF_XDP socket \"%s\"\n"
+			"Make sure Kernel is build with CONFIG_XDP_SOCKETS=y\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
