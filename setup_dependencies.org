@@ -96,6 +96,14 @@ or this on Ubuntu:
  $ sudo apt install linux-tools-$(uname -r)
 #+end_example
 
+** Packages on openSUSE
+
+On a machine running the openSUSE distribution, install the packages:
+
+#+begin_example
+ $ sudo zypper install clang llvm libelf-devel perf
+#+end_example
+
 * Kernel headers dependency
 
 The Linux kernel provides a number of header files, which are usually installed
@@ -127,6 +135,14 @@ On Debian and Ubuntu installations, install the headers like this
  $ sudo apt install linux-headers-$(uname -r)
 #+end_example
 
+** Packages on openSUSE
+
+On a machine running the openSUSE distribution, install the package:
+
+#+begin_example
+ $ sudo zypper install kernel-devel
+#+end_example
+
 
 * Recommended tools
 
@@ -153,3 +169,11 @@ However, note that an unofficial
 is provided by Netronome
 [[https://help.netronome.com/support/solutions/articles/36000050009-agilio-ebpf-2-0-6-extended-berkeley-packet-filter][on their support website]].
 The binary is statically linked, and should work on any x86-64 Linux machine.
+
+** Packages on openSUSE
+
+On a machine running the openSUSE Tumbleweed distribution, install package:
+
+#+begin_example
+ $ sudo zypper install bpftool
+#+end_example
