@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+/* SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-2-clause) */
 /*
  * This file contains functions that are used in the packetXX XDP programs to
  * manipulate on packets data. The functions are marked as __always_inline, and
