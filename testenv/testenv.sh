@@ -16,7 +16,7 @@ source "$(dirname "$0")/config.sh"
 
 NEEDED_TOOLS="ethtool ip tc ping"
 MAX_NAMELEN=15
-MIN_ULIMIT_L=1024
+MIN_ULIMIT_L=4096
 
 # Global state variables that will be set by options etc below
 GENERATE_NEW=0
