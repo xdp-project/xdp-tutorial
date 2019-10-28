@@ -196,7 +196,7 @@ static __always_inline int parse_icmphdr_common(struct hdr_cursor *nh,
 }
 
 /*
- * parse_tcphdr: parse the udp header and return the length of the udp payload
+ * parse_udphdr: parse the udp header and return the length of the udp payload
  */
 static __always_inline int parse_udphdr(struct hdr_cursor *nh,
 					void *data_end,
