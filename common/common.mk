@@ -45,6 +45,8 @@ CFLAGS += -I/usr/include/x86_64-linux-gnu
 CFLAGS += -I../headers/
 LDFLAGS ?= -L$(LIBBPF_DIR)
 
+BPF_CFLAGS ?= -I$(LIBBPF_DIR)/build/usr/include/ -I../headers/
+
 LIBS = -l:libbpf.a -lelf $(USER_LIBS)
 
 all: llvm-check $(USER_TARGETS) $(XDP_OBJ) $(COPY_LOADER) $(COPY_STATS)
@@ -111,7 +113,7 @@ $(XDP_OBJ): %.o: %.c  Makefile $(COMMON_MK) $(KERN_USER_H) $(EXTRA_DEPS)
 	$(CLANG) -S \
 	    -target bpf \
 	    -D __BPF_TRACING__ \
-	    $(CFLAGS) \
+	    $(BPF_CFLAGS) \
 	    -Wall \
 	    -Wno-unused-value \
 	    -Wno-pointer-sign \

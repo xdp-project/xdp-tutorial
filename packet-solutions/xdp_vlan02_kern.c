@@ -3,8 +3,8 @@
 #include <linux/if_ether.h>
 #include <linux/in.h>
 
-#include "bpf_helpers.h"
-#include "bpf_endian.h"
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_endian.h>
 
 /* NOTICE: Re-defining VLAN header levels to parse */
 #define VLAN_MAX_DEPTH 10

@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 #include <linux/bpf.h>
-#include "bpf_helpers.h"
+#include <bpf/bpf_helpers.h>
+
+#include "bpf_legacy.h"
 
 struct bpf_map_def SEC("maps") redirect_err_cnt = {
 	.type		= BPF_MAP_TYPE_PERCPU_ARRAY,

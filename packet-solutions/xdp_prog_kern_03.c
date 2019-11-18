@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 #include <linux/bpf.h>
 #include <linux/in.h>
-#include "bpf_helpers.h"
-#include "bpf_endian.h"
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_endian.h>
 
 // The parsing helper functions from the packet01 lesson have moved here
 #include "../common/parsing_helpers.h"
@@ -49,7 +49,7 @@ static __always_inline __u16 icmp_checksum_diff(
 {
 	__u32 csum, size = sizeof(struct icmphdr_common);
 
-	csum = bpf_csum_diff(icmphdr_old, size, icmphdr_new, size, seed);
+	csum = bpf_csum_diff((__be32 *)icmphdr_old, size, (__be32 *)icmphdr_new, size, seed);
 	return csum_fold_helper(csum);
 }
 

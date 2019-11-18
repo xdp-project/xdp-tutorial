@@ -6,8 +6,8 @@
 #include <linux/ip.h>
 #include <linux/in.h>
 #include <stdbool.h>
-#include "bpf_helpers.h"
-#include "bpf_endian.h"
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_endian.h>
 
 #define bpf_printk(fmt, ...)                                    \
 ({                                                              \

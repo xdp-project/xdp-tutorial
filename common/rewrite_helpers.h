@@ -13,8 +13,8 @@
 #include <linux/ipv6.h>
 #include <linux/if_ether.h>
 
-#include "bpf_helpers.h"
-#include "bpf_endian.h"
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_endian.h>
 
 /* Pops the outermost VLAN tag off the packet. Returns the popped VLAN ID on
  * success or negative errno on failure.

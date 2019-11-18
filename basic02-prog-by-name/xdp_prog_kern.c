@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 #include <linux/bpf.h>
-#include "bpf_helpers.h"
+#include <bpf/bpf_helpers.h>
 
 /* Notice how this XDP/BPF-program contains several programs in the same source
  * file. These will each get their own section in the ELF file, and via libbpf
