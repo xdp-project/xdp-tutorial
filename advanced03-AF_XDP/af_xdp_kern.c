@@ -2,7 +2,7 @@
 
 #include <linux/bpf.h>
 
-#include "bpf_helpers.h"
+#include <bpf/bpf_helpers.h>
 
 struct bpf_map_def SEC("maps") xsks_map = {
 	.type = BPF_MAP_TYPE_XSKMAP,
