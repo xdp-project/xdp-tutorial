@@ -16,7 +16,6 @@ source "$(dirname "$0")/config.sh"
 
 NEEDED_TOOLS="ethtool ip tc ping"
 MAX_NAMELEN=15
-MIN_ULIMIT_L=4096
 
 # Global state variables that will be set by options etc below
 GENERATE_NEW=0
@@ -67,9 +66,7 @@ check_prereq()
     [ -d "$STATEDIR" ] || mkdir -p "$STATEDIR" || die "Unable to create state dir $STATEDIR"
 
     if [ "$max_locked_mem" != "unlimited" ]; then
-	if [ "$max_locked_mem" -ge "$MIN_ULIMIT_L" ]; then
-	    ulimit -l "$MIN_ULIMIT_L" || die "Unable to set ulimit"
-	fi
+	ulimit -l unlimited || die "Unable to set ulimit"
     fi
 }
 
