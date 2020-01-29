@@ -194,11 +194,11 @@ $ t exec -n left -- ./xdp_loader -d veth0 -F --progsec xdp_pass
 $ t exec -n right -- ./xdp_loader -d veth0 -F --progsec xdp_pass
 #+end_src
 Configure parameters for both interfaces using the new =xdp_prog_user= helper.
-For simplicity there is a new special helper, =t set_redirect_map=, which will
+For simplicity there is a new special helper, =t redirect=, which will
 do the work for you.  See its implementation to see how it obtains inner MAC
 addresses by interface names.
 #+begin_src sh
-$ t set_redirect_map right left
+$ t redirect right left
 #+end_src
 Pings between the two inner interfaces should pass now. Check that they are
 actually forwarded by our programs by running =xdp_stats= on both interfaces:
