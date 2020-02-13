@@ -49,7 +49,7 @@ welcome; just open issues or pull requests in the [[https://github.com/xdp-proje
 * First step: Setup dependencies
 
 Before you can start completing step in this tutorial, you will need to
-install a few dependencies on your system. These are are described in
+install a few dependencies on your system. These are described in
 [[file:setup_dependencies.org]].
 
 We also provide a helper script that will set up a test environment with
