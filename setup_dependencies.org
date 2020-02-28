@@ -162,9 +162,20 @@ On a machine running the Fedora Linux distribution, install package:
  $ sudo dnf install bpftool
 #+end_example
 
-** Packages on Debian/Ubuntu
+** Packages on Ubuntu
 
-Unfortunately, bpftool is not officially packaged for Debian/Ubuntu
+Starting from Ubuntu 19.10, bpftool can be installed with:
+
+#+begin_example
+ $ sudo apt install linux-tools-common linux-tools-generic
+#+end_example
+
+(Ubuntu 18.04 LTS also has it, but it is an old and quite limited bpftool
+version.)
+
+** Packages on Debian
+
+Unfortunately, bpftool is not officially packaged for Debian
 [[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=896165)][yet]].
 
 However, note that an unofficial
