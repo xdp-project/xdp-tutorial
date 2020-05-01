@@ -130,4 +130,97 @@ int xdp_tx_func(struct xdp_md *ctx)
 	return xdp_stats_record_action(ctx, XDP_TX);
 }
 
+struct my_timestamp {
+	__u16 magic;
+	__u64 time;
+} __attribute__((packed));
+
+SEC("xdp_tailgrow_use")
+int xdp_tailgrow3(struct xdp_md *ctx)
+{
+	void *data_end = (void *)(long)ctx->data_end;
+	void *data = (void *)(long)ctx->data;
+	//struct hdr_cursor nh;
+	int offset;
+	struct my_timestamp *ts;
+
+	offset = 8;
+//	if (data + offset > data_end)
+//		return XDP_ABORTED;
+
+	bpf_xdp_adjust_tail(ctx, offset);
+	data_end = (void *)(long)ctx->data_end;
+	data = (void *)(long)ctx->data;
+
+	if (data + offset > data_end)
+		return XDP_ABORTED;
+//	if (data + 2048 > data_end)
+//		return XDP_ABORTED;
+
+	ts = data;
+//	ts->time = 42;
+
+	return xdp_stats_record_action(ctx, XDP_PASS);
+}
+
+SEC("xdp_tailgrow_parse")
+int grow_parse(struct xdp_md *ctx)
+{
+	void *data_end = (void *)(long)ctx->data_end;
+	void *data = (void *)(long)ctx->data;
+
+	int action = XDP_PASS;
+	int eth_type, ip_type;
+	struct ethhdr *eth;
+	struct iphdr *iphdr;
+	struct hdr_cursor nh;
+
+	__u16 ip_tot_len;
+
+	struct my_timestamp *ts;
+
+	int offset = sizeof(*ts);
+	bpf_xdp_adjust_tail(ctx, offset);
+	data_end = (void *)(long)ctx->data_end;
+	data = (void *)(long)ctx->data;
+
+	/* These keep track of the next header type and iterator pointer */
+	nh.pos = data;
+
+	eth_type = parse_ethhdr(&nh, data_end, &eth);
+	if (eth_type < 0) {
+		action = XDP_ABORTED;
+		goto out;
+	}
+
+	if (eth_type == bpf_htons(ETH_P_IP)) {
+		ip_type = parse_iphdr(&nh, data_end, &iphdr);
+	} else {
+		action = XDP_PASS;
+		goto out;
+	}
+
+	if (ip_type == IPPROTO_ICMP) {
+
+		/* Packet size in bytes, including IP header and data */
+		ip_tot_len = bpf_ntohs(iphdr->tot_len);
+
+//		ip_tot_len &= 0xFFF; /* Max 4095 - not allowed by verifier*/
+		ip_tot_len &= 0xFF; /* Max 255 - allowed by verifier */
+
+		/* Finding end of packet + offset */
+		if ((void *)iphdr + ip_tot_len + offset > data_end) {
+			action = XDP_ABORTED;
+			goto out;
+		}
+		ts = (void *)iphdr + ip_tot_len;
+		//ts = nh.pos + ip_tot_len - sizeof(*ts);
+		//ts = nh.pos + ip_tot_len;
+		ts->magic = 0x5354; // String "TS" in network-byte-order
+		ts->time  = bpf_ktime_get_ns();
+	}
+out:
+	return xdp_stats_record_action(ctx, action);
+}
+
 char _license[] SEC("license") = "GPL";
