@@ -163,11 +163,14 @@ int xdp_tailgrow3(struct xdp_md *ctx)
 	return xdp_stats_record_action(ctx, XDP_PASS);
 }
 
+
+#define compiler_barrier() __asm__ __volatile__("": : :"memory")
+
 SEC("xdp_tailgrow_parse")
 int grow_parse(struct xdp_md *ctx)
 {
-	void *data_end = (void *)(long)ctx->data_end;
-	void *data = (void *)(long)ctx->data;
+	void *data_end; // = (void *)(long)ctx->data_end;
+	void *data; // = (void *)(long)ctx->data;
 
 	int action = XDP_PASS;
 	int eth_type, ip_type;
@@ -179,10 +182,12 @@ int grow_parse(struct xdp_md *ctx)
 
 	struct my_timestamp *ts;
 
-	int offset = sizeof(*ts);
+	/* Increase packet size and reload data pointers */
+	__u8 offset = sizeof(*ts);
 	bpf_xdp_adjust_tail(ctx, offset);
 	data_end = (void *)(long)ctx->data_end;
 	data = (void *)(long)ctx->data;
+//	compiler_barrier();
 
 	/* These keep track of the next header type and iterator pointer */
 	nh.pos = data;
@@ -205,18 +210,29 @@ int grow_parse(struct xdp_md *ctx)
 		/* Packet size in bytes, including IP header and data */
 		ip_tot_len = bpf_ntohs(iphdr->tot_len);
 
-//		ip_tot_len &= 0xFFF; /* Max 4095 - not allowed by verifier*/
-		ip_tot_len &= 0xFF; /* Max 255 - allowed by verifier */
+		/*
+		 * Tricks to get pass the verifier. Being allowed to use
+		 * packet value iphdr->tot_len, involves bounding possible
+		 * values to please verifier.
+		 */
+		if (ip_tot_len < 2) {
+			/* This check seems strange on unsigned ip_tot_len,
+			 * but is needed, else verifier complains:
+			 * "unbounded min value is not allowed"
+			 */
+			goto out;
+		}
+		ip_tot_len &= 0xFFF; /* Max 4095 */
 
-		/* Finding end of packet + offset */
+		/* Finding end of packet + offset, and bound access */
 		if ((void *)iphdr + ip_tot_len + offset > data_end) {
 			action = XDP_ABORTED;
 			goto out;
 		}
+
+		/* Point ts to end-of-packet, that have been offset extended */
 		ts = (void *)iphdr + ip_tot_len;
-		//ts = nh.pos + ip_tot_len - sizeof(*ts);
-		//ts = nh.pos + ip_tot_len;
-		ts->magic = 0x5354; // String "TS" in network-byte-order
+		ts->magic = 0x5354; /* String "TS" in network-byte-order */
 		ts->time  = bpf_ktime_get_ns();
 	}
 out:
