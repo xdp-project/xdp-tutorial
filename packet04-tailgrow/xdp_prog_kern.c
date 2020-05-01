@@ -98,4 +98,36 @@ int xdp_pass_func(struct xdp_md *ctx)
 	return xdp_stats_record_action(ctx, XDP_PASS);
 }
 
+SEC("xdp_tailgrow")
+int xdp_tailgrow_func(struct xdp_md *ctx)
+{
+//	void *data_end = (void *)(long)ctx->data_end;
+//	void *data = (void *)(long)ctx->data;
+	//struct hdr_cursor nh;
+	int offset;
+
+	offset = 10;
+	bpf_xdp_adjust_tail(ctx, offset);
+	return xdp_stats_record_action(ctx, XDP_PASS);
+}
+
+SEC("xdp_tailgrow_tx")
+int xdp_tailgrow_func2(struct xdp_md *ctx)
+{
+//	void *data_end = (void *)(long)ctx->data_end;
+//	void *data = (void *)(long)ctx->data;
+	//struct hdr_cursor nh;
+	int offset;
+
+	offset = 32;
+	bpf_xdp_adjust_tail(ctx, offset);
+	return xdp_stats_record_action(ctx, XDP_TX);
+}
+
+SEC("xdp_tx")
+int xdp_tx_func(struct xdp_md *ctx)
+{
+	return xdp_stats_record_action(ctx, XDP_TX);
+}
+
 char _license[] SEC("license") = "GPL";
