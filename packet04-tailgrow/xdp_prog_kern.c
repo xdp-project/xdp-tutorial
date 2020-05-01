@@ -65,9 +65,10 @@ int grow_parse(struct xdp_md *ctx)
 
 	struct my_timestamp *ts;
 
-	/* Increase packet size and reload data pointers */
+	/* Increase packet size (at tail) and reload data pointers */
 	__u8 offset = sizeof(*ts);
-	bpf_xdp_adjust_tail(ctx, offset);
+	if (bpf_xdp_adjust_tail(ctx, offset))
+		goto out;
 	data_end = (void *)(long)ctx->data_end;
 	data = (void *)(long)ctx->data;
 
