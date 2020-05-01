@@ -163,21 +163,16 @@ int xdp_tailgrow3(struct xdp_md *ctx)
 	return xdp_stats_record_action(ctx, XDP_PASS);
 }
 
-
-#define compiler_barrier() __asm__ __volatile__("": : :"memory")
-
 SEC("xdp_tailgrow_parse")
 int grow_parse(struct xdp_md *ctx)
 {
-	void *data_end; // = (void *)(long)ctx->data_end;
-	void *data; // = (void *)(long)ctx->data;
-
+	void *data_end;
+	void *data;
 	int action = XDP_PASS;
 	int eth_type, ip_type;
-	struct ethhdr *eth;
-	struct iphdr *iphdr;
 	struct hdr_cursor nh;
-
+	struct iphdr *iphdr;
+	struct ethhdr *eth;
 	__u16 ip_tot_len;
 
 	struct my_timestamp *ts;
@@ -187,7 +182,6 @@ int grow_parse(struct xdp_md *ctx)
 	bpf_xdp_adjust_tail(ctx, offset);
 	data_end = (void *)(long)ctx->data_end;
 	data = (void *)(long)ctx->data;
-//	compiler_barrier();
 
 	/* These keep track of the next header type and iterator pointer */
 	nh.pos = data;
@@ -205,6 +199,10 @@ int grow_parse(struct xdp_md *ctx)
 		goto out;
 	}
 
+	/* Demo use-case: Add timestamp in extended tailroom to ICMP packets,
+	 * before sending to network-stack via XDP_PASS.  This can be
+	 * captured via tcpdump, and provide earlier (XDP layer) timestamp.
+	 */
 	if (ip_type == IPPROTO_ICMP) {
 
 		/* Packet size in bytes, including IP header and data */
