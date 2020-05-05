@@ -12,10 +12,14 @@ The BPF helper =bpf_xdp_adjust_tail= is being extended with
 capabilites to grow the packet size at tail.  To use this for
 anything, we need to demo how to access packet data at XDP =data_end=.
 
-One use-case, which is showing in main example [[file:xdp_prog_kern.c]],
-is is to **add timestamps in extended tailroom** at XDP processing
-time, which will survive when packet is processed by network-stack
-(via XDP_PASS).  One way to capture this timestamp is to use
-=tcpdump=, which could use this to determine the time spend in
+One use-case is to *add timestamps in extended tailroom* at XDP
+processing time, which will survive when packet is processed by
+network-stack (via XDP_PASS).  One way to capture this timestamp is to
+use =tcpdump=, which could use this to determine the time spend in
 network-stack (on NIC without hardware timestamps).
 
+In main example [[file:xdp_prog_kern.c]], the =xdp_tailgrow_parse= code
+implements this by parsing up-to the IP-layer, and using the
+IP-headers total-length field ([[https://elixir.bootlin.com/linux/v5.6.10/source/include/uapi/linux/ip.h#L97][iphdr->tot_len]]).  See the code for the
+strange bounding checks needed to convince the verifier.  Notice, this
+is limited to IPv4 ICMP packets for testing purposes.
