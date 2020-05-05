@@ -125,33 +125,6 @@ out:
 	return xdp_stats_record_action(ctx, XDP_PASS);
 }
 
-/* Invalid:
-SEC("xdp_test3")
-int _xdp_test3(struct xdp_md *ctx)
-{
-	void *data_end = (void *)(long)ctx->data_end;
-	void *data = (void *)(long)ctx->data;
-	unsigned char *ptr;
-	void *pos;
-
-	unsigned int offset = data_end - data;
-
-	if (offset < 2)
-		goto out;
-
-	pos = data;
-
-	if (pos + offset > data_end)
-		goto out;
-
-	ptr = pos + (offset - sizeof(*ptr));
-	if (*ptr == 0xFF)
-		return XDP_ABORTED;
-out:
-	return XDP_PASS;
-}
-*/
-
 /* Also invalid
 SEC("xdp_test4")
 int _xdp_test4(struct xdp_md *ctx)

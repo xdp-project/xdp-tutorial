@@ -35,3 +35,18 @@ the overhead when doing =XDP_TX=.  Selecting others BPF programs via
  sudo ./xdp_loader --dev mlx5p1 --force --prog xdp_tailgrow
  sudo ./xdp_loader --dev mlx5p1 --force --prog xdp_tailgrow_tx
 #+end_src
+
+* Methods that fail
+
+Methods for accessing access BPF packet data at XDP =data_end=.
+
+** Fail#1: Using packet length
+
+In example [[file:xdp_prog_fail1.c]], we try to use the packet length
+(calculated as =data_end - data=) to access the last byte as an offset
+added to =data=.  The verifier rejects this, as the dynamic length
+calculation cannot be used for static analysis.
+
+#+begin_src sh
+ sudo ./xdp_loader --dev mlx5p1 --force --file xdp_prog_fail1.o
+#+end_src
