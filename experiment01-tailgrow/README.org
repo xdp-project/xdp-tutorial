@@ -36,6 +36,18 @@ the overhead when doing =XDP_TX=.  Selecting others BPF programs via
  sudo ./xdp_loader --dev mlx5p1 --force --prog xdp_tailgrow_tx
 #+end_src
 
+* Alternative methods
+
+** Works: Use loop to access data_end
+
+Code in [[file:xdp_prog_kern2.c]] shows howto find the =data_end=,
+*without parsing packet contents*, but by advancing a =data= position
+pointer one-byte at the time in a bounded loop.  The bounded loop with
+max number of iterations allows the verifier to see the bound.  (This
+obviously depend on the bounded loop support that was added in kernel
+[[https://git.kernel.org/torvalds/c/v5.3-rc1~140^2~179^2^2~5][v5.3]]).
+This is not very effecient, but it works.
+
 * Methods that fail
 
 Methods for accessing access BPF packet data at XDP =data_end=.
