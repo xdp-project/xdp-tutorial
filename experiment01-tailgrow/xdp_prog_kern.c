@@ -12,40 +12,6 @@
 #include "../common/xdp_stats_kern_user.h"
 #include "../common/xdp_stats_kern.h"
 
-SEC("xdp_tailgrow")
-int tailgrow_pass(struct xdp_md *ctx)
-{
-	int offset;
-
-	offset = 10;
-	bpf_xdp_adjust_tail(ctx, offset);
-	return xdp_stats_record_action(ctx, XDP_PASS);
-}
-
-SEC("xdp_pass")
-int xdp_pass_func(struct xdp_md *ctx)
-{
-	return xdp_stats_record_action(ctx, XDP_PASS);
-}
-
-/* For benchmarking tail grow overhead (does a memset)*/
-SEC("xdp_tailgrow_tx")
-int tailgrow_tx(struct xdp_md *ctx)
-{
-	int offset;
-
-	offset = 32;
-	bpf_xdp_adjust_tail(ctx, offset);
-	return xdp_stats_record_action(ctx, XDP_TX);
-}
-
-/* Baseline benchmark of XDP_TX */
-SEC("xdp_tx")
-int xdp_tx_rec(struct xdp_md *ctx)
-{
-	return xdp_stats_record_action(ctx, XDP_TX);
-}
-
 struct my_timestamp {
 	__u16 magic;
 	__u64 time;
@@ -124,6 +90,40 @@ int grow_parse(struct xdp_md *ctx)
 	}
 out:
 	return xdp_stats_record_action(ctx, action);
+}
+
+SEC("xdp_tailgrow")
+int tailgrow_pass(struct xdp_md *ctx)
+{
+	int offset;
+
+	offset = 10;
+	bpf_xdp_adjust_tail(ctx, offset);
+	return xdp_stats_record_action(ctx, XDP_PASS);
+}
+
+SEC("xdp_pass")
+int xdp_pass_func(struct xdp_md *ctx)
+{
+	return xdp_stats_record_action(ctx, XDP_PASS);
+}
+
+/* For benchmarking tail grow overhead (does a memset)*/
+SEC("xdp_tailgrow_tx")
+int tailgrow_tx(struct xdp_md *ctx)
+{
+	int offset;
+
+	offset = 32;
+	bpf_xdp_adjust_tail(ctx, offset);
+	return xdp_stats_record_action(ctx, XDP_TX);
+}
+
+/* Baseline benchmark of XDP_TX */
+SEC("xdp_tx")
+int xdp_tx_rec(struct xdp_md *ctx)
+{
+	return xdp_stats_record_action(ctx, XDP_TX);
 }
 
 char _license[] SEC("license") = "GPL";

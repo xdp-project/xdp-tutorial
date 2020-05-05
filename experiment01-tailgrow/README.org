@@ -23,3 +23,15 @@ implements this by parsing up-to the IP-layer, and using the
 IP-headers total-length field ([[https://elixir.bootlin.com/linux/v5.6.10/source/include/uapi/linux/ip.h#L97][iphdr->tot_len]]).  See the code for the
 strange bounding checks needed to convince the verifier.  Notice, this
 is limited to IPv4 ICMP packets for testing purposes.
+
+** Side-note: extra programs
+
+Side-note: [[file:xdp_prog_kern.c]] also contains some other smaller
+programs to test =bpf_xdp_adjust_tail= grow works, and to benchmark
+the overhead when doing =XDP_TX=.  Selecting others BPF programs via
+=xdp_loader= option =--prog== like this:
+
+#+begin_src sh
+ sudo ./xdp_loader --dev mlx5p1 --force --prog xdp_tailgrow
+ sudo ./xdp_loader --dev mlx5p1 --force --prog xdp_tailgrow_tx
+#+end_src
