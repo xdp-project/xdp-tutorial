@@ -125,30 +125,6 @@ out:
 	return xdp_stats_record_action(ctx, XDP_PASS);
 }
 
-/* Also invalid
-SEC("xdp_test4")
-int _xdp_test4(struct xdp_md *ctx)
-{
-	void *data_end = (void *)(long)ctx->data_end;
-	volatile unsigned char *ptr;
-	volatile void *pos;
-
-	pos = data_end;
-
-#pragma clang optimize off
-	if (pos - 1 > data_end)
-		goto out;
-
-	ptr = pos - 2;  //Err: "pointer arithmetic on pkt_end prohibited"
-	if (*ptr == 0xFF)
-		return XDP_ABORTED;
-#pragma clang optimize on
-out:
-	return XDP_PASS;
-}
-*/
-
-
 SEC("xdp_pass")
 int xdp_pass_f1(struct xdp_md *ctx)
 {

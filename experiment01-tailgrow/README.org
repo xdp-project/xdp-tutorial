@@ -50,3 +50,16 @@ calculation cannot be used for static analysis.
 #+begin_src sh
  sudo ./xdp_loader --dev mlx5p1 --force --file xdp_prog_fail1.o
 #+end_src
+
+** Fail#2: Use data_end directly
+
+In example [[file:xdp_prog_fail2.c]], we try to use the =data_end= pointer
+more or less directy to find the last byte in the packet.  The packet
+data [[https://www.mathwords.com/i/interval_notation.htm][interval]] is defined as =[data, data_end)=, meaning that the byte
+=data_end= is pointing is *excluded*.  The example tries to access
+2nd-last byte (to have a code if-construct that doesn't get removed by
+compiler optimizations).
+
+#+begin_src sh
+ sudo ./xdp_loader --dev mlx5p1 --force --file xdp_prog_fail2.o
+#+end_src

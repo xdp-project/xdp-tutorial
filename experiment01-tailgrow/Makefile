@@ -2,6 +2,7 @@
 
 XDP_TARGETS  := xdp_prog_kern xdp_prog_kern2
 XDP_TARGETS  += xdp_prog_fail1
+XDP_TARGETS  += xdp_prog_fail2
 
 # USER_TARGETS :=
 
