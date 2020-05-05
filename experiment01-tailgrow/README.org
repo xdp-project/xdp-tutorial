@@ -1,0 +1,21 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Experiment01 - Accessing data at packet end
+#+OPTIONS: ^:nil
+
+This example shows how to access BPF packet data at XDP =data_end=.
+Examples like this are needed, as the programmer needs to convince the
+BPF verifier that access bounds are safe.
+
+* Use-case: tail-grow timestamping
+
+The BPF helper =bpf_xdp_adjust_tail= is being extended with
+capabilites to grow the packet size at tail.  To use this for
+anything, we need to demo how to access packet data at XDP =data_end=.
+
+One use-case, which is showing in main example [[file:xdp_prog_kern.c]],
+is is to **add timestamps in extended tailroom** at XDP processing
+time, which will survive when packet is processed by network-stack
+(via XDP_PASS).  One way to capture this timestamp is to use
+=tcpdump=, which could use this to determine the time spend in
+network-stack (on NIC without hardware timestamps).
+
