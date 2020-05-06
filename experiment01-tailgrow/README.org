@@ -1,0 +1,77 @@
+# -*- fill-column: 76; -*-
+#+TITLE: Experiment01 - Accessing data at packet end
+#+OPTIONS: ^:nil
+
+This example shows how to access BPF packet data at XDP =data_end=.
+Examples like this are needed, as the programmer needs to convince the
+BPF verifier that access bounds are safe.
+
+* Use-case: tail-grow timestamping
+
+The BPF helper =bpf_xdp_adjust_tail= is being extended with
+capabilites to grow the packet size at tail.  To use this for
+anything, we need to demo how to access packet data at XDP =data_end=.
+
+One use-case is to *add timestamps in extended tailroom* at XDP
+processing time, which will survive when packet is processed by
+network-stack (via XDP_PASS).  One way to capture this timestamp is to
+use =tcpdump=, which could use this to determine the time spend in
+network-stack (on NIC without hardware timestamps).
+
+In main example [[file:xdp_prog_kern.c]], the =xdp_tailgrow_parse= code
+implements this by parsing up-to the IP-layer, and using the
+IP-headers total-length field ([[https://elixir.bootlin.com/linux/v5.6.10/source/include/uapi/linux/ip.h#L97][iphdr->tot_len]]).  See the code for the
+strange bounding checks needed to convince the verifier.  Notice, this
+is limited to IPv4 ICMP packets for testing purposes.
+
+** Side-note: extra programs
+
+Side-note: [[file:xdp_prog_kern.c]] also contains some other smaller
+programs to test =bpf_xdp_adjust_tail= grow works, and to benchmark
+the overhead when doing =XDP_TX=.  Selecting others BPF programs via
+=xdp_loader= option =--prog== like this:
+
+#+begin_src sh
+ sudo ./xdp_loader --dev mlx5p1 --force --prog xdp_tailgrow
+ sudo ./xdp_loader --dev mlx5p1 --force --prog xdp_tailgrow_tx
+#+end_src
+
+* Alternative methods
+
+** Works: Use loop to access data_end
+
+Code in [[file:xdp_prog_kern2.c]] shows howto find the =data_end=,
+*without parsing packet contents*, but by advancing a =data= position
+pointer one-byte at the time in a bounded loop.  The bounded loop with
+max number of iterations allows the verifier to see the bound.  (This
+obviously depend on the bounded loop support that was added in kernel
+[[https://git.kernel.org/torvalds/c/v5.3-rc1~140^2~179^2^2~5][v5.3]]).
+This is not very effecient, but it works.
+
+* Methods that fail
+
+Methods for accessing access BPF packet data at XDP =data_end=.
+
+** Fail#1: Using packet length
+
+In example [[file:xdp_prog_fail1.c]], we try to use the packet length
+(calculated as =data_end - data=) to access the last byte as an offset
+added to =data=.  The verifier rejects this, as the dynamic length
+calculation cannot be used for static analysis.
+
+#+begin_src sh
+ sudo ./xdp_loader --dev mlx5p1 --force --file xdp_prog_fail1.o
+#+end_src
+
+** Fail#2: Use data_end directly
+
+In example [[file:xdp_prog_fail2.c]], we try to use the =data_end= pointer
+more or less directy to find the last byte in the packet.  The packet
+data [[https://www.mathwords.com/i/interval_notation.htm][interval]] is defined as =[data, data_end)=, meaning that the byte
+=data_end= is pointing is *excluded*.  The example tries to access
+2nd-last byte (to have a code if-construct that doesn't get removed by
+compiler optimizations).
+
+#+begin_src sh
+ sudo ./xdp_loader --dev mlx5p1 --force --file xdp_prog_fail2.o
+#+end_src
