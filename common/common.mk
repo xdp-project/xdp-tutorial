@@ -90,8 +90,8 @@ $(OBJECT_LIBBPF):
 		echo "May need to run git submodule update --init"; \
 		exit 1; \
 	else \
-		cd $(LIBBPF_DIR) && $(MAKE) all; \
-		mkdir -p build; DESTDIR=build $(MAKE) install_headers; \
+		cd $(LIBBPF_DIR) && $(MAKE) all OBJDIR=.; \
+		mkdir -p build; $(MAKE) install_headers DESTDIR=build OBJDIR=.; \
 	fi
 
 # Create dependency: detect if C-file change and touch H-file, to trigger
