@@ -170,6 +170,7 @@ set_sysctls()
     [ -n "$in_ns" ] && nscmd="ip netns exec $in_ns"
     local sysctls=(accept_dad
                    accept_ra
+                   disable_ipv6
                    mldv1_unsolicited_report_interval
                    mldv2_unsolicited_report_interval)
 
