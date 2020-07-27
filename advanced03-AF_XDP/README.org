@@ -189,4 +189,4 @@ AF_XDP RX:             6 pkts (         1 pps)           0 Kbytes (     0 Mbits/
        TX:             6 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000118
 #+end_example
 
-Note that the full solution is present in the ad_xdp_user.c file.
+Note that the full solution is present in the af_xdp_user.c file.
