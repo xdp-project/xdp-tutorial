@@ -32,7 +32,10 @@ struct bpf_map_def SEC("maps") redirect_params = {
 
 static __always_inline __u16 csum_fold_helper(__u32 csum)
 {
-	return ~((csum & 0xffff) + (csum >> 16));
+	__u32 sum;
+	sum = (csum >> 16) + (csum & 0xffff);
+	sum += (sum >> 16);
+	return ~sum;
 }
 
 /*
