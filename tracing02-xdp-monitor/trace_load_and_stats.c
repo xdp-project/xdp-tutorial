@@ -796,7 +796,7 @@ static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
 	}
 
 	bpf_object__for_each_program(prog, obj) {
-		const char *sec = bpf_program__title(prog, true);
+		const char *sec = bpf_program__section_name(prog);
 		char *tp;
 
 		if (!sec) {
