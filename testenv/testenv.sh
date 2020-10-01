@@ -168,6 +168,7 @@ iface_macaddr()
     else
         output=$(ip -br link show dev "$iface")
     fi
+    printf "macaddr output: '%s' iface %s ns %s\n" "$output" $iface $ns >&2
     echo "$output" | awk '{print $3}'
 }
 
@@ -224,9 +225,12 @@ setup()
 
     ip netns add "$NS"
     ip link add dev "$NS" type veth peer name veth0 netns "$NS"
+    (echo "ip link after create: " && ip -br link) >&2
 
     OUTSIDE_MAC=$(iface_macaddr "$NS")
     INSIDE_MAC=$(iface_macaddr veth0 "$NS")
+
+    printf "outside mac: '%s' inside: '%s'\n" "$OUTSIDE_MAC" "$INSIDE_MAC" >&2
 
     set_sysctls $NS
     ip link set dev "$NS" up
@@ -234,6 +238,7 @@ setup()
     ethtool -K "$NS" rxvlan off txvlan off
     # Prevent neighbour queries on the link
     ip neigh add "$INSIDE_IP6" lladdr "$INSIDE_MAC" dev "$NS" nud permanent
+    (echo "ip neigh/route outside: " && ip neigh; ip -6 r) >&2
 
     set_sysctls veth0 "$NS"
     ip -n "$NS" link set dev lo up
@@ -245,6 +250,7 @@ setup()
     # Add route for whole test subnet, to make it easier to communicate between
     # namespaces
     ip -n "$NS" route add "${IP6_SUBNET}::/$IP6_FULL_PREFIX_SIZE" via "$OUTSIDE_IP6" dev veth0
+    (echo "ip output inside after setup:" && ip -br -n "$NS" addr; ip -br -n "$NS" neigh; ip -br -6 -n "$NS" route) >&2
 
     if [ "$LEGACY_IP" -eq "1" ]; then
         ip addr add dev "$NS" "${OUTSIDE_IP4}/${IP4_PREFIX_SIZE}"
