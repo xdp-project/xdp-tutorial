@@ -147,6 +147,8 @@ cleanup()
 {
     [ -n "$CLEANUP_FUNC" ] && $CLEANUP_FUNC
 
+    [ -d "$STATEDIR" ] || return 0
+
     local statefiles=("$STATEDIR"/*.state)
 
     if [ "${#statefiles[*]}" -eq 1 ] && [ ! -e "${statefiles[0]}" ]; then
