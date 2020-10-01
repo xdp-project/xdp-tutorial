@@ -188,6 +188,21 @@ set_sysctls()
     done
 }
 
+wait_for_dev()
+{
+    local iface="$1"
+    local in_ns="${2:-}"
+    local retries=5 # max retries
+    local nscmd=
+
+    [ -n "$in_ns" ] && nscmd="ip netns exec $in_ns"
+    while [ "$retries" -gt "0" ]; do
+        if ! $nscmd ip addr show dev $iface | grep -q tentative; then return 0; fi
+        sleep 0.5
+        retries=$((retries -1))
+    done
+}
+
 get_vlan_prefix()
 {
     # Split the IPv6 prefix, and add the VLAN ID to the upper byte of the fourth
@@ -285,7 +300,10 @@ setup()
 
     echo -n "Setup environment '$NS' with peer ip ${INSIDE_IP6}"
     [ "$ENABLE_IPV4" -eq "1" ] && echo " and ${INSIDE_IP4}." || echo "."
+    echo "Waiting for interface configuration to settle..."
     echo ""
+    wait_for_dev "$NS" && wait_for_dev veth0 "$NS"
+
     LEGACY_IP=0 USE_VLAN=0 run_ping -c 1
 
     echo "$NS" > "$STATEDIR/current"
