@@ -160,7 +160,15 @@ cleanup()
 iface_macaddr()
 {
     local iface="$1"
-    ip -br link show dev "$iface" | awk '{print $3}'
+    local ns="${2:-}"
+    local output
+
+    if [ -n "$ns" ]; then
+        output=$(ip -br -n "$ns" link show dev "$iface")
+    else
+        output=$(ip -br link show dev "$iface")
+    fi
+    echo "$output" | awk '{print $3}'
 }
 
 set_sysctls()
@@ -215,27 +223,25 @@ setup()
     fi
 
     ip netns add "$NS"
-    ip link add dev "$NS" type veth peer name "$PEERNAME"
-    OUTSIDE_MAC=$(iface_macaddr "$NS")
-    INSIDE_MAC=$(iface_macaddr "$PEERNAME")
-    set_sysctls $NS
+    ip link add dev "$NS" type veth peer name veth0 netns "$NS"
 
-    ethtool -K "$NS" rxvlan off txvlan off
-    ethtool -K "$PEERNAME" rxvlan off txvlan off
-    ip link set dev "$PEERNAME" netns "$NS"
+    OUTSIDE_MAC=$(iface_macaddr "$NS")
+    INSIDE_MAC=$(iface_macaddr veth0 "$NS")
+
+    set_sysctls $NS
     ip link set dev "$NS" up
     ip addr add dev "$NS" "${OUTSIDE_IP6}/${IP6_PREFIX_SIZE}"
-
-    ip -n "$NS" link set dev "$PEERNAME" name veth0
-    ip -n "$NS" link set dev lo up
-    ip -n "$NS" link set dev veth0 up
-    set_sysctls veth0 "$NS"
-    ip -n "$NS" addr add dev veth0 "${INSIDE_IP6}/${IP6_PREFIX_SIZE}"
-
+    ethtool -K "$NS" rxvlan off txvlan off
     # Prevent neighbour queries on the link
     ip neigh add "$INSIDE_IP6" lladdr "$INSIDE_MAC" dev "$NS" nud permanent
-    ip -n "$NS" neigh add "$OUTSIDE_IP6" lladdr "$OUTSIDE_MAC" dev veth0 nud permanent
 
+    set_sysctls veth0 "$NS"
+    ip -n "$NS" link set dev lo up
+    ip -n "$NS" link set dev veth0 up
+    ip -n "$NS" addr add dev veth0 "${INSIDE_IP6}/${IP6_PREFIX_SIZE}"
+    ip netns exec "$NS" ethtool -K veth0 rxvlan off txvlan off
+    # Prevent neighbour queries on the link
+    ip -n "$NS" neigh add "$OUTSIDE_IP6" lladdr "$OUTSIDE_MAC" dev veth0 nud permanent
     # Add route for whole test subnet, to make it easier to communicate between
     # namespaces
     ip -n "$NS" route add "${IP6_SUBNET}::/$IP6_FULL_PREFIX_SIZE" via "$OUTSIDE_IP6" dev veth0
