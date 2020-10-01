@@ -189,6 +189,21 @@ set_sysctls()
     done
 }
 
+wait_for_dev()
+{
+    local iface="$1"
+    local in_ns="${2:-}"
+    local retries=5 # max retries
+    local nscmd=
+
+    [ -n "$in_ns" ] && nscmd="ip netns exec $in_ns"
+    while [ "$retries" -gt "0" ]; do
+        if ! $nscmd ip addr show dev $iface | grep -q tentative; then return 0; fi
+        sleep 0.5
+        retries=$((retries -1))
+    done
+}
+
 get_vlan_prefix()
 {
     # Split the IPv6 prefix, and add the VLAN ID to the upper byte of the fourth
@@ -233,14 +248,16 @@ setup()
     printf "outside mac: '%s' inside: '%s'\n" "$OUTSIDE_MAC" "$INSIDE_MAC" >&2
 
     set_sysctls $NS
+    ip link set dev "$NS" up
     ip addr add dev "$NS" "${OUTSIDE_IP6}/${IP6_PREFIX_SIZE}"
     ethtool -K "$NS" rxvlan off txvlan off
     # Prevent neighbour queries on the link
     ip neigh add "$INSIDE_IP6" lladdr "$INSIDE_MAC" dev "$NS" nud permanent
-    ip link set dev "$NS" up
-    (echo "ip neigh/route outside: " && ip -br link; ip neigh; ip -6 r) >&2
+    (echo "ip neigh/route outside: " && ip -br link; ip neigh; ip -6 r; ip addr) >&2
 
     set_sysctls veth0 "$NS"
+    ip -n "$NS" link set dev lo up
+    ip -n "$NS" link set dev veth0 up
     ip -n "$NS" addr add dev veth0 "${INSIDE_IP6}/${IP6_PREFIX_SIZE}"
     ip netns exec "$NS" ethtool -K veth0 rxvlan off txvlan off
     # Prevent neighbour queries on the link
@@ -248,9 +265,7 @@ setup()
     # Add route for whole test subnet, to make it easier to communicate between
     # namespaces
     ip -n "$NS" route add "${IP6_SUBNET}::/$IP6_FULL_PREFIX_SIZE" via "$OUTSIDE_IP6" dev veth0
-    ip -n "$NS" link set dev lo up
-    ip -n "$NS" link set dev veth0 up
-    (echo "ip output inside after setup:" && ip -br -n "$NS" link; ip -br -n "$NS" addr; ip -br -n "$NS" neigh; ip -br -6 -n "$NS" route) >&2
+    (echo "ip output inside after setup:" && ip -br -n "$NS" link; ip -n "$NS" addr; ip -br -n "$NS" neigh; ip -br -6 -n "$NS" route) >&2
 
     if [ "$LEGACY_IP" -eq "1" ]; then
         ip addr add dev "$NS" "${OUTSIDE_IP4}/${IP4_PREFIX_SIZE}"
@@ -291,7 +306,10 @@ setup()
 
     echo -n "Setup environment '$NS' with peer ip ${INSIDE_IP6}"
     [ "$ENABLE_IPV4" -eq "1" ] && echo " and ${INSIDE_IP4}." || echo "."
+    echo "Waiting for interface configuration to settle..."
     echo ""
+    wait_for_dev "$NS" && wait_for_dev veth0 "$NS"
+
     LEGACY_IP=0 USE_VLAN=0 run_ping -c 1
 
     echo "$NS" > "$STATEDIR/current"
