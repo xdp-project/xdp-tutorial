@@ -240,14 +240,12 @@ setup()
     ip netns add "$NS"
     ip link add dev "$NS" type veth peer name veth0 netns "$NS"
 
-    OUTSIDE_MAC=$(iface_macaddr "$NS")
-    INSIDE_MAC=$(iface_macaddr veth0 "$NS")
-
     set_sysctls $NS
     ip link set dev "$NS" up
     ip addr add dev "$NS" "${OUTSIDE_IP6}/${IP6_PREFIX_SIZE}"
     ethtool -K "$NS" rxvlan off txvlan off
     # Prevent neighbour queries on the link
+    INSIDE_MAC=$(iface_macaddr veth0 "$NS")
     ip neigh add "$INSIDE_IP6" lladdr "$INSIDE_MAC" dev "$NS" nud permanent
 
     set_sysctls veth0 "$NS"
@@ -256,6 +254,7 @@ setup()
     ip -n "$NS" addr add dev veth0 "${INSIDE_IP6}/${IP6_PREFIX_SIZE}"
     ip netns exec "$NS" ethtool -K veth0 rxvlan off txvlan off
     # Prevent neighbour queries on the link
+    OUTSIDE_MAC=$(iface_macaddr "$NS")
     ip -n "$NS" neigh add "$OUTSIDE_IP6" lladdr "$OUTSIDE_MAC" dev veth0 nud permanent
     # Add route for whole test subnet, to make it easier to communicate between
     # namespaces
