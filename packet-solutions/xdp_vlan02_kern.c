@@ -79,10 +79,14 @@ int xdp_vlan_02(struct xdp_md *ctx)
 	struct collect_vlans vlans;
 
 	struct ethhdr *eth;
-	eth_type = parse_ethhdr_vlan(&nh, data_end, &eth, &vlans);
 
+	eth_type = parse_ethhdr_vlan(&nh, data_end, &eth, &vlans);
 	if (eth_type < 0)
 		return XDP_ABORTED;
+	/* The eth_type have skipped VLAN-types, but collected VLAN ids. The
+	 * eth ptr still points to Ethernet header, thus to check if this is a
+	 * VLAN packet do proto_is_vlan(eth->h_proto).
+	 */
 
 	/* The LLVM compiler is very clever, it sees that program only access
 	 * 2nd "inner" vlan (array index 1), and only does loop unroll of 2, and
@@ -117,7 +121,7 @@ int xdp_vlan_02(struct xdp_md *ctx)
 	}
 #endif
 	/* Hint: to inspect BPF byte-code run:
-	 *  llvm-objdump -S xdp_vlan02_kern.o
+	 *  llvm-objdump --no-show-raw-insn -S xdp_vlan02_kern.o
 	 */
 	return XDP_PASS;
 }
