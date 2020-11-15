@@ -12,7 +12,7 @@
 
 #if 0
 #define VLAN_VID_MASK		0x0fff /* VLAN Identifier */
-struct vlans {
+struct collect_vlans {
 	__u16 id[VLAN_MAX_DEPTH];
 };
 #endif
@@ -22,7 +22,7 @@ struct vlans {
 static __always_inline int __parse_ethhdr_vlan(struct hdr_cursor *nh,
 					       void *data_end,
 					       struct ethhdr **ethhdr,
-					       struct vlans *vlans)
+					       struct collect_vlans *vlans)
 {
 	struct ethhdr *eth = nh->pos;
 	int hdrsize = sizeof(*eth);
@@ -76,7 +76,7 @@ int xdp_vlan_02(struct xdp_md *ctx)
 	int eth_type;
 	nh.pos = data;
 
-	struct vlans vlans;
+	struct collect_vlans vlans;
 
 	struct ethhdr *eth;
 	eth_type = parse_ethhdr_vlan(&nh, data_end, &eth, &vlans);
