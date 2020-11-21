@@ -10,16 +10,19 @@
 #define VLAN_MAX_DEPTH 10
 #include "../common/parsing_helpers.h"
 
+#if 0
 #define VLAN_VID_MASK		0x0fff /* VLAN Identifier */
-struct vlans {
+struct collect_vlans {
 	__u16 id[VLAN_MAX_DEPTH];
 };
+#endif
 
+#if 0 /* moved to parsing_helpers.h */
 /* Based on parse_ethhdr() */
 static __always_inline int __parse_ethhdr_vlan(struct hdr_cursor *nh,
 					       void *data_end,
 					       struct ethhdr **ethhdr,
-					       struct vlans *vlans)
+					       struct collect_vlans *vlans)
 {
 	struct ethhdr *eth = nh->pos;
 	int hdrsize = sizeof(*eth);
@@ -51,7 +54,8 @@ static __always_inline int __parse_ethhdr_vlan(struct hdr_cursor *nh,
 
 		h_proto = vlh->h_vlan_encapsulated_proto;
 		if (vlans) {
-			vlans->id[i] =  vlh->h_vlan_TCI & VLAN_VID_MASK;
+			vlans->id[i] =
+				bpf_ntohs(vlh->h_vlan_TCI) & VLAN_VID_MASK;
 		}
 		vlh++;
 	}
@@ -59,6 +63,7 @@ static __always_inline int __parse_ethhdr_vlan(struct hdr_cursor *nh,
 	nh->pos = vlh;
 	return h_proto; /* network-byte-order */
 }
+#endif
 
 SEC("xdp_vlan02")
 int xdp_vlan_02(struct xdp_md *ctx)
@@ -71,13 +76,17 @@ int xdp_vlan_02(struct xdp_md *ctx)
 	int eth_type;
 	nh.pos = data;
 
-	struct vlans vlans;
+	struct collect_vlans vlans;
 
 	struct ethhdr *eth;
-	eth_type = __parse_ethhdr_vlan(&nh, data_end, &eth, &vlans);
 
+	eth_type = parse_ethhdr_vlan(&nh, data_end, &eth, &vlans);
 	if (eth_type < 0)
 		return XDP_ABORTED;
+	/* The eth_type have skipped VLAN-types, but collected VLAN ids. The
+	 * eth ptr still points to Ethernet header, thus to check if this is a
+	 * VLAN packet do proto_is_vlan(eth->h_proto).
+	 */
 
 	/* The LLVM compiler is very clever, it sees that program only access
 	 * 2nd "inner" vlan (array index 1), and only does loop unroll of 2, and
@@ -112,7 +121,7 @@ int xdp_vlan_02(struct xdp_md *ctx)
 	}
 #endif
 	/* Hint: to inspect BPF byte-code run:
-	 *  llvm-objdump -S xdp_vlan02_kern.o
+	 *  llvm-objdump --no-show-raw-insn -S xdp_vlan02_kern.o
 	 */
 	return XDP_PASS;
 }

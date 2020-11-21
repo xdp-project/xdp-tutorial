@@ -213,11 +213,13 @@ static int stats_poll(const char *pin_dir, int map_fd, __u32 id,
 			return EXIT_FAIL_BPF;
 		} else if (id != info.id) {
 			printf("BPF map xdp_stats_map changed its ID, restarting\n");
+			close(map_fd);
 			return 0;
 		}
 
 		stats_collect(map_fd, map_type, &record);
 		stats_print(&record, &prev);
+		close(map_fd);
 		sleep(interval);
 	}
 
@@ -275,6 +277,7 @@ int main(int argc, char **argv)
 		err = check_map_fd_info(&info, &map_expect);
 		if (err) {
 			fprintf(stderr, "ERR: map via FD not compatible\n");
+			close(stats_map_fd);
 			return err;
 		}
 		if (verbose) {
@@ -287,6 +290,7 @@ int main(int argc, char **argv)
 		}
 
 		err = stats_poll(pin_dir, stats_map_fd, info.id, info.type, interval);
+		close(stats_map_fd);
 		if (err < 0)
 			return err;
 	}

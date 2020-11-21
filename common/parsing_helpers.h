@@ -56,8 +56,14 @@ struct icmphdr_common {
 
 /* Allow users of header file to redefine VLAN max depth */
 #ifndef VLAN_MAX_DEPTH
-#define VLAN_MAX_DEPTH 4
+#define VLAN_MAX_DEPTH 2
 #endif
+
+#define VLAN_VID_MASK		0x0fff /* VLAN Identifier */
+/* Struct for collecting VLANs after parsing via parse_ethhdr_vlan */
+struct collect_vlans {
+	__u16 id[VLAN_MAX_DEPTH];
+};
 
 static __always_inline int proto_is_vlan(__u16 h_proto)
 {
@@ -70,8 +76,10 @@ static __always_inline int proto_is_vlan(__u16 h_proto)
  * Ethernet header. Thus, caller can look at eth->h_proto to see if this was a
  * VLAN tagged packet.
  */
-static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end,
-					struct ethhdr **ethhdr)
+static __always_inline int parse_ethhdr_vlan(struct hdr_cursor *nh,
+					     void *data_end,
+					     struct ethhdr **ethhdr,
+					     struct collect_vlans *vlans)
 {
 	struct ethhdr *eth = nh->pos;
 	int hdrsize = sizeof(*eth);
@@ -102,11 +110,23 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end,
 			break;
 
 		h_proto = vlh->h_vlan_encapsulated_proto;
+		if (vlans) /* collect VLAN ids */
+			vlans->id[i] =
+				(bpf_ntohs(vlh->h_vlan_TCI) & VLAN_VID_MASK);
+
 		vlh++;
 	}
 
 	nh->pos = vlh;
 	return h_proto; /* network-byte-order */
+}
+
+static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
+					void *data_end,
+					struct ethhdr **ethhdr)
+{
+	/* Expect compiler removes the code that collects VLAN ids */
+	return parse_ethhdr_vlan(nh, data_end, ethhdr, NULL);
 }
 
 static __always_inline int parse_ip6hdr(struct hdr_cursor *nh,
