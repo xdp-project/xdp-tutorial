@@ -159,7 +159,7 @@ int xdp_redirect_func(struct xdp_md *ctx)
 	struct ethhdr *eth;
 	int eth_type;
 	int action = XDP_PASS;
-	unsigned char dst[ETH_ALEN] = { /* TODO: put your values here */ };
+	unsigned char dst[ETH_ALEN+1] = { /* TODO: put your values here. Extra symbol for the null character. */ };
 	unsigned ifindex = 0/* TODO: put your values here */;
 
 	/* These keep track of the next header type and iterator pointer */
