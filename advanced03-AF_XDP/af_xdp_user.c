@@ -249,6 +249,8 @@ static void complete_tx(struct xsk_socket_info *xsk)
 								      idx_cq++));
 
 		xsk_ring_cons__release(&xsk->umem->cq, completed);
+		xsk->outstanding_tx -= completed < xsk->outstanding_tx ?
+			completed : xsk->outstanding_tx;
 	}
 }
 
