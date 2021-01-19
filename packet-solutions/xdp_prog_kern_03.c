@@ -224,6 +224,13 @@ static __always_inline int ip_decrease_ttl(struct iphdr *iph)
 	return --iph->ttl;
 }
 
+#define bpf_printk(fmt, ...)                                    \
+({                                                              \
+	char ____fmt[] = fmt;                                   \
+	bpf_trace_printk(____fmt, sizeof(____fmt),              \
+                         ##__VA_ARGS__);                        \
+})
+
 /* Solution to packet03/assignment-4 */
 SEC("xdp_router")
 int xdp_router_func(struct xdp_md *ctx)
@@ -293,6 +300,8 @@ int xdp_router_func(struct xdp_md *ctx)
 	fib_params.ifindex = ctx->ingress_ifindex;
 
 	rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0);
+	bpf_printk("bpf_fib_lookup returned %d on ifindex %d with tgt %d\n",
+		   rc, ctx->ingress_ifindex, fib_params.ifindex);
 	switch (rc) {
 	case BPF_FIB_LKUP_RET_SUCCESS:         /* lookup successful */
 		if (h_proto == bpf_htons(ETH_P_IP))
