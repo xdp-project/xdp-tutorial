@@ -78,7 +78,7 @@ xdp_prog_simple:
        1:	95 00 00 00 00 00 00 00 	exit
 #+end_example
 
-If you don't want to see the raw BPF instructions add: =-no-show-raw-insn=.
+If you don't want to see the raw BPF instructions add: =--no-show-raw-insn=.
 The define/enum XDP_PASS has a value of 2, as can be seen in the dump. The
 section name "xdp" was defined by =SEC("xdp")=, and the =xdp_prog_simple:=
 is our C-function name.
