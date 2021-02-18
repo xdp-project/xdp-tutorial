@@ -97,7 +97,7 @@ xdp_stats_map value and produce some stats.
 
 * Assignments
 
-The assignments are have "hint" marks in the code via =Assignment#num=
+The assignments have "hint" marks in the code via =Assignment#num=
 comments.
 
 ** Assignment 1: Add bytes counter
