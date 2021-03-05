@@ -160,7 +160,7 @@ static __always_inline int parse_iphdr(struct hdr_cursor *nh,
 
 	hdrsize = iph->ihl * 4;
 	/* Sanity check packet field is valid */
-	if(hdrsize < sizeof(iph))
+	if(hdrsize < sizeof(*iph))
 		return -1;
 
 	/* Variable-length IPv4 header, need to use byte-based arithmetic */
@@ -256,7 +256,7 @@ static __always_inline int parse_tcphdr(struct hdr_cursor *nh,
 
 	len = h->doff * 4;
 	/* Sanity check packet field is valid */
-	if(len < sizeof(h))
+	if(len < sizeof(*h))
 		return -1;
 
 	/* Variable-length TCP header, need to use byte-based arithmetic */
