@@ -4,8 +4,6 @@
 #include <linux/in.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
-#include <linux/ipv6.h>
-#include <linux/icmpv6.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
 /* Defines xdp_stats_map from packet04 */
@@ -15,6 +13,31 @@
 /* Header cursor to keep track of current parsing position */
 struct hdr_cursor {
 	void *pos;
+};
+
+struct iphdr {
+	unsigned char	test;
+	unsigned char	protocol;
+	/*
+#if defined(__LITTLE_ENDIAN_BITFIELD)
+	unsigned char	ihl:4,
+		version:4;
+#elif defined (__BIG_ENDIAN_BITFIELD)
+	unsigned char	version:4,
+  		ihl:4;
+#else
+#error	"Please fix <asm/byteorder.h>"
+#endif
+	unsigned char	tos;
+	unsigned short	tot_len;
+	unsigned short	id;
+	unsigned short	frag_off;
+	unsigned char	ttl;
+	unsigned char	protocol;
+	unsigned short	check;
+	unsigned int	saddr;
+	unsigned int	daddr;
+	The options start here. */
 };
 
 /* Packet parsing helpers.
@@ -36,7 +59,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 	/* Byte-count bounds check; check if current pointer + size of header
 	 * is after data_end.
 	 */
-	if (nh->pos + 1 > data_end)
+	if (nh->pos + hdrsize > data_end)
 		return -1;
 
 	nh->pos += hdrsize;
@@ -46,11 +69,24 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 }
 
 /* Assignment 2: Implement and use this */
-/*static __always_inline int parse_ip6hdr(struct hdr_cursor *nh,
+static __always_inline int parse_iphdr(struct hdr_cursor *nh,
 					void *data_end,
-					struct ipv6hdr **ip6hdr)
+					struct iphdr **hdr)
 {
-}*/
+	struct iphdr *ip4 = nh->pos;
+	int hdrsize = sizeof(*hdr);
+
+	/* Byte-count bounds check; check if current pointer + size of header
+	 * is after data_end.
+	 */
+	if (nh->pos + hdrsize > data_end)
+		return -1;
+
+	nh->pos += hdrsize;
+	*hdr = ip4;
+
+	return ip4->protocol; /* network-byte-order */
+}
 
 /* Assignment 3: Implement and use this */
 /*static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,
@@ -65,6 +101,7 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
 	struct ethhdr *eth;
+	struct iphdr *ip4;
 
 	/* Default action XDP_PASS, imply everything we couldn't parse, or that
 	 * we don't want to deal with, we just pass up the stack and let the
@@ -84,12 +121,15 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 * header type in the packet correct?), and bounds checking.
 	 */
 	nh_type = parse_ethhdr(&nh, data_end, &eth);
-	if (nh_type != bpf_htons(ETH_P_IPV6))
+	if (nh_type != bpf_htons(ETH_P_IP))
 		goto out;
 
-	/* Assignment additions go below here */
+	int proto = parse_iphdr(&nh, data_end, &ip4);
+	if (proto == 6) {
+		/* drop tcp */
+		action = XDP_DROP;
+	}
 
-	action = XDP_DROP;
 out:
 	return xdp_stats_record_action(ctx, action); /* read via xdp_stats */
 }
