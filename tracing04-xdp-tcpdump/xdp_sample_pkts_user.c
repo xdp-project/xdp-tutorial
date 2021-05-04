@@ -113,7 +113,7 @@ static int print_bpf_output(void *data, int size)
 
 	err = clock_gettime(CLOCK_MONOTONIC, &ts);
 	if (err < 0) {
-		printf("Error with gettimeofday! (%i)\n", err);
+		printf("Error with clock_gettime! (%i)\n", err);
 		return LIBBPF_PERF_EVENT_ERROR;
 	}
 
@@ -288,15 +288,15 @@ int main(int argc, char **argv)
 	char filename[256];
 	int ret, err, i;
 	int numcpus = bpf_num_possible_cpus();
-        struct config cfg = {
-                .xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
-                .ifindex   = -1,
-        };
+	struct config cfg = {
+		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
+		.ifindex   = -1,
+	};
 
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
 
-        /* Cmdline options can change these */
-        parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
+	/* Cmdline options can change these */
+	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	/* Required option */
 	if (cfg.ifindex == -1) {
