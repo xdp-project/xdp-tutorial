@@ -22,7 +22,7 @@ static inline __u64 ether_addr_to_u64(const __u8 *addr)
 	__u64 u = 0;
 	int i;
 
-	for (i = ETH_ALEN; i >= 0; i--)
+	for (i = ETH_ALEN - 1; i >= 0; i--)
 		u = u << 8 | addr[i];
 	return u;
 }

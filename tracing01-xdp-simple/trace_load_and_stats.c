@@ -61,7 +61,7 @@ int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
 
 	/* Lesson#3: bpf_object to bpf_map */
 	map = bpf_object__find_map_by_name(bpf_obj, mapname);
-        if (!map) {
+	if (!map) {
 		fprintf(stderr, "ERR: cannot find map by name: %s\n", mapname);
 		goto out;
 	}
@@ -95,6 +95,7 @@ static void stats_print(int map_fd)
 		if ((bpf_map_lookup_elem(map_fd, keyp, values)) != 0) {
 			fprintf(stderr,
 				"ERR: bpf_map_lookup_elem failed key:0x%X\n", key);
+			continue;
 		}
 
 		/* Sum values from each CPU */
@@ -103,7 +104,7 @@ static void stats_print(int map_fd)
 
 		printf("%s (%llu) ", if_indextoname(key, dev), total);
 		prev_keyp = keyp;
-        }
+	}
 
 	printf("\n");
 }

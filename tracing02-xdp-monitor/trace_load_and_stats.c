@@ -273,7 +273,7 @@ static __u64 gettime(void)
 
 	res = clock_gettime(CLOCK_MONOTONIC, &t);
 	if (res < 0) {
-		fprintf(stderr, "Error with gettimeofday! (%i)\n", res);
+		fprintf(stderr, "Error with clock_gettime! (%i)\n", res);
 		exit(-1);
 	}
 	return (__u64) t.tv_sec * NANOSEC_PER_SEC + t.tv_nsec;
