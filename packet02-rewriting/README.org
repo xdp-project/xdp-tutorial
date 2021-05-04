@@ -58,8 +58,9 @@ There are a few things to be aware of when using this helper:
    data and data_end pointers* after adjusting the packet size.
 
 There is also a =bpf_xdp_adjust_tail()= which can be used to move the end of
-the packet data, but this only supports shrinking the packet, not extending it;
-but otherwise it functions identically to =bpf_xdp_adjust_head()=.
+the packet data. From kernel v5.8 it functions identically to
+=bpf_xdp_adjust_head()=, before that it was only possible to shrink the
+packet at the tail, not grow it.
 
 * Assignments
 
