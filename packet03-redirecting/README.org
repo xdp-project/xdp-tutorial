@@ -139,7 +139,7 @@ To test load the program, enter the right environment, and ping the inner
 interface of the left environment (your IPv6 address may be different):
 #+begin_src sh
 $ t enter -n right
-$ ping fc00:dead:cafe:10::2
+$ ping fc00:dead:cafe:1::2
 #+end_src
 Run the =tcpdump= program inside the =left= environment. You should see that
 the ping requests are delivered and ping replies are sent back. However, unless
@@ -149,8 +149,8 @@ in the next assignment.)
 $ t enter -n left
 # tcpdump -l
 listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
-17:03:11.455320 IP6 fc00:dead:cafe:11::2 > fc00:dead:cafe:10::2: ICMP6, echo request, seq 1, length 64
-17:03:11.455343 IP6 fc00:dead:cafe:10::2 > fc00:dead:cafe:11::2: ICMP6, echo reply, seq 1, length 64
+17:03:11.455320 IP6 fc00:dead:cafe:2::2 > fc00:dead:cafe:1::2: ICMP6, echo request, seq 1, length 64
+17:03:11.455343 IP6 fc00:dead:cafe:1::2 > fc00:dead:cafe:2::2: ICMP6, echo reply, seq 1, length 64
 #+end_src
 Finally, just in case, check that the =right= environment actually redirects
 packets (=XDP_REDIRECT= row should be non-zero):
