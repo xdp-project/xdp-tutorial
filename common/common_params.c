@@ -175,6 +175,7 @@ void parse_cmdline_args(int argc, char **argv,
 		case 'R': /* --dest-mac */
 			dest  = (char *)&cfg->dest_mac;
 			strncpy(dest, optarg, sizeof(cfg->dest_mac));
+			break;
 		case 'c':
 			cfg->xsk_bind_flags &= XDP_ZEROCOPY;
 			cfg->xsk_bind_flags |= XDP_COPY;
