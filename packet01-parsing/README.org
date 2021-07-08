@@ -146,7 +146,7 @@ enum xdp_action {
 
 =ABORTED= and =DROP= will both drop the packet, but =ABORTED= will also
 trigger a tracepoint event (=xdp:xdp_exception=; this has zero overhead when
-the tracepoint is not). =PASS= will allow the packet to continue up to the
+the tracepoint is not reached). =PASS= will allow the packet to continue up to the
 kernel networking stack for processing, =TX= will retransmit the packet out
 of the same interface it was received on, and =REDIRECT= will transmit the
 packet out of another interface (where the destination interface needs to be
@@ -235,7 +235,7 @@ pointer will move the memory it is pointing to by the size of the structure.
 Using this will get you a bounds check that looks like this:
 
 #+begin_src C
-	struct ipv6hdr *ip6h = *nexthdr;
+	struct ipv6hdr *ip6h = nh->pos;
 
 	/* Pointer-arithmetic bounds check; pointer +1 points to after end of
 	 * thing being pointed to. We will be using this style in the remainder

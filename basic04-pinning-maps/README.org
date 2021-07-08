@@ -92,7 +92,7 @@ try to "unpin maps" as that will fail.
 There is one corner case that we currently don't handle, namely the case
 where our BPF-prog get extended with a new map, and is loaded as a
 replacement for an existing BPF progam that doesn't contain this new map. In
-this case, =bpf_object__unpin_maps()= won't finding the new map to unlink,
+this case, =bpf_object__unpin_maps()= won't find the new map to unlink,
 and therefore fail in its operation.
 
 ** Deleting maps on XDP reload
