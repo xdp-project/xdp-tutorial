@@ -235,7 +235,7 @@ pointer will move the memory it is pointing to by the size of the structure.
 Using this will get you a bounds check that looks like this:
 
 #+begin_src C
-	struct ipv6hdr *ip6h = *nexthdr;
+	struct ipv6hdr *ip6h = nh->pos;
 
 	/* Pointer-arithmetic bounds check; pointer +1 points to after end of
 	 * thing being pointed to. We will be using this style in the remainder
