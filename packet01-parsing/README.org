@@ -146,7 +146,7 @@ enum xdp_action {
 
 =ABORTED= and =DROP= will both drop the packet, but =ABORTED= will also
 trigger a tracepoint event (=xdp:xdp_exception=; this has zero overhead when
-the tracepoint is not). =PASS= will allow the packet to continue up to the
+the tracepoint is not reached). =PASS= will allow the packet to continue up to the
 kernel networking stack for processing, =TX= will retransmit the packet out
 of the same interface it was received on, and =REDIRECT= will transmit the
 packet out of another interface (where the destination interface needs to be
