@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 	if (err)
 		return err;
 
-        /* This step is not really needed , BPF-info via bpf-syscall */
+	/* This step is not really needed , BPF-info via bpf-syscall */
 	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
 	if (err) {
 		fprintf(stderr, "ERR: can't get prog info - %s\n",

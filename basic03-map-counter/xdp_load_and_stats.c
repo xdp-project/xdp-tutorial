@@ -67,7 +67,7 @@ int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
 
 	/* Lesson#3: bpf_object to bpf_map */
 	map = bpf_object__find_map_by_name(bpf_obj, mapname);
-        if (!map) {
+	if (!map) {
 		fprintf(stderr, "ERR: cannot find map by name: %s\n", mapname);
 		goto out;
 	}
@@ -85,7 +85,7 @@ static __u64 gettime(void)
 
 	res = clock_gettime(CLOCK_MONOTONIC, &t);
 	if (res < 0) {
-		fprintf(stderr, "Error with gettimeofday! (%i)\n", res);
+		fprintf(stderr, "Error with clock_gettime! (%i)\n", res);
 		exit(EXIT_FAIL);
 	}
 	return (__u64) t.tv_sec * NANOSEC_PER_SEC + t.tv_nsec;
@@ -131,7 +131,7 @@ static void stats_print(struct stats_record *stats_rec,
 
 		period = calc_period(rec, prev);
 		if (period == 0)
-		       return;
+			return;
 
 		packets = rec->total.rx_packets - prev->total.rx_packets;
 		pps     = packets / period;
