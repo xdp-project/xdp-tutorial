@@ -66,7 +66,7 @@ On a machine running the Fedora Linux distribution, install the packages:
 
 #+begin_example
  $ sudo dnf install clang llvm
- $ sudo dnf install elfutils-libelf-devel libpcap-devel perf
+ $ sudo dnf install elfutils-libelf-devel libpcap-devel zlib-devel perf
 #+end_example
 
 Note also that Fedora by default sets a limit on the amount of locked memory
@@ -86,7 +86,7 @@ Note that you need to do this in the shell you are using to load programs
 On Debian and Ubuntu installations, install the dependencies like this:
 
 #+begin_example
- $ sudo apt install clang llvm libelf-dev libpcap-dev gcc-multilib build-essential
+ $ sudo apt install clang llvm libelf-dev libpcap-dev zlib1g-dev gcc-multilib build-essential
 #+end_example
 
 To install the 'perf' utility, run this on Debian:
@@ -105,7 +105,7 @@ or this on Ubuntu:
 On a machine running the openSUSE distribution, install the packages:
 
 #+begin_example
- $ sudo zypper install clang llvm libelf-devel libpcap-devel perf
+ $ sudo zypper install clang llvm libelf-devel libpcap-devel zlib-devel perf
 #+end_example
 
 * Kernel headers dependency
