@@ -169,6 +169,16 @@ static struct bpf_object *open_bpf_object(const char *file, int ifindex)
 	return obj;
 }
 
+static void sanitize_pin_path(char *s)
+{
+	/* bpffs disallows periods in path names */
+	while (*s) {
+		if (*s == '.')
+			*s = '_';
+		s++;
+	}
+}
+
 static int reuse_maps(struct bpf_object *obj, const char *path)
 {
 	struct bpf_map *map;
@@ -191,6 +201,7 @@ static int reuse_maps(struct bpf_object *obj, const char *path)
 			return -ENAMETOOLONG;
 		}
 
+		sanitize_pin_path(buf);
 		pinned_map_fd = bpf_obj_get(buf);
 		if (pinned_map_fd < 0)
 			return pinned_map_fd;
