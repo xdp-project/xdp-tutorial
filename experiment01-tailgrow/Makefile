@@ -5,6 +5,7 @@ XDP_TARGETS  += xdp_prog_kern3
 XDP_TARGETS  += xdp_prog_kern4
 XDP_TARGETS  += xdp_prog_fail1
 XDP_TARGETS  += xdp_prog_fail2
+XDP_TARGETS  += xdp_prog_fail3
 
 # USER_TARGETS :=
 
