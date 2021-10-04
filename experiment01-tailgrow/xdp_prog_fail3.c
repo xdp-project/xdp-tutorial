@@ -2,6 +2,8 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
+#define MAX_PACKET_OFF 0x7fff
+
 /*
  * This BPF-prog will FAIL, due to verifier rejecting it.
  *
@@ -10,8 +12,8 @@
  * the packet length at verification time.
  */
 
-SEC("xdp_fail1")
-int _xdp_fail1(struct xdp_md *ctx)
+SEC("xdp_fail3")
+int _xdp_fail3(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
@@ -25,6 +27,11 @@ int _xdp_fail1(struct xdp_md *ctx)
 	 * offset value static value.
 	 */
 	unsigned int offset = data_end - data;
+
+	/* Help verifier with bounds checks */
+	offset = offset & MAX_PACKET_OFF; /* Give verifier max_value */
+	if (offset < 14)
+		offset = 14; /* Give verifier min_value */
 
 	pos = data;
 
