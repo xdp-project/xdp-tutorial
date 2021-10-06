@@ -18,7 +18,6 @@ int _xdp_fail3(struct xdp_md *ctx)
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
 	unsigned char *ptr;
-	void *pos;
 
 	/* (Correct me if I'm wrong)
 	 *
@@ -33,9 +32,7 @@ int _xdp_fail3(struct xdp_md *ctx)
 	if (offset < 14)
 		offset = 14; /* Give verifier min_value */
 
-	pos = data;
-
-	if (pos + offset > data_end)
+	if (data + offset > data_end)
 		goto out;
 
 	/* Fails at this line with:
@@ -45,7 +42,7 @@ int _xdp_fail3(struct xdp_md *ctx)
 	 * Because verifer used offset==0 it thinks that we are trying
 	 * to access (data - 1), which is not within [data,data_end)
 	 */
-	ptr = pos + (offset - sizeof(*ptr));
+	ptr = data + (offset - sizeof(*ptr));
 	if (*ptr == 0xFF)
 		return XDP_ABORTED;
 out:
