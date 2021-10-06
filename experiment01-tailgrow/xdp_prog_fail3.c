@@ -29,8 +29,8 @@ int _xdp_fail3(struct xdp_md *ctx)
 
 	/* Help verifier with bounds checks */
 	offset = offset & MAX_PACKET_OFF; /* Give verifier max_value */
-	if (offset < 14)
-		offset = 14; /* Give verifier min_value */
+	if (offset < 2)
+		offset = 2; /* Give verifier min_value */
 
 	if (data + offset > data_end)
 		goto out;
