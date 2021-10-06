@@ -4,6 +4,11 @@
 
 #define MAX_PACKET_OFF 0x7fff
 
+/* This is a barrier_var() operation that makes specified variable
+ * "a black box" for optimizing compiler.
+ */
+#define barrier_var(var) asm volatile("" : "=r"(var) : "0"(var))
+
 /*
  * This BPF-prog will FAIL, due to verifier rejecting it.
  *
