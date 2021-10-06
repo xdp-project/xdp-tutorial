@@ -26,7 +26,7 @@ int _xdp_fail3(struct xdp_md *ctx)
 	 * part of its static analysis.  It chooses to use zero as the
 	 * offset value static value.
 	 */
-	unsigned int offset = data_end - data;
+	__u64 offset = data_end - data;
 
 	/* Help verifier with bounds checks */
 	offset = offset & MAX_PACKET_OFF; /* Give verifier max_value */
