@@ -305,8 +305,8 @@ this (copied from the internal kernel headers):
 
 #+begin_src C
 struct vlan_hdr {
-	__be16	h_vlan_TCI;
 	__be16	h_vlan_encapsulated_proto;
+	__be16	h_vlan_TCI;
 };
 #+end_src
 
