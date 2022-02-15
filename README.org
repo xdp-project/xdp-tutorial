@@ -1,5 +1,5 @@
 # -*- fill-column: 76; -*-
-#+TITLE: XDP Hands-On Tutorial
+#+TITLE: XDP Programming Hands-On Tutorial
 #+OPTIONS: ^:nil
 
 This repository contains a tutorial that aims to introduce you to the basic
@@ -38,7 +38,8 @@ This tutorial aims to be a practical introduction to the different steps
 needed to successfully write useful programs using the XDP system. We assume
 you have a basic understanding of Linux networking and how to configure it
 with the =iproute2= suite of tools, but assume no prior experience with eBPF
-or XDP.
+or XDP. Prior programming experience is also helpful: the lessons are all
+written in C and they include some basic pointer arithmetic and aliasing.
 
 The tutorial is a work in progress, and was initially created for use as a
 live tutorial at the [[https://www.netdevconf.org/0x13/session.html?tutorial-XDP-hands-on][Netdev Conference]] in Prague in March 2019. Since the
