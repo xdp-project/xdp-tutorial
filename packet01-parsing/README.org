@@ -245,6 +245,10 @@ Using this will get you a bounds check that looks like this:
 		return -1;
 #+end_src
 
+Don't forget to also increment the nh->pos pointer so it points to the data
+right after the IP header, which is what you'll be looking at when parsing
+the ICMPv6 header in the next assignment.
+
 To check that your program works, test that it compiles and loads. You can
 also change the return code to drop IP packets, and check that this works
 using either =t tcpdump= or =t ping=.
