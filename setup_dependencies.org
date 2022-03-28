@@ -176,14 +176,13 @@ version.)
 
 ** Packages on Debian
 
-Unfortunately, bpftool is not officially packaged for Debian
-[[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=896165)][yet]].
+Starting from Debian Bullseye, bpftool can be installed with:
 
-However, note that an unofficial
-[[https://help.netronome.com/helpdesk/attachments/36025601060][.deb package]]
-is provided by Netronome
-[[https://help.netronome.com/support/solutions/articles/36000050009-agilio-ebpf-2-0-6-extended-berkeley-packet-filter][on their support website]].
-The binary is statically linked, and should work on any x86-64 Linux machine.
+#+begin_example
+ $ sudo apt install bpftool
+#+end_example
+
+(If you are on Debian Buster, you can get it from [[https://backports.debian.org][buster-backports]].)
 
 ** Packages on openSUSE
 
