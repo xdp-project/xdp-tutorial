@@ -46,13 +46,14 @@ an option to forward packets to egress ports of other interfaces (if the
 corresponding driver supports this feature). This can be done using the
 =bpf_redirect= or =bpf_redirect_map= helpers. These helpers will return the
 =XDP_REDIRECT= value and this is what should the program return. The
-=bpf_redirect= helper actually shouldn't be used in production as it is slow
-and can't be configured from user space.  However, we will use it in the
-Assignment 2 for the sake of simplicity. To use the =bpf_redirect_map= helper
-we need to setup a special map of type =BPF_MAP_TYPE_DEVMAP= which maps virtual
-ports to actual network devices. See [[https://lwn.net/Articles/728146][this
-patch series]] which implemented the XDP redirect functionality. An example of
-usage can be found in the
+=bpf_redirect= helper takes the interface index of the redirect port as
+parameter and may be used with other helpers such as =bpf_fib_lookup=. We will
+use it in Assignment 2 in a simpler way, and again in Assignment 4 with a kernel
+fib lookup. To use the =bpf_redirect_map= helper we need to setup a special map
+of type =BPF_MAP_TYPE_DEVMAP= which maps virtual ports to actual network
+devices. See [[https://lwn.net/Articles/728146][this patch series]] which
+implemented the XDP redirect functionality. An example of usage can be found in
+the
 [[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp_redirect_map_kern.c][xdp_redirect_map_kern.c]]
 file and the corresponding loader.
 
@@ -171,9 +172,9 @@ XDP_REDIRECT         176 pkts (         4 pps)          20 Kbytes (     0 Mbits/
 ** Assignment 3: Extend to a bidirectional router
 
 In the previous assignment we were able to pass packets from one interface to
-the other. However, we were using the wrong =bpf_redirect= helper and needed to
-hardcode interface number and MAC addresses. This is not useful and we will use
-better techniques in this Assignment.
+the other. However, we needed to hard code the interface number and MAC
+addresses. This is not useful and we will use better techniques in this
+Assignment.
 
 This Assignment will show how to use the =bpf_redirect_map= function. Besides
 that, to make the program more useful we will use a map which will contain a
@@ -246,13 +247,11 @@ and return =XDP_PASS= when packets destined to outer interfaces, but this
 doesn't cover all cases and wouldn't it be better to dynamically lookup
 where each packet should go?
 
-This assignment teaches to use the =bpf_fib_lookup= helper. This function lets
-XDP and TC programs to access the kernel routing table and will return an
-ifindex of interface to forward packet to.  As was noted the =bpf_redirect_map=
-function accepts virtual ports, so to use ifindexes you will need to update the
-=xdp_prog_user.c= program to setup 1-1 mapping between virtual ports and
-network devices where each virtual port corresponds to a device with the same
-ifindex.
+This assignment teaches how to use the =bpf_fib_lookup= helper. This function
+lets XDP and TC programs access the kernel routing table and will return the
+ifindex of interface to forward packet to, along with source and destination
+mac addresses. After updating the Ethernet header, we can then redirect the
+packet to this interface with the =bpf_redirect= function.
 
 The Assignment, for the most part, reproduces the
 [[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp_fwd_kern.c][xdp_fwd_kern.c]]
@@ -285,10 +284,6 @@ $ t load -n tres -- -F --progsec xdp_router
 $ t exec -n uno -- ./xdp_loader -d veth0 -F --progsec xdp_pass
 $ t exec -n dos -- ./xdp_loader -d veth0 -F --progsec xdp_pass
 $ t exec -n tres -- ./xdp_loader -d veth0 -F --progsec xdp_pass
-
-$ sudo ./xdp_prog_user -d uno
-$ sudo ./xdp_prog_user -d dos
-$ sudo ./xdp_prog_user -d tres
 
 $ sudo ./xdp_stats -d uno
 $ sudo ./xdp_stats -d dos

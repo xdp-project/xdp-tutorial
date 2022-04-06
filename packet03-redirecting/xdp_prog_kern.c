@@ -242,10 +242,10 @@ int xdp_router_func(struct xdp_md *ctx)
 			ip6h->hop_limit--;
 
 		/* Assignment 4: fill in the eth destination and source
-		 * addresses and call the bpf_redirect_map function */
+		 * addresses and call the bpf_redirect function */
 		/* memcpy(eth->h_dest, ???, ETH_ALEN); */
 		/* memcpy(eth->h_source, ???, ETH_ALEN); */
-		/* action = bpf_redirect_map(&tx_port, ???, 0); */
+		/* action = bpf_redirect(???, 0); */
 		break;
 	case BPF_FIB_LKUP_RET_BLACKHOLE:    /* dest is blackholed; can be dropped */
 	case BPF_FIB_LKUP_RET_UNREACHABLE:  /* dest is unreachable; can be dropped */
