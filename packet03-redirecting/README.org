@@ -131,11 +131,11 @@ Env 1                         Env 2
 #+end_src
 Setup the two environments, patch the =xdp_redirect= program accordingly, and
 attach it to the =right= interface.  Don't forget to attach a dummy program to
-the left inner interface like this:
+the left /inner/ interface like this:
 #+begin_src sh
 $ t exec -n left -- ./xdp_loader -d veth0 -F --progsec xdp_pass
 #+end_src
-To test load the program, enter the right environment, and ping the inner
+To test load the program, enter the right environment, and ping the /inner/
 interface of the left environment (your IPv6 address may be different):
 #+begin_src sh
 $ t enter -n right
