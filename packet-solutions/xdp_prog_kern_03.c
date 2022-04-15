@@ -304,7 +304,7 @@ int xdp_router_func(struct xdp_md *ctx)
 
 		memcpy(eth->h_dest, fib_params.dmac, ETH_ALEN);
 		memcpy(eth->h_source, fib_params.smac, ETH_ALEN);
-		action = bpf_redirect_map(&tx_port, fib_params.ifindex, 0);
+		action = bpf_redirect(fib_params.ifindex, 0);
 		break;
 	case BPF_FIB_LKUP_RET_BLACKHOLE:    /* dest is blackholed; can be dropped */
 	case BPF_FIB_LKUP_RET_UNREACHABLE:  /* dest is unreachable; can be dropped */

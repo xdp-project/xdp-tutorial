@@ -172,10 +172,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "can't write iface params\n");
 			return 1;
 		}
-	} else {
-		/* setup 1-1 mapping for the dynamic router */
-		for (i = 1; i < 256; ++i)
-			bpf_map_update_elem(map_fd, &i, &i, 0);
 	}
 
 	return EXIT_OK;

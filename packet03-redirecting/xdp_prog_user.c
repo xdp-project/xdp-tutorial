@@ -143,8 +143,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "can't write iface params\n");
 			return 1;
 		}
-	} else {
-		/* Assignment 4: setup 1-1 mapping for the dynamic router */
 	}
 
 	return EXIT_OK;
