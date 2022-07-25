@@ -191,18 +191,25 @@ static void stats_collect(int map_fd, __u32 map_type,
 	}
 }
 
-static void stats_poll(int map_fd, __u32 map_type, int interval)
+static void stats_poll(int map_fd, __u32 map_type, __u32 id, int interval, char *pin_dir )
 {
 	struct stats_record prev, record = { 0 };
 
 	/* Trick to pretty printf with thousands separators use %' */
 	setlocale(LC_NUMERIC, "en_US");
 
+
 	/* Get initial reading quickly */
 	stats_collect(map_fd, map_type, &record);
 	usleep(1000000/4);
 
 	while (1) {
+		int new_map_fd ;
+		struct bpf_map_info info ; 
+		new_map_fd = open_bpf_map_file(pin_dir, "xdp_stats_map", &info) ;
+		if(new_map_fd < 0) return ; 
+		close(new_map_fd) ; 
+		if(info.id != id) return ; 
 		prev = record; /* struct copy */
 		stats_collect(map_fd, map_type, &record);
 		stats_print(&record, &prev);
@@ -247,6 +254,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
+	for(;;) {
 	stats_map_fd = open_bpf_map_file(pin_dir, "xdp_stats_map", &info);
 	if (stats_map_fd < 0) {
 		return EXIT_FAIL_BPF;
@@ -270,6 +278,8 @@ int main(int argc, char **argv)
 		       );
 	}
 
-	stats_poll(stats_map_fd, info.type, interval);
+	stats_poll(stats_map_fd, info.type, info.id, interval, pin_dir);
+	close(stats_map_fd) ; 
+	}
 	return EXIT_OK;
 }
