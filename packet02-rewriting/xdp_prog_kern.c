@@ -57,6 +57,31 @@ static __always_inline int vlan_tag_push(struct xdp_md *ctx,
 SEC("xdp_port_rewrite")
 int xdp_port_rewrite_func(struct xdp_md *ctx)
 {
+	void *data_end = (void *)(long)ctx->data_end;
+	void *data = (void *)(long)ctx->data;
+	struct ethhdr *eth;
+
+	/* These keep track of the next header type and iterator pointer */
+	struct hdr_cursor nh;
+	int nh_type;
+
+	/* Start next header cursor position at data start */
+	nh.pos = data;
+	nh_type = parse_ethhdr(&nh, data_end, &eth);
+	if (nh_type == bpf_htons(ETH_P_IPV6))
+	{
+		struct ipv6hdr *ip6h;
+		nh_type = parse_ip6hdr(&nh, data_end, &ip6h);
+		if (nh_type == IPPROTO_TCPV6)
+		{
+		} else if (nh_type == IPPROTO_UDPV6)
+		{
+		}
+	} else if (nh_type == bpf_htons(ETH_P_IP))
+	{
+	}
+
+out:
 	return XDP_PASS;
 }
 
