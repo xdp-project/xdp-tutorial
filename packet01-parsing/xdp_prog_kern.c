@@ -26,13 +26,29 @@ struct hdr_cursor {
  * (h_proto for Ethernet, nexthdr for IPv6), for ICMP it is the ICMP type field.
  * All return values are in host byte order.
  */
+
+struct vlan_hdr {
+	__be16 h_vlan_TCI;
+	__be16 h_vlan_encapsulated_proto;
+};
+static __always_inline int proto_is_vlan(__u16 h_proto)
+{
+	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
+		  h_proto == bpf_htons(ETH_P_8021AD));
+}
+enum {
+	k_vlan_limit=8
+};
 static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 					void *data_end,
 					struct ethhdr **ethhdr)
 {
 	struct ethhdr *eth = nh->pos;
 	int hdrsize = sizeof(*eth);
+	int vlan_index;
 
+	for(vlan_index=0; vlan_index<k_vlan_limit; vlan_index += 1)
+	{
 	/* Byte-count bounds check; check if current pointer + size of header
 	 * is after data_end.
 	 */
@@ -40,6 +56,8 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 		return -1;
 
 	nh->pos += hdrsize;
+	if (!proto_is_vlan(eth->h_proto)) break;
+	}
 	*ethhdr = eth;
 
 	return eth->h_proto; /* network-byte-order */
