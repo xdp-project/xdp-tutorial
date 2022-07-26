@@ -62,11 +62,20 @@ static __always_inline int parse_ip6hdr(struct hdr_cursor *nh,
 }
 
 /* Assignment 3: Implement and use this */
-/*static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,
+static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,
 					  void *data_end,
 					  struct icmp6hdr **icmp6hdr)
 {
-}*/
+	struct icmp6hdr *icmp6h = nh->pos;
+	int hdrsize = sizeof(*icmp6h);
+	if (nh->pos + hdrsize > data_end)
+		return -1;
+
+	nh->pos += hdrsize;
+	*icmp6hdr = icmp6h; /* Network byte order */
+
+	return 0;
+}
 
 SEC("xdp_packet_parser")
 int  xdp_parser_func(struct xdp_md *ctx)
@@ -106,8 +115,15 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	/* Need to duck out if the packet is not icmp */
 
 
+	struct icmp6hdr *ic6hdr;
+	rc = parse_icmp6hdr(&nh, data_end, &ic6hdr);
+	if (rc != 0)
+		goto out;
 
-	action = XDP_DROP;
+	int sequence = bpf_ntohs(ic6hdr->icmp6_sequence);
+
+	action = (sequence & 1) ? XDP_PASS : XDP_DROP;
+
 out:
 	return xdp_stats_record_action(ctx, action); /* read via xdp_stats */
 }
