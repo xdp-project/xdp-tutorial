@@ -46,11 +46,20 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 }
 
 /* Assignment 2: Implement and use this */
-/*static __always_inline int parse_ip6hdr(struct hdr_cursor *nh,
+static __always_inline int parse_ip6hdr(struct hdr_cursor *nh,
 					void *data_end,
 					struct ipv6hdr **ip6hdr)
 {
-}*/
+	struct ipv6hdr *ip6h = nh->pos;
+	int hdrsize = sizeof(*ip6h);
+	if (nh->pos + hdrsize > data_end)
+		return -1;
+
+	nh->pos += hdrsize;
+	*ip6hdr = ip6h; /* Network byte order */
+
+	return 0;
+}
 
 /* Assignment 3: Implement and use this */
 /*static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,
@@ -88,6 +97,15 @@ int  xdp_parser_func(struct xdp_md *ctx)
 		goto out;
 
 	/* Assignment additions go below here */
+	struct ipv6hdr *ip6hdr;
+	int rc;
+	rc = parse_ip6hdr(&nh, data_end, &ip6hdr);
+	if (rc != 0)
+		goto out;
+
+	/* Need to duck out if the packet is not icmp */
+
+
 
 	action = XDP_DROP;
 out:
