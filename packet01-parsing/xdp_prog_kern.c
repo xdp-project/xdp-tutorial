@@ -6,6 +6,8 @@
 #include <linux/if_packet.h>
 #include <linux/ipv6.h>
 #include <linux/icmpv6.h>
+#include <linux/ip.h>
+#include <linux/icmp.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
 /* Defines xdp_stats_map from packet04 */
@@ -79,6 +81,22 @@ static __always_inline int parse_ip6hdr(struct hdr_cursor *nh,
 	return 0;
 }
 
+static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
+		                        void *data_end,
+					struct iphdr **ip4hdr)
+{
+	struct iphdr *ip4h = nh->pos;
+	int hdrsize = sizeof(*ip4h);
+	if (nh->pos + hdrsize >data_end)
+		return -1;
+	int actual_hdrsize = ip4h->ihl*4;
+	if (nh->pos + actual_hdrsize > data_end)
+		return -1;
+	nh->pos += actual_hdrsize;
+	*ip4hdr = ip4h; /* Network byte order */
+	return 0;
+}
+
 /* Assignment 3: Implement and use this */
 static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,
 					  void *data_end,
@@ -91,6 +109,20 @@ static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh,
 
 	nh->pos += hdrsize;
 	*icmp6hdr = icmp6h; /* Network byte order */
+
+	return 0;
+}
+static __always_inline int parse_icmphdr(struct hdr_cursor *nh,
+					 void *data_end,
+					 struct icmphdr **icmphdr)
+{
+	struct icmphdr *icmph = nh->pos;
+	int hdrsize = sizeof(*icmph);
+	if (nh->pos + hdrsize > data_end)
+		return -1;
+
+	nh->pos += hdrsize;
+	*icmphdr = icmph; /* Network byte order */
 
 	return 0;
 }
@@ -120,8 +152,8 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	 * header type in the packet correct?), and bounds checking.
 	 */
 	nh_type = parse_ethhdr(&nh, data_end, &eth);
-	if (nh_type != bpf_htons(ETH_P_IPV6))
-		goto out;
+	if (nh_type == bpf_htons(ETH_P_IPV6))
+	{
 
 	/* Assignment additions go below here */
 	struct ipv6hdr *ip6hdr;
@@ -141,6 +173,29 @@ int  xdp_parser_func(struct xdp_md *ctx)
 	int sequence = bpf_ntohs(ic6hdr->icmp6_sequence);
 
 	action = (sequence & 1) ? XDP_PASS : XDP_DROP;
+	}
+	else if (nh_type == bpf_htons(ETH_P_IP))
+	{
+		        /* Assignment additions go below here */
+        struct iphdr *iphdr;
+        int rc;
+        rc = parse_ip4hdr(&nh, data_end, &iphdr);
+        if (rc != 0)
+                goto out;
+
+        /* Need to duck out if the packet is not icmp */
+
+
+        struct icmphdr *ichdr;
+        rc = parse_icmphdr(&nh, data_end, &ichdr);
+        if (rc != 0)
+                goto out;
+
+        int sequence = bpf_ntohs(ichdr->un.echo.sequence);
+
+        action = (sequence & 1) ? XDP_PASS : XDP_DROP;
+
+	}
 
 out:
 	return xdp_stats_record_action(ctx, action); /* read via xdp_stats */
