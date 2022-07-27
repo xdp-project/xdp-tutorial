@@ -11,34 +11,68 @@
 #include "../common/xdp_stats_kern_user.h"
 #include "../common/xdp_stats_kern.h"
 
+static __always_inline int parse_vlanhdr(struct hdr_cursor *nh,
+					void *data_end,
+					struct vlan_hdr **vlhdr)
+{
+	struct vlan_hdr *vlh = nh->pos;
+	if (vlh + 1 > data_end) return -1 ;
+	nh->pos = vlh + 1 ;
+	*vlhdr = vlh ; 
+	return 0;
+}
 /* Pops the outermost VLAN tag off the packet. Returns the popped VLAN ID on
  * success or -1 on failure.
  */
 static __always_inline int vlan_tag_pop(struct xdp_md *ctx, struct ethhdr *eth)
 {
-	/*
 	void *data_end = (void *)(long)ctx->data_end;
+	void *data = (void *)(long)ctx->data;
+	struct hdr_cursor nh;
 	struct ethhdr eth_cpy;
 	struct vlan_hdr *vlh;
 	__be16 h_proto;
-	*/
+	int nh_type;
+
+
 	int vlid = -1;
+	struct collect_vlans vlans;
+	nh.pos = data;
+	
+	nh_type = parse_ethhdr_vlan(&nh, data_end, &eth, &vlans);
+	if (nh_type < 0) return -1;
 
 	/* Check if there is a vlan tag to pop */
+	if (!proto_is_vlan(eth->h_proto)) return -1;
 
+	nh.pos = data ; 
+	nh_type = parse_vlanhdr(&nh, data_end, &vlh);
+	if (nh_type < 0) return -1;
 	/* Still need to do bounds checking */
+	nh_type = parse_ethhdr(&nh, data_end, &eth) ;
+	if (nh_type < 0) return -1;
 
 	/* Save vlan ID for returning, h_proto for updating Ethernet header */
+	vlid = vlans.id[0];
+	h_proto = vlh->h_vlan_encapsulated_proto;
 
 	/* Make a copy of the outer Ethernet header before we cut it off */
+	eth_cpy = *eth;
 
 	/* Actually adjust the head pointer */
+	bpf_xdp_adjust_head(ctx,sizeof(struct vlan_hdr));
 
 	/* Need to re-evaluate data *and* data_end and do new bounds checking
 	 * after adjusting head
 	 */
+	data_end = (void *)(long)ctx->data_end;
+	data = (void *)(long)ctx->data;
+	nh_type = parse_ethhdr(&nh, data_end, &eth) ;
+	if (nh_type < 0) return -1;
 
 	/* Copy back the old Ethernet header and update the proto type */
+	*eth = eth_cpy ;
+	eth->h_proto = h_proto;
 
 
 	return vlid;
