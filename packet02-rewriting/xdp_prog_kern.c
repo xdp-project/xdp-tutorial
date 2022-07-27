@@ -72,13 +72,23 @@ int xdp_port_rewrite_func(struct xdp_md *ctx)
 	{
 		struct ipv6hdr *ip6h;
 		nh_type = parse_ip6hdr(&nh, data_end, &ip6h);
-		if (nh_type == IPPROTO_TCPV6)
-		{
-		} else if (nh_type == IPPROTO_UDPV6)
-		{
-		}
 	} else if (nh_type == bpf_htons(ETH_P_IP))
 	{
+		struct iphdr *iph;
+		nh_type = parse_iphdr(&nh, data_end, &iph);
+	}
+	if (nh_type == IPPROTO_TCP)
+	{
+		struct tcphdr *tcph;
+		nh_type = parse_tcphdr(&nh, data_end, &tcph) ;
+		if (nh_type < 0) goto out ;
+		tcph->dest = bpf_htons(bpf_ntohs(tcph->dest) - 1);
+	} else if (nh_type == IPPROTO_UDP)
+	{
+		struct udphdr *udph;
+		nh_type = parse_udphdr(&nh,data_end, &udph) ;
+		if (nh_type < 0) goto out;
+		udph->dest = bpf_htons(bpf_ntohs(udph->dest) - 1);
 	}
 
 out:
