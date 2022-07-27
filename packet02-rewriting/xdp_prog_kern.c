@@ -67,6 +67,7 @@ static __always_inline int vlan_tag_pop(struct xdp_md *ctx, struct ethhdr *eth)
 	 */
 	data_end = (void *)(long)ctx->data_end;
 	data = (void *)(long)ctx->data;
+	nh.pos = data;
 	nh_type = parse_ethhdr(&nh, data_end, &eth) ;
 	if (nh_type < 0) return -1;
 
@@ -84,6 +85,31 @@ static __always_inline int vlan_tag_pop(struct xdp_md *ctx, struct ethhdr *eth)
 static __always_inline int vlan_tag_push(struct xdp_md *ctx,
 					 struct ethhdr *eth, int vlid)
 {
+	void *data_end = (void *)(long)ctx->data_end;
+	void *data = (void *)(long)ctx->data;
+	struct hdr_cursor nh;
+	struct ethhdr eth_cpy;
+	struct ethhdr *eth_in;
+	int nh_type;
+	struct vlan_hdr *vlh;
+	nh.pos = data;
+	nh_type=parse_ethhdr(&nh, data_end, &eth_in) ;
+	if (nh_type < 0) return -1;
+	eth_cpy = *eth_in ;
+
+	bpf_xdp_adjust_head(ctx, (int)-sizeof(struct vlan_hdr)) ;
+	data_end = (void *)(long)ctx->data_end;
+	data = (void *)(long)ctx->data;
+	nh.pos = data;
+	nh_type=parse_ethhdr(&nh,data_end, &eth);
+	if (nh_type < 0) return -1;
+	*eth = eth_cpy;
+	eth->h_proto = bpf_htons(ETH_P_8021Q);
+	nh_type = parse_vlanhdr(&nh, data_end, &vlh) ;
+	if (nh_type < 0) return -1;
+	vlh->h_vlan_encapsulated_proto = eth_cpy.h_proto;
+	vlh->h_vlan_TCI = vlid;
+
 	return 0;
 }
 
