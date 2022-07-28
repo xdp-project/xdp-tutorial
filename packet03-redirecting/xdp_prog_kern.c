@@ -172,8 +172,8 @@ int xdp_redirect_func(struct xdp_md *ctx)
 	struct ethhdr *eth;
 	int eth_type;
 	int action = XDP_PASS;
-	/* unsigned char dst[ETH_ALEN] = {} */	/* Assignment 2: fill in with the MAC address of the left inner interface */
-	/* unsigned ifindex = 0; */		/* Assignment 2: fill in with the ifindex of the left interface */
+	unsigned char dst[ETH_ALEN] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 }; 	/* Assignment 2: fill in with the MAC address of the left inner interface */
+	unsigned ifindex = 1; 		/* Assignment 2: fill in with the ifindex of the left interface */
 
 	/* These keep track of the next header type and iterator pointer */
 	nh.pos = data;
@@ -185,6 +185,8 @@ int xdp_redirect_func(struct xdp_md *ctx)
 
 	/* Assignment 2: set a proper destination address and call the
 	 * bpf_redirect() with proper parameters, action = bpf_redirect(...) */
+	memcpy(eth->h_dest,dst, ETH_ALEN) ;
+        action = bpf_redirect(ifindex, 0);	
 
 out:
 	return xdp_stats_record_action(ctx, action);

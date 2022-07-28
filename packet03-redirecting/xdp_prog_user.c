@@ -54,6 +54,14 @@ static int parse_mac(char *str, unsigned char mac[ETH_ALEN])
 {
 	/* Assignment 3: parse a MAC address in this function and place the
 	 * result in the mac array */
+	unsigned int macu[ETH_ALEN];
+	int rc;
+	rc = sscanf(str,"%x:%x:%x:%x:%x:%x",
+			macu,macu+1,macu+2,macu+3,macu+4,macu+5);
+	if ( rc != ETH_ALEN ) return -1;
+
+	int i;
+	for(i=0; i<ETH_ALEN; i+=1) mac[i]=macu[i];
 
 	return 0;
 }
