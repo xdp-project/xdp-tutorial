@@ -133,7 +133,8 @@ int main(int argc, char **argv)
 
 
 	/* Assignment 3: open the tx_port map corresponding to the cfg.ifname interface */
-	map_fd = -1;
+	map_fd = open_bpf_map_file(pin_dir, "tx_port", NULL);
+	if (map_fd < 0) return EXIT_FAIL_BPF;
 
 	printf("map dir: %s\n", pin_dir);
 
@@ -144,7 +145,8 @@ int main(int argc, char **argv)
 		printf("redirect from ifnum=%d to ifnum=%d\n", cfg.ifindex, cfg.redirect_ifindex);
 
 		/* Assignment 3: open the redirect_params map corresponding to the cfg.ifname interface */
-		map_fd = -1;
+		map_fd = open_bpf_map_file(pin_dir, "redirect_params", NULL);
+		if (map_fd < 0) return EXIT_FAIL_BPF;
 
 		/* Setup the mapping containing MAC addresses */
 		if (write_iface_params(map_fd, src, dest) < 0) {
