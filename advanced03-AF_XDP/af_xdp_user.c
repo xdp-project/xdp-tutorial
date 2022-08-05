@@ -286,7 +286,7 @@ static bool process_packet(struct xsk_socket_info *xsk,
 	 *   ICMPV6_ECHO_REPLY
 	 * - Recalculate the icmp checksum */
 
-	if (false) {
+	if (true) {
 		int ret;
 		uint32_t tx_idx = 0;
 		uint8_t tmp_mac[ETH_ALEN];
