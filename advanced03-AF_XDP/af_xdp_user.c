@@ -16,7 +16,7 @@
 #include <sys/resource.h>
 
 #include <bpf/bpf.h>
-#include <bpf/xsk.h>
+#include <xdp/xsk.h>
 
 #include <arpa/inet.h>
 #include <net/if.h>

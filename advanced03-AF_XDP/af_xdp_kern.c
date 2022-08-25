@@ -4,19 +4,33 @@
 
 #include <bpf/bpf_helpers.h>
 
-struct bpf_map_def SEC("maps") xsks_map = {
-	.type = BPF_MAP_TYPE_XSKMAP,
-	.key_size = sizeof(int),
-	.value_size = sizeof(int),
-	.max_entries = 64,  /* Assume netdev has no more than 64 queues */
-};
+//struct bpf_map_def SEC("maps") xsks_map = {
+//	.type = BPF_MAP_TYPE_XSKMAP,
+//	.key_size = sizeof(int),
+//	.value_size = sizeof(int),
+//	.max_entries = 64,  /* Assume netdev has no more than 64 queues */
+//};
 
-struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size    = sizeof(int),
-	.value_size  = sizeof(__u32),
-	.max_entries = 64,
-};
+//struct bpf_map_def SEC("maps") xdp_stats_map = {
+//	.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
+//	.key_size    = sizeof(int),
+//	.value_size  = sizeof(__u32),
+//	.max_entries = 64,
+//};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_XSKMAP);
+	__uint(max_entries, 64);
+	__type(key, int);
+	__type(value, int);
+} xsks_map SEC(".maps") ;
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 64);
+	__type(key, int);
+	__type(value, __u32);
+} xdp_stats_map SEC(".maps");
 
 SEC("xdp_sock")
 int xdp_sock_prog(struct xdp_md *ctx)
