@@ -25,26 +25,26 @@ struct {
 	__type(value, int);
 } xsks_map SEC(".maps") ;
 
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 64);
-	__type(key, int);
-	__type(value, __u32);
-} xdp_stats_map SEC(".maps");
+//struct {
+//	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+//	__uint(max_entries, 64);
+//	__type(key, int);
+//	__type(value, __u32);
+//} xdp_stats_map SEC(".maps");
 
 SEC("xdp_sock")
 int xdp_sock_prog(struct xdp_md *ctx)
 {
     int index = ctx->rx_queue_index;
-    __u32 *pkt_count;
+//    __u32 *pkt_count;
 
-    pkt_count = bpf_map_lookup_elem(&xdp_stats_map, &index);
-    if (pkt_count) {
-
-        /* We pass every other packet */
-        if ((*pkt_count)++ & 1)
-            return XDP_PASS;
-    }
+//    pkt_count = bpf_map_lookup_elem(&xdp_stats_map, &index);
+//    if (pkt_count) {
+//
+//        /* We pass every other packet */
+//        if ((*pkt_count)++ & 1)
+//            return XDP_PASS;
+//    }
 
     /* A set entry here means that the correspnding queue_id
      * has an active AF_XDP socket bound to it. */
