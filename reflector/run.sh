@@ -31,4 +31,4 @@ ip addr add 10.10.0.1/16 dev br0
 ip netns exec ns1 ip route add default via 10.10.0.1
 ip netns exec ns2 ip route add default via 10.10.0.1
 
-
+./af_xdp_user -d veth1 -r veth2
