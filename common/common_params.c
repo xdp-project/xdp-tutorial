@@ -138,7 +138,7 @@ void parse_cmdline_args(int argc, char **argv,
 			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
 			cfg->xdp_flags |= XDP_FLAGS_DRV_MODE;  /* Set   flag */
 			break;
-		case 3: /* --offload-mode */
+		case 4: /* --offload-mode */
 			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
 			cfg->xdp_flags |= XDP_FLAGS_HW_MODE;   /* Set   flag */
 			break;
