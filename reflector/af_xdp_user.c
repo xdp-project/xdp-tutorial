@@ -118,6 +118,9 @@ static const struct option_wrapper long_options[] = {
 	{{"progsec",	 required_argument,	NULL,  2  },
 	 "Load program in <section> of the ELF file", "<section>"},
 
+	{{"progsec_1",	 required_argument,	NULL,  3  },
+	 "Load program 1 in <section> of the ELF file", "<section>"},
+
 	{{0, 0, NULL,  0 }, NULL, false}
 };
 
@@ -167,7 +170,7 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
 }
 
 static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
-						    struct xsk_umem_info *umem)
+						    struct xsk_umem_info *umem, int slot)
 {
 	struct xsk_socket_config xsk_cfg;
 	struct xsk_socket_info *xsk_info;
@@ -193,7 +196,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	if (ret)
 		goto error_exit;
 
-	ret = bpf_get_link_xdp_id(cfg->ifindex, &prog_id, cfg->xdp_flags);
+	ret = bpf_get_link_xdp_id(slot == 0 ? cfg->ifindex : cfg->redirect_ifindex, &prog_id, cfg->xdp_flags);
 	if (ret)
 		goto error_exit;
 
@@ -515,18 +518,23 @@ static void exit_application(int signal)
 int main(int argc, char **argv)
 {
 	int ret;
-	int xsks_map_fd;
-	void *packet_buffer;
+	int xsks_map_0_fd, xsks_map_1_fd;
+	void *packet_buffer_0;
+	void *packet_buffer_1;
 	uint64_t packet_buffer_size;
 	struct rlimit rlim = {RLIM_INFINITY, RLIM_INFINITY};
 	struct config cfg = {
 		.ifindex   = -1,
+		.redirect_ifindex = -1,
 		.do_unload = false,
 		.filename = "",
-		.progsec = "xdp_sock"
+		.progsec = "xdp_sock_0",
+		.progsec_1 = "xdp_sock_1"
 	};
-	struct xsk_umem_info *umem;
-	struct xsk_socket_info *xsk_socket;
+	struct xsk_umem_info *umem_0;
+	struct xsk_umem_info *umem_1;
+	struct xsk_socket_info *xsk_socket_0;
+	struct xsk_socket_info *xsk_socket_1;
 	struct bpf_object *bpf_obj = NULL;
 	pthread_t stats_poll_thread;
 
@@ -543,9 +551,18 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
+	if (cfg.redirect_ifindex == -1) {
+		fprintf(stderr, "ERROR: Required option --redirect_dev missing\n\n");
+		usage(argv[0], __doc__, long_options, (argc == 1));
+		return EXIT_FAIL_OPTION;
+	}
+
 	/* Unload XDP program if requested */
-	if (cfg.do_unload)
-		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+	if (cfg.do_unload) {
+		int err_0=xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+		int err_1=xdp_link_detach(cfg.redirect_ifindex, cfg.xdp_flags, 0);
+		return (err_0 != 0) ? err_0 : err_1;
+	}
 
 	/* Load custom program if configured */
 	if (cfg.filename[0] != 0) {
@@ -558,11 +575,18 @@ int main(int argc, char **argv)
 		}
 
 		/* We also need to load the xsks_map */
-		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map");
-		xsks_map_fd = bpf_map__fd(map);
-		if (xsks_map_fd < 0) {
-			fprintf(stderr, "ERROR: no xsks map found: %s\n",
-				strerror(xsks_map_fd));
+		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map_0");
+		xsks_map_0_fd = bpf_map__fd(map);
+		if (xsks_map_0_fd < 0) {
+			fprintf(stderr, "ERROR: no xsks map 0 found: %s\n",
+				strerror(xsks_map_0_fd));
+			exit(EXIT_FAILURE);
+		}
+		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map_1");
+		xsks_map_1_fd = bpf_map__fd(map);
+		if (xsks_map_1_fd < 0) {
+			fprintf(stderr, "ERROR: no xsks map 1 found: %s\n",
+				strerror(xsks_map_1_fd));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -578,26 +602,45 @@ int main(int argc, char **argv)
 
 	/* Allocate memory for NUM_FRAMES of the default XDP frame size */
 	packet_buffer_size = NUM_FRAMES * FRAME_SIZE;
-	if (posix_memalign(&packet_buffer,
+	if (posix_memalign(&packet_buffer_0,
 			   getpagesize(), /* PAGE_SIZE aligned */
 			   packet_buffer_size)) {
-		fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n",
+		fprintf(stderr, "ERROR: Can't allocate buffer 0 memory \"%s\"\n",
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	if (posix_memalign(&packet_buffer_1,
+			   getpagesize(), /* PAGE_SIZE aligned */
+			   packet_buffer_size)) {
+		fprintf(stderr, "ERROR: Can't allocate buffer 1 memory \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
 	/* Initialize shared packet_buffer for umem usage */
-	umem = configure_xsk_umem(packet_buffer, packet_buffer_size);
-	if (umem == NULL) {
-		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
+	umem_0 = configure_xsk_umem(packet_buffer_0, packet_buffer_size);
+	if (umem_0 == NULL) {
+		fprintf(stderr, "ERROR: Can't create umem 0 \"%s\"\n",
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	umem_1 = configure_xsk_umem(packet_buffer_1, packet_buffer_size);
+	if (umem_1 == NULL) {
+		fprintf(stderr, "ERROR: Can't create umem 1 \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
 	/* Open and configure the AF_XDP (xsk) socket */
-	xsk_socket = xsk_configure_socket(&cfg, umem);
-	if (xsk_socket == NULL) {
-		fprintf(stderr, "ERROR: Can't setup AF_XDP socket \"%s\"\n",
+	xsk_socket_0 = xsk_configure_socket(&cfg, umem_0, 0);
+	if (xsk_socket_0 == NULL) {
+		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 0 \"%s\"\n",
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	xsk_socket_1 = xsk_configure_socket(&cfg, umem_1, 1);
+	if (xsk_socket_1 == NULL) {
+		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 1 \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
@@ -605,7 +648,7 @@ int main(int argc, char **argv)
 	/* Start thread to do statistics display */
 	if (verbose) {
 		ret = pthread_create(&stats_poll_thread, NULL, stats_poll,
-				     xsk_socket);
+				     xsk_socket_0);
 		if (ret) {
 			fprintf(stderr, "ERROR: Failed creating statistics thread "
 				"\"%s\"\n", strerror(errno));
@@ -614,12 +657,15 @@ int main(int argc, char **argv)
 	}
 
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, xsk_socket);
+	rx_and_process(&cfg, xsk_socket_0, xsk_socket_1);
 
 	/* Cleanup */
-	xsk_socket__delete(xsk_socket->xsk);
-	xsk_umem__delete(umem->umem);
+	xsk_socket__delete(xsk_socket_0->xsk);
+	xsk_socket__delete(xsk_socket_1->xsk);
+	xsk_umem__delete(umem_0->umem);
+	xsk_umem__delete(umem_1->umem);
 	xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+	xdp_link_detach(cfg.redirect_ifindex, cfg.xdp_flags, 0);
 
 	return EXIT_OK;
 }
