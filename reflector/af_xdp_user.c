@@ -275,7 +275,7 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 	*sum = ~csum16_add(csum16_sub(~(*sum), old), new);
 }
 
-static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_info xsk_src,
+static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len)
 {
 	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem->buffer, addr);
@@ -292,7 +292,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 	if (true) {
 		int ret;
 		uint32_t tx_idx = 0;
-		uint64_t tx_frame;
+//		uint64_t tx_frame;
 //		uint8_t tmp_mac[ETH_ALEN];
 //		struct in6_addr tmp_ip;
 //		struct ethhdr *eth = (struct ethhdr *) pkt;
@@ -341,10 +341,10 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 //		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
 //		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
 //		xsk_ring_prod__submit(&xsk->tx, 1);
-		xsk->outstanding_tx++;
+		xsk_dst->outstanding_tx++;
 
-		xsk->stats.tx_bytes += len;
-		xsk->stats.tx_packets++;
+		xsk_dst->stats.tx_bytes += len;
+		xsk_dst->stats.tx_packets++;
 		return true;
 	}
 
@@ -407,9 +407,9 @@ static void rx_and_process(struct config *cfg,
 	int ret, nfds = 2;
 
 	memset(fds, 0, sizeof(fds));
-	fds[0].fd = xsk_src_socket__fd(xsk_socket_0->xsk);
+	fds[0].fd = xsk_socket__fd(xsk_socket_0->xsk);
 	fds[0].events = POLLIN;
-	fds[1].fd = xsk_src_socket__fd(xsk_socket_1->xsk);
+	fds[1].fd = xsk_socket__fd(xsk_socket_1->xsk);
 	fds[1].events = POLLIN;
 
 	while(!global_exit) {
@@ -418,8 +418,8 @@ static void rx_and_process(struct config *cfg,
 			if (ret <= 0 || ret > 2)
 				continue;
 //		}
-		if ( fds[0].revents & POLLIN ) handle_received_packets(xsk_socket_1, xsk_socket_0) ;
-		if ( fds[1].revents & POLLIN ) handle_received_packets(xsk_socket_0, xsk_socket_1) ;
+		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_1, xsk_socket_0) ;
+		if ( fds[1].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_1) ;
 //		handle_receive_packets(xsk_socket);
 	}
 }
