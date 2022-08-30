@@ -333,9 +333,9 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 			/* No more transmit slots, drop the packet */
 			return false;
 		}
-		struct xdp_desc tx_desc=xsk_ring_prod__tx_desc(&xsk_dst->tx, tx_idx);
-		memcpy(tx_desc.addr, pkt, len) ;
-		tx_desc.len = len ;
+		struct xdp_desc *tx_desc=xsk_ring_prod__tx_desc(&xsk_dst->tx, tx_idx);
+		memcpy(tx_desc->addr, pkt, len) ;
+		tx_desc->len = len ;
 		xsk_ring_prod__submit(&xsk_dst->tx, 1) ;
 
 //		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
