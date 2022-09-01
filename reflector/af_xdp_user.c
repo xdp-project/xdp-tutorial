@@ -64,6 +64,8 @@ struct xsk_socket_info {
 
 	struct stats_record stats;
 	struct stats_record prev_stats;
+	uint64_t allocation_count;
+	uint64_t free_count;
 };
 
 static inline __u32 xsk_ring_prod__free(struct xsk_ring_prod *r)
@@ -154,6 +156,7 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 
 	frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
 	xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
+	xsk->allocation_count += 1;
 	return frame;
 }
 
@@ -162,6 +165,7 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame)
 	assert(xsk->umem_frame_free < NUM_FRAMES);
 
 	xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
+	xsk->free_count += 1;
 }
 
 static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
