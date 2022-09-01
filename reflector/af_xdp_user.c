@@ -407,6 +407,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 
 	/* Do we need to wake up the kernel for transmission */
 	complete_tx(xsk_dst);
+	complete_tx(xsk_src);
   }
 
 static void rx_and_process(struct config *cfg,
