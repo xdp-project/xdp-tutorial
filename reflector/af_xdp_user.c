@@ -300,7 +300,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 	if (true) {
 		int ret;
 		uint32_t tx_idx = 0;
-//		uint64_t tx_frame;
+		uint64_t tx_frame;
 //		uint8_t tmp_mac[ETH_ALEN];
 //		struct in6_addr tmp_ip;
 //		struct ethhdr *eth = (struct ethhdr *) pkt;
@@ -331,11 +331,11 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 //		 * we allocate one entry and schedule it. Your design would be
 //		 * faster if you do batch processing/transmission */
 
-//		tx_frame = xsk_alloc_umem_frame(xsk_dst) ;
-//		if ( tx_frame == INVALID_UMEM_FRAME ) {
-//			/* No more transmit frames, drop the packet */
-//			return false ;
-//		}
+		tx_frame = xsk_alloc_umem_frame(xsk_dst) ;
+		if ( tx_frame == INVALID_UMEM_FRAME ) {
+			/* No more transmit frames, drop the packet */
+			return false ;
+		}
 		ret = xsk_ring_prod__reserve(&xsk_dst->tx, 1, &tx_idx);
 		assert(ret == 1) ;
 		if (ret != 1) {
@@ -343,8 +343,9 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 			return false;
 		}
 		struct xdp_desc *tx_desc=xsk_ring_prod__tx_desc(&xsk_dst->tx, tx_idx);
-		memcpy(xsk_umem__get_data(xsk_dst->umem->buffer,tx_desc->addr), pkt, len) ;
+		tx_desc->addr=tx_frame ;
 		tx_desc->len = len ;
+		memcpy(xsk_umem__get_data(xsk_dst->umem->buffer,tx_frame), pkt, len) ;
 		xsk_ring_prod__submit(&xsk_dst->tx, 1) ;
 
 //		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
