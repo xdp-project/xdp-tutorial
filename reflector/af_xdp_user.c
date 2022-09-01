@@ -429,7 +429,7 @@ static void rx_and_process(struct config *cfg,
 				continue;
 //		}
 			if(INSTRUMENT) {
-				printf("rx_and_process fds[0].revents=0x%x fds[1].revents=0x%x\n", fds[0].revents, fds[1].revents);
+				printf("rx_and_process xsk_0=%p xsk_1=%p fds[0].revents=0x%x fds[1].revents=0x%x\n", xsk_socket_0, xsk_socket_1, fds[0].revents, fds[1].revents);
 			}
 		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_1, xsk_socket_0) ;
 		if ( fds[1].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_1) ;
