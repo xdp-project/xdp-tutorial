@@ -347,6 +347,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 		tx_desc->len = len ;
 		memcpy(xsk_umem__get_data(xsk_dst->umem->buffer,tx_frame), pkt, len) ;
 		xsk_ring_prod__submit(&xsk_dst->tx, 1) ;
+		xsk_free_umem_frame(xsk_src, addr) ;
 
 //		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
 //		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
@@ -408,7 +409,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 
 	/* Do we need to wake up the kernel for transmission */
 	complete_tx(xsk_dst);
-	complete_tx(xsk_src);
+//	complete_tx(xsk_src);
   }
 
 static void rx_and_process(struct config *cfg,
