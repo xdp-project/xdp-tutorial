@@ -30,6 +30,7 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
+#define INSTRUMENT 1
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -157,6 +158,7 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 	frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
 	xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
 	xsk->allocation_count += 1;
+	if(INSTRUMENT) printf("xsk_alloc_umem_frame xsk=%p allocation_count=%ld free_count=%ld\n", xsk, xsk->allocation_count, xsk->free_count) ;
 	return frame;
 }
 
@@ -166,6 +168,7 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame)
 
 	xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 	xsk->free_count += 1;
+	if(INSTRUMENT) printf("xsk_free_umem_frame xsk=%p allocation_count=%ld free_count=%ld", xsk, xsk->allocation_count,xsk->free_count);
 }
 
 static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
