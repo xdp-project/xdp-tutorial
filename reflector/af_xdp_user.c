@@ -168,7 +168,7 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame)
 
 	xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 	xsk->free_count += 1;
-	if(INSTRUMENT) printf("xsk_free_umem_frame xsk=%p allocation_count=%ld free_count=%ld", xsk, xsk->allocation_count,xsk->free_count);
+	if(INSTRUMENT) printf("xsk_free_umem_frame xsk=%p allocation_count=%ld free_count=%ld\n", xsk, xsk->allocation_count,xsk->free_count);
 }
 
 static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
@@ -427,6 +427,9 @@ static void rx_and_process(struct config *cfg,
 			if (ret <= 0 || ret > 2)
 				continue;
 //		}
+			if(INSTRUMENT) {
+				printf("rx_and_process fds[0].revents=0x%x fds[1].revents=0x%x\n", fds[0].revents, fds[1].revents);
+			}
 		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_1, xsk_socket_0) ;
 		if ( fds[1].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_1) ;
 //		handle_receive_packets(xsk_socket);
@@ -655,7 +658,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Start thread to do statistics display */
-	if (verbose) {
+	if (verbose && 0 == INSTRUMENT ) {
 		ret = pthread_create(&stats_poll_thread, NULL, stats_poll,
 				     xsk_socket_0);
 		if (ret) {
