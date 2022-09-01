@@ -245,6 +245,7 @@ static void complete_tx(struct xsk_socket_info *xsk)
 					XSK_RING_CONS__DEFAULT_NUM_DESCS,
 					&idx_cq);
 
+	assert(completed <= xsk->outstanding_tx) ;
 	if (completed > 0) {
 		for (int i = 0; i < completed; i++)
 			xsk_free_umem_frame(xsk,
