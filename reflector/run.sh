@@ -20,7 +20,7 @@ ip netns exec ns2 ip link set vpeer2 up
 ip netns exec ns1 ip addr add 10.10.0.10/16 dev vpeer1
 ip netns exec ns2 ip addr add 10.10.0.20/16 dev vpeer2
 
-ip netns exec ns1 ethtool -K vpeer1 tx 0ff
+ip netns exec ns1 ethtool -K vpeer1 tx off
 ip netns exec ns2 ethtool -K vpeer2 tx off
 
 ip link add br0 type bridge
