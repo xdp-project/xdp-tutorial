@@ -31,7 +31,7 @@
 #include "../common/common_libbpf.h"
 
 
-#define NUM_FRAMES         8192
+#define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
 #define RX_BATCH_SIZE      64
 #define INVALID_UMEM_FRAME UINT64_MAX
