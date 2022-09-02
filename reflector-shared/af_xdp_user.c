@@ -208,6 +208,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 							 &xsk_info->comp,
 							 &xsk_cfg);
 
+	printf("xsk_socket__create_shared returns %d\n", ret) ;
 	if (ret)
 		goto error_exit;
 
