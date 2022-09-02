@@ -38,8 +38,8 @@
 #define INVALID_UMEM_FRAME UINT64_MAX
 
 struct xsk_umem_info {
-	struct xsk_ring_prod fq;
-	struct xsk_ring_cons cq;
+//	struct xsk_ring_prod fq;
+//	struct xsk_ring_cons cq;
 	struct xsk_umem *umem;
 	void *buffer;
 };
@@ -55,8 +55,8 @@ struct stats_record {
 struct xsk_socket_info {
 	struct xsk_ring_cons rx;
 	struct xsk_ring_prod tx;
-//	struct xsk_ring_prod fill;
-//	struct xsk_ring_cons comp;
+	struct xsk_ring_prod fq;
+	struct xsk_ring_cons cq;
 	struct xsk_umem_info *umem;
 	struct xsk_socket *xsk;
 
@@ -140,7 +140,9 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size)
 	if (!umem)
 		return NULL;
 
-	ret = xsk_umem__create(&umem->umem, buffer, size, &umem->fq, &umem->cq,
+//	ret = xsk_umem__create(&umem->umem, buffer, size, &umem->fq, &umem->cq,
+//			       NULL);
+	ret = xsk_umem__create(&umem->umem, buffer, size, NULL, NULL,
 			       NULL);
 	if (ret) {
 		errno = -ret;
@@ -204,8 +206,8 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 							 umem->umem,
 							 &xsk_info->rx,
 				             &xsk_info->tx,
-							 &umem->fq,
-							 &umem->cq,
+							 &xsk_info->fq,
+							 &xsk_info->cq,
 							 &xsk_cfg);
 
 	printf("xsk_socket__create_shared returns %d\n", ret) ;
@@ -224,10 +226,10 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 
 	xsk_info->umem_frame_free = NUM_FRAMES;
 
-	if (slot == 0)
+//	if (slot == 0)
 	{
 		/* Stuff the receive path with buffers, we assume we have enough */
-		ret = xsk_ring_prod__reserve(&umem->fq,
+		ret = xsk_ring_prod__reserve(&xsk_info->fq,
 						 XSK_RING_PROD__DEFAULT_NUM_DESCS,
 						 &idx);
 
@@ -236,10 +238,10 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 			goto error_exit;
 
 		for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
-			*xsk_ring_prod__fill_addr(&umem->fq, idx++) =
+			*xsk_ring_prod__fill_addr(&xsk_info->fq, idx++) =
 				xsk_alloc_umem_frame(xsk_info);
 
-		xsk_ring_prod__submit(&umem->fq,
+		xsk_ring_prod__submit(&xsk_info->fq,
 					  XSK_RING_PROD__DEFAULT_NUM_DESCS);
 	}
 	return xsk_info;
@@ -261,18 +263,18 @@ static void complete_tx(struct xsk_socket_info *xsk, struct xsk_socket_info *xsk
 
 
 	/* Collect/free completed TX buffers */
-	completed = xsk_ring_cons__peek(&xsk->umem->cq,
+	completed = xsk_ring_cons__peek(&xsk->cq,
 					XSK_RING_CONS__DEFAULT_NUM_DESCS,
 					&idx_cq);
 
 	assert(completed <= xsk->outstanding_tx) ;
 	if (completed > 0) {
 		for (int i = 0; i < completed; i++)
-			xsk_free_umem_frame(xsk_src,
-					    *xsk_ring_cons__comp_addr(&xsk->umem->cq,
+			xsk_free_umem_frame(xsk,
+					    *xsk_ring_cons__comp_addr(&xsk->cq,
 								      idx_cq++));
 
-		xsk_ring_cons__release(&xsk->umem->cq, completed);
+		xsk_ring_cons__release(&xsk->cq, completed);
 		xsk->outstanding_tx -= completed < xsk->outstanding_tx ?
 			completed : xsk->outstanding_tx;
 	}
@@ -386,24 +388,24 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 		return;
 
 	/* Stuff the ring with as much frames as possible */
-	stock_frames = xsk_prod_nb_free(&xsk_src->umem->fq,
+	stock_frames = xsk_prod_nb_free(&xsk_src->fq,
 					xsk_umem_free_frames(xsk_src));
 
 	if (stock_frames > 0) {
 
-		ret = xsk_ring_prod__reserve(&xsk_src->umem->fq, stock_frames,
+		ret = xsk_ring_prod__reserve(&xsk_src->fq, stock_frames,
 					     &idx_fq);
 
 		/* This should not happen, but just in case */
 		while (ret != stock_frames)
-			ret = xsk_ring_prod__reserve(&xsk_src->umem->fq, rcvd,
+			ret = xsk_ring_prod__reserve(&xsk_src->fq, rcvd,
 						     &idx_fq);
 
 		for (i = 0; i < stock_frames; i++)
-			*xsk_ring_prod__fill_addr(&xsk_src->umem->fq, idx_fq++) =
+			*xsk_ring_prod__fill_addr(&xsk_src->fq, idx_fq++) =
 				xsk_alloc_umem_frame(xsk_src);
 
-		xsk_ring_prod__submit(&xsk_src->umem->fq, stock_frames);
+		xsk_ring_prod__submit(&xsk_src->fq, stock_frames);
 	}
 
 	/* Process received packets */
