@@ -337,7 +337,6 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 			return false ;
 		}
 		ret = xsk_ring_prod__reserve(&xsk_dst->tx, 1, &tx_idx);
-		assert(ret == 1) ;
 		if (ret != 1) {
 			/* No more transmit slots, drop the packet */
 			return false;
