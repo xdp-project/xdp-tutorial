@@ -131,7 +131,7 @@ static const struct option_wrapper long_options[] = {
 
 static bool global_exit;
 
-static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size)
+static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size, struct xsk_ring_prod *fq, struct xsk_ring_cons *cq)
 {
 	struct xsk_umem_info *umem;
 	int ret;
@@ -142,7 +142,7 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size)
 
 //	ret = xsk_umem__create(&umem->umem, buffer, size, &umem->fq, &umem->cq,
 //			       NULL);
-	ret = xsk_umem__create(&umem->umem, buffer, size, NULL, NULL,
+	ret = xsk_umem__create(&umem->umem, buffer, size, fq, cq,
 			       NULL);
 	if (ret) {
 		errno = -ret;
@@ -639,7 +639,9 @@ int main(int argc, char **argv)
 	}
 
 	/* Initialize shared packet_buffer for umem usage */
-	umem = configure_xsk_umem(packet_buffer, packet_buffer_size);
+	struct xsk_ring_prod fq ;
+	struct xsk_ring_cons cq ;
+	umem = configure_xsk_umem(packet_buffer, packet_buffer_size, &fq, &cq);
 	if (umem == NULL) {
 		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
 			strerror(errno));
