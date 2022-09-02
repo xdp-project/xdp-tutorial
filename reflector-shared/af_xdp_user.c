@@ -55,8 +55,8 @@ struct stats_record {
 struct xsk_socket_info {
 	struct xsk_ring_cons rx;
 	struct xsk_ring_prod tx;
-	struct xsk_ring_prod fill;
-	struct xsk_ring_cons comp;
+//	struct xsk_ring_prod fill;
+//	struct xsk_ring_cons comp;
 	struct xsk_umem_info *umem;
 	struct xsk_socket *xsk;
 
@@ -204,8 +204,8 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 							 umem->umem,
 							 &xsk_info->rx,
 				             &xsk_info->tx,
-							 &xsk_info->fill,
-							 &xsk_info->comp,
+							 &umem->fq,
+							 &umem->cq,
 							 &xsk_cfg);
 
 	printf("xsk_socket__create_shared returns %d\n", ret) ;
@@ -224,22 +224,24 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 
 	xsk_info->umem_frame_free = NUM_FRAMES;
 
-	/* Stuff the receive path with buffers, we assume we have enough */
-	ret = xsk_ring_prod__reserve(&xsk_info->umem->fq,
-				     XSK_RING_PROD__DEFAULT_NUM_DESCS,
-				     &idx);
+	if (slot == 0)
+	{
+		/* Stuff the receive path with buffers, we assume we have enough */
+		ret = xsk_ring_prod__reserve(&umem->fq,
+						 XSK_RING_PROD__DEFAULT_NUM_DESCS,
+						 &idx);
 
-	printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
-	if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
-		goto error_exit;
+		printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
+		if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
+			goto error_exit;
 
-	for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
-		*xsk_ring_prod__fill_addr(&xsk_info->umem->fq, idx++) =
-			xsk_alloc_umem_frame(xsk_info);
+		for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
+			*xsk_ring_prod__fill_addr(&umem->fq, idx++) =
+				xsk_alloc_umem_frame(xsk_info);
 
-	xsk_ring_prod__submit(&xsk_info->umem->fq,
-			      XSK_RING_PROD__DEFAULT_NUM_DESCS);
-
+		xsk_ring_prod__submit(&umem->fq,
+					  XSK_RING_PROD__DEFAULT_NUM_DESCS);
+	}
 	return xsk_info;
 
 error_exit:
