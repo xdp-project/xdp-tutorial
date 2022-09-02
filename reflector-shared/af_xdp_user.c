@@ -295,7 +295,7 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len)
 {
-	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem->buffer, addr);
+//	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem->buffer, addr);
 
         /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
 	 *
@@ -309,7 +309,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 	if (true) {
 		int ret;
 		uint32_t tx_idx = 0;
-		uint64_t tx_frame;
+//		uint64_t tx_frame;
 //		uint8_t tmp_mac[ETH_ALEN];
 //		struct in6_addr tmp_ip;
 //		struct ethhdr *eth = (struct ethhdr *) pkt;
