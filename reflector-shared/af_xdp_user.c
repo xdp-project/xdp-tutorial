@@ -55,6 +55,8 @@ struct stats_record {
 struct xsk_socket_info {
 	struct xsk_ring_cons rx;
 	struct xsk_ring_prod tx;
+	struct xsk_ring_prod fill;
+	struct xsk_ring_cons comp;
 	struct xsk_umem_info *umem;
 	struct xsk_socket *xsk;
 
@@ -196,9 +198,15 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	xsk_cfg.libbpf_flags = 0;
 	xsk_cfg.xdp_flags = cfg->xdp_flags;
 	xsk_cfg.bind_flags = cfg->xsk_bind_flags;
-	ret = xsk_socket__create(&xsk_info->xsk, (slot == 0) ? cfg->ifname : cfg->redirect_ifname,
-				 cfg->xsk_if_queue, umem->umem, &xsk_info->rx,
-				 &xsk_info->tx, &xsk_cfg);
+	ret = xsk_socket__create_shared(&xsk_info->xsk,
+			                 (slot == 0) ? cfg->ifname : cfg->redirect_ifname,
+			                 cfg->xsk_if_queue,
+							 umem->umem,
+							 &xsk_info->rx,
+				             &xsk_info->tx,
+							 &xsk_info->fill,
+							 &xsk_info->comp,
+							 &xsk_cfg);
 
 	if (ret)
 		goto error_exit;
@@ -209,8 +217,9 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 
 	/* Initialize umem frame allocation */
 
+	int frame_offset=slot*NUM_FRAMES;
 	for (i = 0; i < NUM_FRAMES; i++)
-		xsk_info->umem_frame_addr[i] = i * FRAME_SIZE;
+		xsk_info->umem_frame_addr[i] = (frame_offset+i) * FRAME_SIZE;
 
 	xsk_info->umem_frame_free = NUM_FRAMES;
 
@@ -236,7 +245,7 @@ error_exit:
 	return NULL;
 }
 
-static void complete_tx(struct xsk_socket_info *xsk)
+static void complete_tx(struct xsk_socket_info *xsk, struct xsk_socket_info *xsk_src)
 {
 	unsigned int completed;
 	uint32_t idx_cq;
@@ -255,7 +264,7 @@ static void complete_tx(struct xsk_socket_info *xsk)
 	assert(completed <= xsk->outstanding_tx) ;
 	if (completed > 0) {
 		for (int i = 0; i < completed; i++)
-			xsk_free_umem_frame(xsk,
+			xsk_free_umem_frame(xsk_src,
 					    *xsk_ring_cons__comp_addr(&xsk->umem->cq,
 								      idx_cq++));
 
@@ -331,22 +340,23 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 //		 * we allocate one entry and schedule it. Your design would be
 //		 * faster if you do batch processing/transmission */
 
-		tx_frame = xsk_alloc_umem_frame(xsk_dst) ;
-		if ( tx_frame == INVALID_UMEM_FRAME ) {
-			/* No more transmit frames, drop the packet */
-			return false ;
-		}
+//		tx_frame = xsk_alloc_umem_frame(xsk_dst) ;
+//		if ( tx_frame == INVALID_UMEM_FRAME ) {
+//			/* No more transmit frames, drop the packet */
+//			return false ;
+//		}
 		ret = xsk_ring_prod__reserve(&xsk_dst->tx, 1, &tx_idx);
 		if (ret != 1) {
 			/* No more transmit slots, drop the packet */
 			return false;
 		}
 		struct xdp_desc *tx_desc=xsk_ring_prod__tx_desc(&xsk_dst->tx, tx_idx);
-		tx_desc->addr=tx_frame ;
+//		tx_desc->addr=tx_frame ;
+		tx_desc->addr=addr ;
 		tx_desc->len = len ;
-		memcpy(xsk_umem__get_data(xsk_dst->umem->buffer,tx_frame), pkt, len) ;
+//		memcpy(xsk_umem__get_data(xsk_dst->umem->buffer,tx_frame), pkt, len) ;
 		xsk_ring_prod__submit(&xsk_dst->tx, 1) ;
-		xsk_free_umem_frame(xsk_src, addr) ;
+//		xsk_free_umem_frame(xsk_src, addr) ;
 
 //		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
 //		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
@@ -407,7 +417,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 	xsk_src->stats.rx_packets += rcvd;
 
 	/* Do we need to wake up the kernel for transmission */
-	complete_tx(xsk_dst);
+	complete_tx(xsk_dst, xsk_src);
 //	complete_tx(xsk_src);
   }
 
@@ -533,8 +543,7 @@ int main(int argc, char **argv)
 {
 	int ret;
 	int xsks_map_0_fd, xsks_map_1_fd;
-	void *packet_buffer_0;
-	void *packet_buffer_1;
+	void *packet_buffer;
 	uint64_t packet_buffer_size;
 	struct rlimit rlim = {RLIM_INFINITY, RLIM_INFINITY};
 	struct config cfg = {
@@ -545,8 +554,7 @@ int main(int argc, char **argv)
 		.progsec = "xdp_sock_0",
 		.progsec_1 = "xdp_sock_1"
 	};
-	struct xsk_umem_info *umem_0;
-	struct xsk_umem_info *umem_1;
+	struct xsk_umem_info *umem;
 	struct xsk_socket_info *xsk_socket_0;
 	struct xsk_socket_info *xsk_socket_1;
 	struct bpf_object *bpf_obj = NULL;
@@ -615,44 +623,31 @@ int main(int argc, char **argv)
 	}
 
 	/* Allocate memory for NUM_FRAMES of the default XDP frame size */
-	packet_buffer_size = NUM_FRAMES * FRAME_SIZE;
-	if (posix_memalign(&packet_buffer_0,
+	packet_buffer_size = NUM_FRAMES * FRAME_SIZE * 2;
+	if (posix_memalign(&packet_buffer,
 			   getpagesize(), /* PAGE_SIZE aligned */
 			   packet_buffer_size)) {
-		fprintf(stderr, "ERROR: Can't allocate buffer 0 memory \"%s\"\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	if (posix_memalign(&packet_buffer_1,
-			   getpagesize(), /* PAGE_SIZE aligned */
-			   packet_buffer_size)) {
-		fprintf(stderr, "ERROR: Can't allocate buffer 1 memory \"%s\"\n",
+		fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
 	/* Initialize shared packet_buffer for umem usage */
-	umem_0 = configure_xsk_umem(packet_buffer_0, packet_buffer_size);
-	if (umem_0 == NULL) {
-		fprintf(stderr, "ERROR: Can't create umem 0 \"%s\"\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	umem_1 = configure_xsk_umem(packet_buffer_1, packet_buffer_size);
-	if (umem_1 == NULL) {
-		fprintf(stderr, "ERROR: Can't create umem 1 \"%s\"\n",
+	umem = configure_xsk_umem(packet_buffer, packet_buffer_size);
+	if (umem == NULL) {
+		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
 	/* Open and configure the AF_XDP (xsk) socket */
-	xsk_socket_0 = xsk_configure_socket(&cfg, umem_0, 0);
+	xsk_socket_0 = xsk_configure_socket(&cfg, umem, 0);
 	if (xsk_socket_0 == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 0 \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	xsk_socket_1 = xsk_configure_socket(&cfg, umem_1, 1);
+	xsk_socket_1 = xsk_configure_socket(&cfg, umem, 1);
 	if (xsk_socket_1 == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 1 \"%s\"\n",
 			strerror(errno));
@@ -676,8 +671,7 @@ int main(int argc, char **argv)
 	/* Cleanup */
 	xsk_socket__delete(xsk_socket_0->xsk);
 	xsk_socket__delete(xsk_socket_1->xsk);
-	xsk_umem__delete(umem_0->umem);
-	xsk_umem__delete(umem_1->umem);
+	xsk_umem__delete(umem->umem);
 	xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 	xdp_link_detach(cfg.redirect_ifindex, cfg.xdp_flags, 0);
 
