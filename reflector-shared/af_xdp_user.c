@@ -229,6 +229,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 				     XSK_RING_PROD__DEFAULT_NUM_DESCS,
 				     &idx);
 
+	printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
 	if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
 		goto error_exit;
 
