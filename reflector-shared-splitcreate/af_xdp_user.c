@@ -656,8 +656,8 @@ int main(int argc, char **argv)
 	/* Initialize shared packet_buffer for umem usage */
 	struct xsk_ring_prod fq ;
 	struct xsk_ring_cons cq ;
-	memset(fq,0,sizeof(fq)) ;
-	memset(cq,0,sizeof(cq)) ;
+	memset(&fq,0,sizeof(fq)) ;
+	memset(&cq,0,sizeof(cq)) ;
 	umem = configure_xsk_umem(packet_buffer, packet_buffer_size, &fq, &cq);
 	if (umem == NULL) {
 		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
