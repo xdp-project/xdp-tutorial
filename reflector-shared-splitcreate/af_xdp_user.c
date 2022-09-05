@@ -221,8 +221,8 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 								 umem->umem,
 								 &xsk_info->rx,
 								 &xsk_info->tx,
-								 &xsk_info->fq,
-								 &xsk_info->cq,
+								 xsk_info->fq,
+								 xsk_info->cq,
 								 &xsk_cfg);
 
 		printf("xsk_socket__create_shared returns %d\n", ret) ;
