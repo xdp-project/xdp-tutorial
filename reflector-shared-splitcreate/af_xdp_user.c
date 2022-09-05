@@ -181,7 +181,7 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
 }
 
 static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
-						    struct xsk_umem_info *umem, int slot)
+						    struct xsk_umem_info *umem, int slot, struct xsk_ring_prod *fq)
 {
 	struct xsk_socket_config xsk_cfg;
 	struct xsk_socket_info *xsk_info;
@@ -210,6 +210,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 				&xsk_info->tx,
 				&xsk_cfg
 				) ;
+		printf("xsk_socket__create returns %d\n", ret) ;
 	} else {
 
 		ret = xsk_socket__create_shared(&xsk_info->xsk,
@@ -222,8 +223,8 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 								 &xsk_info->cq,
 								 &xsk_cfg);
 
+		printf("xsk_socket__create_shared returns %d\n", ret) ;
 	}
-	printf("xsk_socket__create_shared returns %d\n", ret) ;
 	if (ret)
 		goto error_exit;
 
@@ -241,8 +242,9 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 
 //	if (slot == 0)
 	{
+		struct xsk_ring_prod * active_fq=(slot == 0) ? fq : &xsk_info->fq ;
 		/* Stuff the receive path with buffers, we assume we have enough */
-		ret = xsk_ring_prod__reserve(&xsk_info->fq,
+		ret = xsk_ring_prod__reserve(active_fq,
 						 XSK_RING_PROD__DEFAULT_NUM_DESCS,
 						 &idx);
 
@@ -251,10 +253,10 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 			goto error_exit;
 
 		for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
-			*xsk_ring_prod__fill_addr(&xsk_info->fq, idx++) =
+			*xsk_ring_prod__fill_addr(active_fq, idx++) =
 				xsk_alloc_umem_frame(xsk_info);
 
-		xsk_ring_prod__submit(&xsk_info->fq,
+		xsk_ring_prod__submit(active_fq,
 					  XSK_RING_PROD__DEFAULT_NUM_DESCS);
 	}
 	return xsk_info;
@@ -662,13 +664,13 @@ int main(int argc, char **argv)
 	}
 
 	/* Open and configure the AF_XDP (xsk) socket */
-	xsk_socket_0 = xsk_configure_socket(&cfg, umem, 0);
+	xsk_socket_0 = xsk_configure_socket(&cfg, umem, 0, &fq);
 	if (xsk_socket_0 == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 0 \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	xsk_socket_1 = xsk_configure_socket(&cfg, umem, 1);
+	xsk_socket_1 = xsk_configure_socket(&cfg, umem, 1, NULL);
 	if (xsk_socket_1 == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 1 \"%s\"\n",
 			strerror(errno));
