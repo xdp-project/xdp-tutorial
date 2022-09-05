@@ -644,7 +644,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Allocate memory for NUM_FRAMES of the default XDP frame size */
-	packet_buffer_size = NUM_FRAMES * FRAME_SIZE;
+	packet_buffer_size = NUM_FRAMES * FRAME_SIZE * 2;
 	if (posix_memalign(&packet_buffer,
 			   getpagesize(), /* PAGE_SIZE aligned */
 			   packet_buffer_size)) {
