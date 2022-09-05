@@ -202,7 +202,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	xsk_cfg.bind_flags = cfg->xsk_bind_flags;
 	if ( slot == 0)
 	{
-		ret = xsk_socket_create(&xsk_info->xsk,
+		ret = xsk_socket__create(&xsk_info->xsk,
 				cfg->ifname,
 				umem->umem,
 				&xsk_info->rx,
