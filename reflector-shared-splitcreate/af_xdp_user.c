@@ -204,6 +204,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	{
 		ret = xsk_socket__create(&xsk_info->xsk,
 				cfg->ifname,
+				cfg->xsk_if_queue,
 				umem->umem,
 				&xsk_info->rx,
 				&xsk_info->tx,
