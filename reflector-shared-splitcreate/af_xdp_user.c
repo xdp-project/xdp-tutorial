@@ -411,7 +411,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 
 	/* Stuff the ring with as much frames as possible */
 	stock_frames = xsk_prod_nb_free(xsk_src->fq,
-					xsk_umem_free_frames(xsk_src));
+					umem_free_frames(xsk_src->umem));
 
 	if (stock_frames > 0) {
 
@@ -440,7 +440,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx++)->len;
 
 		if (!process_packet(xsk_dst, xsk_src, addr, len))
-			xsk_free_umem_frame(xsk_src, addr);
+			umem_free_umem_frame(xsk_src->umem, addr);
 
 		xsk_src->stats.rx_bytes += len;
 	}
