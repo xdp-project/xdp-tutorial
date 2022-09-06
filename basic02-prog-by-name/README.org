@@ -14,7 +14,7 @@ lesson.
   - [[#hardware-offloading][Hardware offloading]]
 - [[#assignments][Assignments]]
   - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
-  - [[#assignment-2-add-xdp_abort-program][Assignment 2: Add xdp_abort program]]
+  - [[#assignment-2-add-xdp_drop-program][Assignment 2: Add xdp_drop program]]
 
 * Using libbpf
 
@@ -170,14 +170,14 @@ see the currently selected environment (i.e., the one that will be used if
 you don't specify one with =--name=), as well as the list of all currently
 active environments.
 
-** Assignment 2: Add xdp_abort program
+** Assignment 2: Add xdp_drop program
 
-Add a new program section "xdp_abort" in [[file:xdp_prog_kern.c]] that uses
+Add a new program section "xdp_drop" in [[file:xdp_prog_kern.c]] that uses
 (returns) the XDP action =XDP_ABORTED= (and compile via =make=). Load this
 new program, e.g. similar to above:
 
 #+begin_example sh
-sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_abort
+sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_drop
 #+end_example
 
 *Lesson*: XDP_ABORTED is different from XDP_DROP, because it triggers the
