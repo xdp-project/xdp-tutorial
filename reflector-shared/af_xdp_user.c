@@ -156,7 +156,7 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size, str
 	for (i = 0; i < 2*NUM_FRAMES; i++)
 		umem->umem_frame_addr[i] = i * FRAME_SIZE;
 
-	umem->umem_frame_free = NUM_FRAMES;
+	umem->umem_frame_free = 2*NUM_FRAMES;
 	return umem;
 }
 
