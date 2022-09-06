@@ -240,7 +240,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 
 		for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
 			*xsk_ring_prod__fill_addr(&xsk_info->fq, idx++) =
-				umem_alloc_umem_frame(xsk_info);
+				umem_alloc_umem_frame(xsk_info->umem);
 
 		xsk_ring_prod__submit(&xsk_info->fq,
 					  XSK_RING_PROD__DEFAULT_NUM_DESCS);
