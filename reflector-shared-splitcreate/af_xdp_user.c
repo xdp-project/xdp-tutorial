@@ -416,6 +416,9 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 		ret = xsk_ring_prod__reserve(xsk_src->fq, stock_frames,
 					     &idx_fq);
 
+		if(INSTRUMENT) {
+			printf("xsk_src=%p stock_frames=%u ret=%d\n", xsk_src, stock_frames, ret) ;
+		}
 		/* This should not happen, but just in case */
 		while (ret != stock_frames)
 			ret = xsk_ring_prod__reserve(xsk_src->fq, rcvd,
