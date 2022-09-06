@@ -156,6 +156,7 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size, str
 static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 {
 	uint64_t frame;
+	assert(xsk->umem_frame_free > 0);
 	if (xsk->umem_frame_free == 0)
 		return INVALID_UMEM_FRAME;
 
