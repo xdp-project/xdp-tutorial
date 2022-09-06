@@ -419,7 +419,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 					     &idx_fq);
 
 		if(INSTRUMENT_STOCK) {
-			printf("xsk_src=%p fq=%p stock_frames=%u ret=%d\n", xsk_src, xsk_src->fq, stock_frames, ret) ;
+			printf("xsk_src=%p fq=%p stock_frames=%u ret=%d free_frames=%lu\n", xsk_src, xsk_src->fq, stock_frames, ret, xsk_umem_free_frames(xsk_src)) ;
 		}
 		assert(ret == stock_frames) ;
 		/* This should not happen, but just in case */
