@@ -30,7 +30,7 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
-#define INSTRUMENT 1
+#define INSTRUMENT 0
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -42,6 +42,11 @@ struct xsk_umem_info {
 //	struct xsk_ring_cons cq;
 	struct xsk_umem *umem;
 	void *buffer;
+	uint64_t umem_frame_addr[NUM_FRAMES*2];
+	uint32_t umem_frame_free;
+
+	uint64_t allocation_count;
+	uint64_t free_count;
 };
 
 struct stats_record {
@@ -60,15 +65,10 @@ struct xsk_socket_info {
 	struct xsk_umem_info *umem;
 	struct xsk_socket *xsk;
 
-	uint64_t umem_frame_addr[NUM_FRAMES];
-	uint32_t umem_frame_free;
-
 	uint32_t outstanding_tx;
 
 	struct stats_record stats;
 	struct stats_record prev_stats;
-	uint64_t allocation_count;
-	uint64_t free_count;
 };
 
 static inline __u32 xsk_ring_prod__free(struct xsk_ring_prod *r)
@@ -135,6 +135,7 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size, str
 {
 	struct xsk_umem_info *umem;
 	int ret;
+	int i;
 
 	umem = calloc(1, sizeof(*umem));
 	if (!umem)
@@ -150,34 +151,41 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size, str
 	}
 
 	umem->buffer = buffer;
+	/* Initialize umem frame allocation */
+
+	for (i = 0; i < 2*NUM_FRAMES; i++)
+		umem->umem_frame_addr[i] = i * FRAME_SIZE;
+
+	umem->umem_frame_free = NUM_FRAMES;
 	return umem;
 }
 
-static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
+static uint64_t umem_alloc_umem_frame(struct xsk_umem_info *umem)
 {
 	uint64_t frame;
-	if (xsk->umem_frame_free == 0)
+	assert(umem->umem_frame_free > 0);
+	if (umem->umem_frame_free == 0)
 		return INVALID_UMEM_FRAME;
 
-	frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
-	xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
-	xsk->allocation_count += 1;
-	if(INSTRUMENT) printf("xsk_alloc_umem_frame xsk=%p allocation_count=%ld free_count=%ld\n", xsk, xsk->allocation_count, xsk->free_count) ;
+	frame = umem->umem_frame_addr[--umem->umem_frame_free];
+	umem->umem_frame_addr[umem->umem_frame_free] = INVALID_UMEM_FRAME;
+	umem->allocation_count += 1;
+	if(INSTRUMENT) printf("umem_alloc_umem_frame umem=%p allocation_count=%ld free_count=%ld\n", umem, umem->allocation_count, umem->free_count) ;
 	return frame;
 }
 
-static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame)
+static void umem_free_umem_frame(struct xsk_umem_info *umem, uint64_t frame)
 {
-	assert(xsk->umem_frame_free < NUM_FRAMES);
+	assert(umem->umem_frame_free < NUM_FRAMES);
 
-	xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
-	xsk->free_count += 1;
-	if(INSTRUMENT) printf("xsk_free_umem_frame xsk=%p allocation_count=%ld free_count=%ld\n", xsk, xsk->allocation_count,xsk->free_count);
+	umem->umem_frame_addr[umem->umem_frame_free++] = frame;
+	umem->free_count += 1;
+	if(INSTRUMENT) printf("xsk_free_umem_frame xsk=%p allocation_count=%ld free_count=%ld\n", umem, umem->allocation_count,umem->free_count);
 }
 
-static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
+static uint64_t xsk_umem_free_frames(struct xsk_umem_info *umem)
 {
-	return xsk->umem_frame_free;
+	return umem->umem_frame_free;
 }
 
 static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
@@ -218,13 +226,6 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	if (ret)
 		goto error_exit;
 
-	/* Initialize umem frame allocation */
-
-	int frame_offset=slot*NUM_FRAMES;
-	for (i = 0; i < NUM_FRAMES; i++)
-		xsk_info->umem_frame_addr[i] = (frame_offset+i) * FRAME_SIZE;
-
-	xsk_info->umem_frame_free = NUM_FRAMES;
 
 //	if (slot == 0)
 	{
@@ -270,7 +271,7 @@ static void complete_tx(struct xsk_socket_info *xsk, struct xsk_socket_info *xsk
 	assert(completed <= xsk->outstanding_tx) ;
 	if (completed > 0) {
 		for (int i = 0; i < completed; i++)
-			xsk_free_umem_frame(xsk,
+			umem_free_umem_frame(xsk->umem,
 					    *xsk_ring_cons__comp_addr(&xsk->cq,
 								      idx_cq++));
 
@@ -403,7 +404,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 
 		for (i = 0; i < stock_frames; i++)
 			*xsk_ring_prod__fill_addr(&xsk_src->fq, idx_fq++) =
-				xsk_alloc_umem_frame(xsk_src);
+				umem_alloc_umem_frame(xsk_src->umem);
 
 		xsk_ring_prod__submit(&xsk_src->fq, stock_frames);
 	}
@@ -414,7 +415,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx++)->len;
 
 		if (!process_packet(xsk_dst, xsk_src, addr, len))
-			xsk_free_umem_frame(xsk_src, addr);
+			umem_free_umem_frame(xsk_src->umem, addr);
 
 		xsk_src->stats.rx_bytes += len;
 	}
@@ -641,6 +642,8 @@ int main(int argc, char **argv)
 	/* Initialize shared packet_buffer for umem usage */
 	struct xsk_ring_prod fq ;
 	struct xsk_ring_cons cq ;
+	memset(&fq,0,sizeof(fq));
+	memset(&cq,0,sizeof(cq));
 	umem = configure_xsk_umem(packet_buffer, packet_buffer_size, &fq, &cq);
 	if (umem == NULL) {
 		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
