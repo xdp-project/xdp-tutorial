@@ -240,7 +240,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 
 		for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
 			*xsk_ring_prod__fill_addr(&xsk_info->fq, idx++) =
-				xsk_alloc_umem_frame(xsk_info);
+				umem_alloc_umem_frame(xsk_info);
 
 		xsk_ring_prod__submit(&xsk_info->fq,
 					  XSK_RING_PROD__DEFAULT_NUM_DESCS);
@@ -390,7 +390,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 
 	/* Stuff the ring with as much frames as possible */
 	stock_frames = xsk_prod_nb_free(&xsk_src->fq,
-					xsk_umem_free_frames(xsk_src));
+					xsk_umem_free_frames(xsk_src->umem));
 
 	if (stock_frames > 0) {
 
