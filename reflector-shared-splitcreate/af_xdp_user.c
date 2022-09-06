@@ -30,7 +30,7 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
-#define INSTRUMENT 1
+#define INSTRUMENT 0
 #define INSTRUMENT_STOCK 1
 
 #define NUM_FRAMES         4096
