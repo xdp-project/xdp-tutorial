@@ -31,6 +31,7 @@
 #include "../common/common_libbpf.h"
 
 #define INSTRUMENT 1
+#define INSTRUMENT_STOCK 1
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -417,9 +418,10 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 		ret = xsk_ring_prod__reserve(xsk_src->fq, stock_frames,
 					     &idx_fq);
 
-		if(INSTRUMENT) {
-			printf("xsk_src=%p stock_frames=%u ret=%d\n", xsk_src, stock_frames, ret) ;
+		if(INSTRUMENT_STOCK) {
+			printf("xsk_src=%p fq=%p stock_frames=%u ret=%d\n", xsk_src, xsk_src->fq, stock_frames, ret) ;
 		}
+		assert(ret == stock_frames) ;
 		/* This should not happen, but just in case */
 		while (ret != stock_frames)
 			ret = xsk_ring_prod__reserve(xsk_src->fq, rcvd,
@@ -693,7 +695,8 @@ int main(int argc, char **argv)
 	}
 
 	/* Start thread to do statistics display */
-	if (verbose && 0 == INSTRUMENT ) {
+	verbose = 0;
+	if (verbose &&  0 == INSTRUMENT ) {
 		ret = pthread_create(&stats_poll_thread, NULL, stats_poll,
 				     xsk_socket_0);
 		if (ret) {
