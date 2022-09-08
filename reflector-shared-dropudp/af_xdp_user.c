@@ -23,6 +23,7 @@
 #include <linux/if_link.h>
 #include <linux/if_ether.h>
 #include <linux/ipv6.h>
+#include <linux/ip.h>
 #include <linux/icmpv6.h>
 
 
