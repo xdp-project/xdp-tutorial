@@ -303,6 +303,11 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 	*sum = ~csum16_add(csum16_sub(~(*sum), old), new);
 }
 
+static bool skipsend(struct transfer_state *trans)
+{
+	trans->udp_packet_count += 1 ;
+	return (trans->udp_packet_count & 1) ? true : false ;
+}
 static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len)
 {
@@ -330,7 +335,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 		if (ntohs(eth->h_proto) == ETH_P_IP &&
 		    len >= (sizeof(*eth) + sizeof(*ip))) {
 			if ( ip->protocol == IPPROTO_UDP && skipsend(&xsk_src->trans)) {
-
+				return false ;
 			}
 
 		}
