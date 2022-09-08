@@ -33,6 +33,7 @@ ip netns exec ns2 ip route add default via 10.10.0.1
 
 iptables -P FORWARD ACCEPT
 iptables -F FORWARD
-iptables -A FORWARD -p udp -j DROP
+#iptables -A FORWARD -p udp -j DROP
+ip netns exec ns2 iptables -A INPUT -p udp -j DROP
 
 #./af_xdp_user -d veth1 -r veth2

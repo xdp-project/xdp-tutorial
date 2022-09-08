@@ -57,6 +57,9 @@ struct stats_record {
 	uint64_t tx_bytes;
 };
 
+struct transfer_state {
+	uint64_t udp_packet_count ;
+};
 struct xsk_socket_info {
 	struct xsk_ring_cons rx;
 	struct xsk_ring_prod tx;
@@ -69,6 +72,7 @@ struct xsk_socket_info {
 
 	struct stats_record stats;
 	struct stats_record prev_stats;
+	struct transfer_state trans;
 };
 
 static inline __u32 xsk_ring_prod__free(struct xsk_ring_prod *r)
@@ -302,7 +306,7 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len)
 {
-//	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem->buffer, addr);
+	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem->buffer, addr);
 
         /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
 	 *
@@ -319,13 +323,18 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 //		uint64_t tx_frame;
 //		uint8_t tmp_mac[ETH_ALEN];
 //		struct in6_addr tmp_ip;
-//		struct ethhdr *eth = (struct ethhdr *) pkt;
-//		struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
+		struct ethhdr *eth = (struct ethhdr *) pkt;
+		struct iphdr *ip = (struct iphdr *) (eth + 1);
 //		struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
 //
-//		if (ntohs(eth->h_proto) != ETH_P_IPV6 ||
-//		    len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*icmp)) ||
-//		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
+		if (ntohs(eth->h_proto) == ETH_P_IP &&
+		    len >= (sizeof(*eth) + sizeof(*ip))) {
+			if ( ip->protocol == IPPROTO_UDP && skipsend(&xsk_src->trans)) {
+
+			}
+
+		}
+		//		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
 //		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
 //			return false;
 //
