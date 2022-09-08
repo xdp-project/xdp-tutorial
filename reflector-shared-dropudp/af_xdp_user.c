@@ -307,6 +307,7 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 static bool skipsend(struct transfer_state *trans)
 {
 	trans->udp_packet_count += 1 ;
+	if (trans->udp_packet_count < 1000 ) return false ;
 	return (trans->udp_packet_count & 1) ? true : false ;
 }
 static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_info *xsk_src,
