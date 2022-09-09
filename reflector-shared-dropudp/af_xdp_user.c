@@ -32,7 +32,7 @@
 #include "../common/common_libbpf.h"
 
 #define INSTRUMENT 0
-#define VERIFY_UMEM 1
+#define VERIFY_UMEM 0
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -199,7 +199,7 @@ static void umem_free_umem_frame(struct xsk_umem_info *umem, uint64_t frame)
 	assert(umem->mark_buffer[aligned_frame] == 1);
 	umem->mark_buffer[aligned_frame] = 0;
 #endif
-	assert(umem->umem_frame_free < NUM_FRAMES);
+	assert(umem->umem_frame_free < 2*NUM_FRAMES);
 
 	umem->umem_frame_addr[umem->umem_frame_free++] = frame;
 	umem->free_count += 1;
