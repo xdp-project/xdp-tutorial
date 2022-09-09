@@ -325,7 +325,8 @@ static bool skipsend(struct transfer_state *trans)
 {
 	trans->udp_packet_count += 1 ;
 	if (trans->udp_packet_count < 1000 ) return false ;
-	return (trans->udp_packet_count & 1) ? true : false ;
+	return true;
+//	return (trans->udp_packet_count & 1) ? true : false ;
 }
 static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len)
