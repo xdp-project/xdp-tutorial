@@ -181,7 +181,7 @@ static uint64_t umem_alloc_umem_frame(struct xsk_umem_info *umem)
 
 	frame = umem->umem_frame_addr[--umem->umem_frame_free];
 #if VERIFY_UMEM == 1
-	assert(umem->mark_buffer[frame] == 0) ;
+	assert(umem->mark_buffer[frame & (FRAME_SIZE-1)] == 0) ;
 	umem->mark_buffer[frame] = 1;
 #endif
 	umem->umem_frame_addr[umem->umem_frame_free] = INVALID_UMEM_FRAME;
@@ -194,7 +194,7 @@ static void umem_free_umem_frame(struct xsk_umem_info *umem, uint64_t frame)
 {
 	if(INSTRUMENT) printf("xsk_free_umem_frame xsk=%p allocation_count=%ld free_count=%ld frame=0x%lx\n", umem, umem->allocation_count,umem->free_count,frame);
 #if VERIFY_UMEM == 1
-	assert(umem->mark_buffer[frame] == 1);
+	assert(umem->mark_buffer[frame & (FRAME_SIZE-1)] == 1);
 	umem->mark_buffer[frame] = 0;
 #endif
 	assert(umem->umem_frame_free < NUM_FRAMES);
