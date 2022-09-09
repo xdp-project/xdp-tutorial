@@ -32,7 +32,7 @@
 #include "../common/common_libbpf.h"
 
 #define INSTRUMENT 0
-#define VERIFY_UMEM 0
+#define VERIFY_UMEM 1
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
