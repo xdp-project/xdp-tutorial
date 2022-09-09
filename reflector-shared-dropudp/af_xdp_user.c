@@ -445,7 +445,10 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx++)->len;
 
-		if (!process_packet(xsk_dst, xsk_src, addr, len))
+		bool transmitted=process_packet(xsk_dst, xsk_src, addr, len) ;
+
+		if(INSTRUMENT) printf("addr=0x%lx len=%u transmitted=%u\n", addr, len, transmitted);
+		if (!transmitted)
 			umem_free_umem_frame(xsk_src->umem, addr);
 
 		xsk_src->stats.rx_bytes += len;
