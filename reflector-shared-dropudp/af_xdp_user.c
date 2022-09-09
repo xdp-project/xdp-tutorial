@@ -32,6 +32,7 @@
 #include "../common/common_libbpf.h"
 
 #define INSTRUMENT 0
+#define VERIFY_UMEM 1
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -48,6 +49,9 @@ struct xsk_umem_info {
 
 	uint64_t allocation_count;
 	uint64_t free_count;
+#if VERIFY_UMEM == 1
+	char *mark_buffer;
+#endif
 };
 
 struct stats_record {
@@ -156,6 +160,9 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size, str
 	}
 
 	umem->buffer = buffer;
+#if VERIFY_UMEM == 1
+	umem->mark_buffer = calloc(size,1) ;
+#endif
 	/* Initialize umem frame allocation */
 
 	for (i = 0; i < 2*NUM_FRAMES; i++)
@@ -173,6 +180,10 @@ static uint64_t umem_alloc_umem_frame(struct xsk_umem_info *umem)
 		return INVALID_UMEM_FRAME;
 
 	frame = umem->umem_frame_addr[--umem->umem_frame_free];
+#if VERIFY_UMEM == 1
+	assert(umem->mark_buffer[frame] == 0) ;
+	umem->mark_buffer[frame] = 1;
+#endif
 	umem->umem_frame_addr[umem->umem_frame_free] = INVALID_UMEM_FRAME;
 	umem->allocation_count += 1;
 	if(INSTRUMENT) printf("umem_alloc_umem_frame umem=%p allocation_count=%ld free_count=%ld\n", umem, umem->allocation_count, umem->free_count) ;
@@ -181,6 +192,10 @@ static uint64_t umem_alloc_umem_frame(struct xsk_umem_info *umem)
 
 static void umem_free_umem_frame(struct xsk_umem_info *umem, uint64_t frame)
 {
+#if VERIFY_UMEM == 1
+	assert(umem->mark_buffer[frame] == 1);
+	umem->mark_buffer[frame] = 0;
+#endif
 	assert(umem->umem_frame_free < NUM_FRAMES);
 
 	umem->umem_frame_addr[umem->umem_frame_free++] = frame;
