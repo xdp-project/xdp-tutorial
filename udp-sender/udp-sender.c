@@ -10,8 +10,8 @@
 #include <string.h>
 #include <sys/time.h>
 
-#define BUF_SIZE 14400
-#define REP_COUNT 10000
+#define BUF_SIZE 1
+#define REP_COUNT 1000000
 
 int main(int argc, char *argv[])
 {
