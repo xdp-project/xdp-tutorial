@@ -25,5 +25,6 @@ ip netns exec ns1 ip route add default via 10.10.0.1
 iptables -P FORWARD ACCEPT
 iptables -F FORWARD
 
+export LD_LIBRARY_PATH=/usr/local/lib
 ./af_xdp_user -d veth1
 #gdb ./af_xdp_user
