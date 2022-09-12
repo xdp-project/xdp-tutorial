@@ -61,26 +61,4 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
     return XDP_PASS;
 }
 
-SEC("xdp_sock_1")
-int xdp_sock_prog_1(struct xdp_md *ctx)
-{
-    int index = ctx->rx_queue_index;
-//    __u32 *pkt_count;
-
-//    pkt_count = bpf_map_lookup_elem(&xdp_stats_map, &index);
-//    if (pkt_count) {
-//
-//        /* We pass every other packet */
-//        if ((*pkt_count)++ & 1)
-//            return XDP_PASS;
-//    }
-
-    /* A set entry here means that the correspnding queue_id
-     * has an active AF_XDP socket bound to it. */
-    if (bpf_map_lookup_elem(&xsks_map_1, &index))
-        return bpf_redirect_map(&xsks_map_1, index, 0);
-
-    return XDP_PASS;
-}
-
 char _license[] SEC("license") = "GPL";

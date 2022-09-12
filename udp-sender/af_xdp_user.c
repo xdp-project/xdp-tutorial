@@ -466,28 +466,25 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
   }
 
 static void rx_and_process(struct config *cfg,
-			   struct xsk_socket_info *xsk_socket_0, struct xsk_socket_info *xsk_socket_1)
+			   struct xsk_socket_info *xsk_socket_0)
 {
 	struct pollfd fds[2];
-	int ret, nfds = 2;
+	int ret, nfds = 1;
 
 	memset(fds, 0, sizeof(fds));
 	fds[0].fd = xsk_socket__fd(xsk_socket_0->xsk);
 	fds[0].events = POLLIN;
-	fds[1].fd = xsk_socket__fd(xsk_socket_1->xsk);
-	fds[1].events = POLLIN;
 
 	while(!global_exit) {
 //		if (cfg->xsk_poll_mode) {
 			ret = poll(fds, nfds, -1);
-			if (ret <= 0 || ret > 2)
+			if (ret <= 0 || ret > 1)
 				continue;
 //		}
 			if(INSTRUMENT) {
-				printf("rx_and_process xsk_0=%p xsk_1=%p fds[0].revents=0x%x fds[1].revents=0x%x\n", xsk_socket_0, xsk_socket_1, fds[0].revents, fds[1].revents);
+				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 			}
-		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_1, xsk_socket_0) ;
-		if ( fds[1].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_1) ;
+		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_0) ;
 //		handle_receive_packets(xsk_socket);
 	}
 }
@@ -586,7 +583,7 @@ static void exit_application(int signal)
 int main(int argc, char **argv)
 {
 	int ret;
-	int xsks_map_0_fd, xsks_map_1_fd;
+	int xsks_map_0_fd;
 	void *packet_buffer;
 	uint64_t packet_buffer_size;
 	struct rlimit rlim = {RLIM_INFINITY, RLIM_INFINITY};
@@ -600,7 +597,6 @@ int main(int argc, char **argv)
 	};
 	struct xsk_umem_info *umem;
 	struct xsk_socket_info *xsk_socket_0;
-	struct xsk_socket_info *xsk_socket_1;
 	struct bpf_object *bpf_obj = NULL;
 	pthread_t stats_poll_thread;
 
@@ -626,8 +622,7 @@ int main(int argc, char **argv)
 	/* Unload XDP program if requested */
 	if (cfg.do_unload) {
 		int err_0=xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
-		int err_1=xdp_link_detach(cfg.redirect_ifindex, cfg.xdp_flags, 0);
-		return (err_0 != 0) ? err_0 : err_1;
+		return err_0;
 	}
 
 	/* Load custom program if configured */
@@ -646,13 +641,6 @@ int main(int argc, char **argv)
 		if (xsks_map_0_fd < 0) {
 			fprintf(stderr, "ERROR: no xsks map 0 found: %s\n",
 				strerror(xsks_map_0_fd));
-			exit(EXIT_FAILURE);
-		}
-		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map_1");
-		xsks_map_1_fd = bpf_map__fd(map);
-		if (xsks_map_1_fd < 0) {
-			fprintf(stderr, "ERROR: no xsks map 1 found: %s\n",
-				strerror(xsks_map_1_fd));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -695,12 +683,6 @@ int main(int argc, char **argv)
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	xsk_socket_1 = xsk_configure_socket(&cfg, umem, 1);
-	if (xsk_socket_1 == NULL) {
-		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 1 \"%s\"\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
 
 	/* Start thread to do statistics display */
 	if (verbose && 0 == INSTRUMENT ) {
@@ -714,11 +696,10 @@ int main(int argc, char **argv)
 	}
 
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, xsk_socket_0, xsk_socket_1);
+	rx_and_process(&cfg, xsk_socket_0);
 
 	/* Cleanup */
 	xsk_socket__delete(xsk_socket_0->xsk);
-	xsk_socket__delete(xsk_socket_1->xsk);
 	xsk_umem__delete(umem->umem);
 	xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 	xdp_link_detach(cfg.redirect_ifindex, cfg.xdp_flags, 0);
