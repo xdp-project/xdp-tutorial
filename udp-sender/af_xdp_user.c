@@ -613,12 +613,6 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
-	if (cfg.redirect_ifindex == -1) {
-		fprintf(stderr, "ERROR: Required option --redirect_dev missing\n\n");
-		usage(argv[0], __doc__, long_options, (argc == 1));
-		return EXIT_FAIL_OPTION;
-	}
-
 	/* Unload XDP program if requested */
 	if (cfg.do_unload) {
 		int err_0=xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
