@@ -696,7 +696,6 @@ int main(int argc, char **argv)
 	xsk_socket__delete(xsk_socket_0->xsk);
 	xsk_umem__delete(umem->umem);
 	xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
-	xdp_link_detach(cfg.redirect_ifindex, cfg.xdp_flags, 0);
 
 	return EXIT_OK;
 }
