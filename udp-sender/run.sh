@@ -1,2 +1,3 @@
 #!/bin/bash -x
-../reflector-shared-dropudp -d ens9f0 -r ens9f0
+cd ../reflector-shared-dropudp/
+./af_xdp_user -d ens9f0 -r ens9f0
