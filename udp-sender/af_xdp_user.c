@@ -361,7 +361,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 				uint8_t current_data=pkt[sizeof(*eth) + sizeof(*ip)];
 				if(current_data == xsk_src->prev_sequence) xsk_src->stats.rx_duplicate += 1;
 				if(current_data != ((xsk_src->prev_sequence+1) & 0xff)) xsk_src->stats.rx_outofsequence += 1;
-
+                xsk_src->prev_sequence =  current_data;
 				if(skipsend(&xsk_src->trans)) return false ;
 			}
 
