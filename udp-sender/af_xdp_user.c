@@ -560,6 +560,8 @@ static void stats_print(struct stats_record *stats_rec,
 
 	printf(fmt, "       TX:", stats_rec->tx_packets, pps,
 	       stats_rec->tx_bytes / 1000 , bps,
+		   0,
+		   0,
 	       period);
 
 	printf("\n");
