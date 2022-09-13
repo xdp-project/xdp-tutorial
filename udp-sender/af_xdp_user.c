@@ -532,6 +532,7 @@ static void stats_print(struct stats_record *stats_rec,
 
 	char *fmt = "%-12s %'11lld pkts (%'10.0f pps)"
 		" %'11lld Kbytes (%'6.0f Mbits/s)"
+	    " %lu dups %lu out of seqs"
 		" period:%f\n";
 
 	period = calc_period(stats_rec, stats_prev);
@@ -546,6 +547,8 @@ static void stats_print(struct stats_record *stats_rec,
 
 	printf(fmt, "AF_XDP RX:", stats_rec->rx_packets, pps,
 	       stats_rec->rx_bytes / 1000 , bps,
+		   stats_rec->rx_duplicate,
+		   stats_rec->rx_outofsequence,
 	       period);
 
 	packets = stats_rec->tx_packets - stats_prev->tx_packets;
