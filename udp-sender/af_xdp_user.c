@@ -25,6 +25,7 @@
 #include <linux/ipv6.h>
 #include <linux/ip.h>
 #include <linux/icmpv6.h>
+#include <linux/udp.h>
 
 
 #include "../common/common_params.h"
@@ -358,7 +359,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 		if (ntohs(eth->h_proto) == ETH_P_IP &&
 		    len > (sizeof(*eth) + sizeof(*ip))) {
 			if ( ip->protocol == IPPROTO_UDP ) {
-				uint8_t current_data=pkt[sizeof(*eth) + sizeof(*ip)];
+				uint8_t current_data=pkt[sizeof(*eth) + sizeof(*ip) + sizeof(struct udphdr)];
 				if(current_data == xsk_src->prev_sequence) xsk_src->stats.rx_duplicate += 1;
 				if(current_data != ((xsk_src->prev_sequence+1) & 0xff)) xsk_src->stats.rx_outofsequence += 1;
                 xsk_src->prev_sequence =  current_data;
