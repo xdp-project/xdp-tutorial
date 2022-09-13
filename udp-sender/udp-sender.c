@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 	memset(buf,0,BUF_SIZE) ;
 	gettimeofday(&start,NULL) ;
 	for(j=0; j<REP_COUNT; j += 1) {
+		buf[0]=j & 0xff;
 	    write(sfd, buf, BUF_SIZE) ;
 	}
 	gettimeofday(&end, NULL);

@@ -60,6 +60,8 @@ struct stats_record {
 	uint64_t rx_bytes;
 	uint64_t tx_packets;
 	uint64_t tx_bytes;
+	uint64_t rx_outofsequence;
+	uint64_t rx_duplicate;
 };
 
 struct transfer_state {
@@ -78,6 +80,7 @@ struct xsk_socket_info {
 	struct stats_record stats;
 	struct stats_record prev_stats;
 	struct transfer_state trans;
+	uint8_t prev_sequence;
 };
 
 static inline __u32 xsk_ring_prod__free(struct xsk_ring_prod *r)
@@ -353,9 +356,13 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 //		struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
 //
 		if (ntohs(eth->h_proto) == ETH_P_IP &&
-		    len >= (sizeof(*eth) + sizeof(*ip))) {
-			if ( ip->protocol == IPPROTO_UDP && skipsend(&xsk_src->trans)) {
-				return false ;
+		    len > (sizeof(*eth) + sizeof(*ip))) {
+			if ( ip->protocol == IPPROTO_UDP ) {
+				uint8_t current_data=pkt[sizeof(*eth) + sizeof(*ip)];
+				if(current_data == xsk_src->prev_sequence) xsk_src->stats.rx_duplicate += 1;
+				if(current_data != (xsk_src->prev_sequence+1) & 0xff) xsk_src->stats.rx_outofsequence += 1;
+
+				if(skipsend(&xsk_src->trans)) return false ;
 			}
 
 		}
