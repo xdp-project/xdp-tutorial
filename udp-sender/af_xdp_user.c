@@ -363,7 +363,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 				if(current_data == xsk_src->prev_sequence) xsk_src->stats.rx_duplicate += 1;
 				if(current_data != ((xsk_src->prev_sequence+1) & 0xff)) xsk_src->stats.rx_outofsequence += 1;
                 xsk_src->prev_sequence =  current_data;
-                if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,xsk_src->stats.rx_packets,xsk_src->stats.rx_duplicate,xsk_src->stats.rx_outofsequence);
+                if(INSTRUMENT) printf("sequence=%lu receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,xsk_src->stats.rx_packets,xsk_src->stats.rx_duplicate,xsk_src->stats.rx_outofsequence);
 //				if(skipsend(&xsk_src->trans)) return false ;
                 return false ;
 			}
@@ -694,7 +694,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Start thread to do statistics display */
-	if (verbose ) {
+	if (verbose && 0 == INSTRUMENT) {
 		ret = pthread_create(&stats_poll_thread, NULL, stats_poll,
 				     xsk_socket_0);
 		if (ret) {
