@@ -363,6 +363,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 				if(current_data == xsk_src->prev_sequence) xsk_src->stats.rx_duplicate += 1;
 				if(current_data != ((xsk_src->prev_sequence+1) & 0xff)) xsk_src->stats.rx_outofsequence += 1;
                 xsk_src->prev_sequence =  current_data;
+                if(INSTRUMENT) printf("receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",xsk_src->stats.rx_packets,xsk_src->stats.rx_duplicate,xsk_src->stats.rx_outofsequence);
 //				if(skipsend(&xsk_src->trans)) return false ;
                 return false ;
 			}
