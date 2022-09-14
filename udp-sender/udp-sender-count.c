@@ -11,7 +11,6 @@
 #include <sys/time.h>
 
 #define BUF_SIZE 1
-#define REP_COUNT 20
 
 int main(int argc, char *argv[])
 {
@@ -22,9 +21,10 @@ int main(int argc, char *argv[])
 	ssize_t nread;
 	char buf[BUF_SIZE];
 	struct timeval start, end ;
+	unsigned int repcount;
 
-	if (argc < 2) {
-		fprintf(stderr, "Usage: %s host port\n", argv[0]);
+	if (argc < 3) {
+		fprintf(stderr, "Usage: %s host port repcount\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
@@ -65,15 +65,16 @@ int main(int argc, char *argv[])
 
 	freeaddrinfo(result);           /* No longer needed */
 
+	repcount=atoi(argv[3]);
 	memset(buf,0,BUF_SIZE) ;
 	gettimeofday(&start,NULL) ;
-	for(j=0; j<REP_COUNT; j += 1) {
+	for(j=0; j<repcount; j += 1) {
 		buf[0]=j & 0xff;
 	    write(sfd, buf, BUF_SIZE) ;
 	}
 	gettimeofday(&end, NULL);
 	double duration=(end.tv_sec-start.tv_sec) + (end.tv_usec-start.tv_usec)*1e-6;
-	unsigned long bytes=(unsigned long)BUF_SIZE*REP_COUNT;
+	unsigned long bytes=(unsigned long)BUF_SIZE*repcount;
 	double bitrate=(bytes*8)/duration;
 	printf("%lu bytes in %f seconds, rate=%f Gbit/sec\n", bytes, duration, bitrate*1e-9);
 
