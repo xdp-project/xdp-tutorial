@@ -11,7 +11,7 @@
 #include <sys/time.h>
 
 #define BUF_SIZE 1
-#define REP_COUNT 10000000
+#define REP_COUNT 20
 
 int main(int argc, char *argv[])
 {
