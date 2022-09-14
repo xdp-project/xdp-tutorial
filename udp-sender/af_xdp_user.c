@@ -694,7 +694,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Start thread to do statistics display */
-	if (verbose && 0 == INSTRUMENT ) {
+	if (verbose ) {
 		ret = pthread_create(&stats_poll_thread, NULL, stats_poll,
 				     xsk_socket_0);
 		if (ret) {
