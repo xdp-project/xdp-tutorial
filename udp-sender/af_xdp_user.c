@@ -32,7 +32,7 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
-#define INSTRUMENT 0
+#define INSTRUMENT 1
 #define VERIFY_UMEM 0
 
 #define NUM_FRAMES         4096
@@ -328,7 +328,7 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 static bool skipsend(struct transfer_state *trans)
 {
 	trans->udp_packet_count += 1 ;
-	if (trans->udp_packet_count < 1000 ) return false ;
+	if (trans->udp_packet_count < 10 ) return false ;
 	return true;
 //	return (trans->udp_packet_count & 1) ? true : false ;
 }
@@ -363,7 +363,8 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 				if(current_data == xsk_src->prev_sequence) xsk_src->stats.rx_duplicate += 1;
 				if(current_data != ((xsk_src->prev_sequence+1) & 0xff)) xsk_src->stats.rx_outofsequence += 1;
                 xsk_src->prev_sequence =  current_data;
-				if(skipsend(&xsk_src->trans)) return false ;
+//				if(skipsend(&xsk_src->trans)) return false ;
+                return false ;
 			}
 
 		}
