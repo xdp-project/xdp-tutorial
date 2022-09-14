@@ -32,7 +32,7 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
-#define INSTRUMENT 1
+#define INSTRUMENT 0
 #define VERIFY_UMEM 0
 
 #define NUM_FRAMES         4096
@@ -63,6 +63,7 @@ struct stats_record {
 	uint64_t tx_bytes;
 	uint64_t rx_outofsequence;
 	uint64_t rx_duplicate;
+	uint64_t rx_batch_count;
 };
 
 struct transfer_state {
@@ -468,6 +469,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 		xsk_src->stats.rx_packets += 1;
 	}
 
+	xsk_src->stats.rx_batch_count += 1;
 	xsk_ring_cons__release(&xsk_src->rx, rcvd);
 
 	/* Do we need to wake up the kernel for transmission */
@@ -535,7 +537,7 @@ static void stats_print(struct stats_record *stats_rec,
 
 	char *fmt = "%-12s %'11lld pkts (%'10.0f pps)"
 		" %'11lld Kbytes (%'6.0f Mbits/s)"
-	    " %lu dups %lu out of seqs"
+	    " %lu dups %lu out of seqs %lu batches"
 		" period:%f\n";
 
 	period = calc_period(stats_rec, stats_prev);
@@ -552,6 +554,7 @@ static void stats_print(struct stats_record *stats_rec,
 	       stats_rec->rx_bytes / 1000 , bps,
 		   stats_rec->rx_duplicate,
 		   stats_rec->rx_outofsequence,
+		   stats_rec->rx_batch_count,
 	       period);
 
 	packets = stats_rec->tx_packets - stats_prev->tx_packets;
@@ -562,6 +565,7 @@ static void stats_print(struct stats_record *stats_rec,
 
 	printf(fmt, "       TX:", stats_rec->tx_packets, pps,
 	       stats_rec->tx_bytes / 1000 , bps,
+		   0,
 		   0,
 		   0,
 	       period);
