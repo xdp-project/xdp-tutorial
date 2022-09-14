@@ -363,7 +363,7 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 				if(current_data == xsk_src->prev_sequence) xsk_src->stats.rx_duplicate += 1;
 				if(current_data != ((xsk_src->prev_sequence+1) & 0xff)) xsk_src->stats.rx_outofsequence += 1;
                 xsk_src->prev_sequence =  current_data;
-                if(INSTRUMENT) printf("sequence=%lu receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,xsk_src->stats.rx_packets,xsk_src->stats.rx_duplicate,xsk_src->stats.rx_outofsequence);
+                if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,xsk_src->stats.rx_packets,xsk_src->stats.rx_duplicate,xsk_src->stats.rx_outofsequence);
 //				if(skipsend(&xsk_src->trans)) return false ;
                 return false ;
 			}
@@ -465,10 +465,10 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 			umem_free_umem_frame(xsk_src->umem, addr);
 
 		xsk_src->stats.rx_bytes += len;
+		xsk_src->stats.rx_packets += 1;
 	}
 
 	xsk_ring_cons__release(&xsk_src->rx, rcvd);
-	xsk_src->stats.rx_packets += rcvd;
 
 	/* Do we need to wake up the kernel for transmission */
 	complete_tx(xsk_dst, xsk_src);
