@@ -25,6 +25,7 @@ ip link set br0 up
 
 ip link set veth1 master br0
 ip link set veth2 master br0
+ip link set ens1 master br0
 
 ip addr add 10.1.0.254/24 dev br0
 
