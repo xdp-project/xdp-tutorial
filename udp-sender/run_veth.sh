@@ -17,6 +17,7 @@ ip link add br0 type bridge
 ip link set br0 up
 
 ip link set veth1 master br0
+ip link set eth0 master br0
 
 ip addr add 10.10.0.1/16 dev br0
 
