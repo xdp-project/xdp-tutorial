@@ -11,7 +11,8 @@ ip netns exec ns1 ip link set lo up
 
 ip netns exec ns1 ip link set vpeer1 up
 
-ip netns exec ns1 ip addr add 10.10.0.10/16 dev vpeer1
+#ip netns exec ns1 ip addr add 10.10.0.10/16 dev vpeer1
+ip netns exec ns1 ip addr add 10.1.0.4/24 dev vpeer1
 
 ip link add br0 type bridge
 ip link set br0 up
@@ -19,9 +20,9 @@ ip link set br0 up
 ip link set veth1 master br0
 ip link set eth0 master br0
 
-ip addr add 10.10.0.1/16 dev br0
+ip addr add 10.1.0.3/24 dev br0
 
-ip netns exec ns1 ip route add default via 10.10.0.1
+#ip netns exec ns1 ip route add default via 10.10.0.1
 
 iptables -P FORWARD ACCEPT
 iptables -F FORWARD
