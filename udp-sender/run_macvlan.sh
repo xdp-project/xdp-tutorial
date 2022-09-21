@@ -4,6 +4,8 @@ ip netns add ns1
 ip netns exec ns1 ip link set lo up
 
 ip link add macvlan1 link ens1 type macvlan mode bridge
+ip link set macvlan1 netns ns1
+
 ip netns exec ns1 ip link set macvlan1 up
 ip netns exec ns1 ip addr add 10.1.0.253/24 dev macvlan1
 
