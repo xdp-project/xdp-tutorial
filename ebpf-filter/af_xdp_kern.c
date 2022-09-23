@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
 #include <linux/bpf.h>
+#include <linux/in.h>
+#include <bpf/bpf_endian.h>
 
 #include <bpf/bpf_helpers.h>
 
