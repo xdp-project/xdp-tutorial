@@ -2,8 +2,9 @@
 
 #include <linux/bpf.h>
 #include <linux/in.h>
-#include <bpf/bpf_endian.h>
+#include <linux/if_ether.h>
 
+#include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 
 #include "common_kern_user.h" /* defines: struct datarec; */
