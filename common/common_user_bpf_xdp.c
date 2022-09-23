@@ -4,12 +4,12 @@
 #include <stdlib.h>     /* exit(3) */
 #include <errno.h>
 
+#include <linux/bpf.h>
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 
 #include <linux/if_link.h> /* Need XDP flags */
 #include <linux/err.h>
-#include <linux/bpf.h>
 
 #include "common_defines.h"
 
