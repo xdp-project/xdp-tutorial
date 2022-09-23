@@ -4,6 +4,19 @@
 
 #include <bpf/bpf_helpers.h>
 
+#include "common_kern_user.h" /* defines: struct datarec; */
+
+/* Lesson#1: See how a map is defined.
+ * - Here an array with XDP_ACTION_MAX (max_)entries are created.
+ * - The idea is to keep stats per (enum) xdp_action
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, XDP_ACTION_MAX);
+	__type(key, int);
+	__type(value, struct datarec);
+} xdp_stats_map SEC(".maps");
+
 struct {
 	__uint(type, BPF_MAP_TYPE_XSKMAP);
 	__uint(max_entries, 64);
@@ -17,6 +30,27 @@ struct {
 	__type(key, int);
 	__type(value, int);
 } xsks_map_1 SEC(".maps") ;
+
+static __always_inline
+__u32 stats_record_action(struct xdp_md *ctx, __u32 action)
+{
+	if (action >= XDP_ACTION_MAX)
+		return XDP_ABORTED;
+
+	/* Lookup in kernel BPF-side return pointer to actual data record */
+	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
+	if (!rec)
+		return XDP_ABORTED;
+
+	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
+	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
+	 * without atomic operations.
+	 */
+	rec->rx_packets++;
+	rec->rx_bytes += (ctx->data_end - ctx->data);
+
+	return action;
+}
 
 /* Header cursor to keep track of current parsing position */
 struct hdr_cursor {
@@ -100,7 +134,7 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 //        return bpf_redirect_map(&xsks_map_0, index, 0);
     }
 out:
-	return xdp_stats_record_action(ctx, action); /* read via xdp_stats */
+	return stats_record_action(ctx, action); /* read via xdp_stats */
 }
 
 char _license[] SEC("license") = "GPL";
