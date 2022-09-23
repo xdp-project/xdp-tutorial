@@ -128,7 +128,7 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 				if (rc != 0) goto out ;
 
 				int protocol=iphdr->protocol;
-				if ( protocol == IPPROTO_UDP ) {
+				if ( protocol == IPPROTO_UDP || protocol == IPPROTO_TCP ) {
 					action = XDP_DROP ;
 					goto out;
 				}
