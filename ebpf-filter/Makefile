@@ -2,7 +2,7 @@
 
 
 XDP_TARGETS  := af_xdp_kern
-USER_TARGETS := af_xdp_user
+USER_TARGETS := af_xdp_user ebpf-xdp_stats
 
 LIBBPF_DIR = ../../libbpf/src/
 COMMON_DIR = ../common/
