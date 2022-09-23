@@ -9,6 +9,7 @@
 
 #include <linux/if_link.h> /* Need XDP flags */
 #include <linux/err.h>
+#include <linux/bpf.h>
 
 #include "common_defines.h"
 
