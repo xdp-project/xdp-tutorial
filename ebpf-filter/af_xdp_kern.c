@@ -99,7 +99,8 @@ SEC("xdp_sock_0")
 int xdp_sock_prog_0(struct xdp_md *ctx)
 {
     int index = ctx->rx_queue_index;
-    __u32 action = XDP_PASS; /* Default action */
+//    __u32 action = XDP_PASS; /* Default action */
+    __u32 action = XDP_DROP; /* Default action */
     /* A set entry here means that the correspnding queue_id
      * has an active AF_XDP socket bound to it. */
     if (bpf_map_lookup_elem(&xsks_map_0, &index))
