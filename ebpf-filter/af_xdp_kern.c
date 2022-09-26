@@ -35,65 +35,65 @@ struct {
 	__type(value, int);
 } xsks_map_1 SEC(".maps") ;
 
-static __always_inline
-__u32 stats_record_action(struct xdp_md *ctx, __u32 action)
-{
-	if (action >= XDP_ACTION_MAX)
-		return XDP_ABORTED;
-
-	/* Lookup in kernel BPF-side return pointer to actual data record */
-	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
-	if (!rec)
-		return XDP_ABORTED;
-
-	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
-	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
-	 * without atomic operations.
-	 */
-	rec->rx_packets++;
-	rec->rx_bytes += (ctx->data_end - ctx->data);
-
-	return action;
-}
-
-/* Header cursor to keep track of current parsing position */
-struct hdr_cursor {
-	void *pos;
-};
-
-static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
-					void *data_end,
-					struct ethhdr **ethhdr)
-{
-	struct ethhdr *eth = nh->pos;
-	int hdrsize = sizeof(*eth);
-	/* Byte-count bounds check; check if current pointer + size of header
-	 * is after data_end.
-	 */
-	if (nh->pos + hdrsize > data_end)
-		return -1;
-
-	nh->pos += hdrsize;
-	*ethhdr = eth;
-
-	return eth->h_proto; /* network-byte-order */
-}
-
-static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
-		                        void *data_end,
-					struct iphdr **ip4hdr)
-{
-	struct iphdr *ip4h = nh->pos;
-	int hdrsize = sizeof(*ip4h);
-	if (nh->pos + hdrsize >data_end)
-		return -1;
-	int actual_hdrsize = ip4h->ihl*4;
-	if (nh->pos + actual_hdrsize > data_end)
-		return -1;
-	nh->pos += actual_hdrsize;
-	*ip4hdr = ip4h; /* Network byte order */
-	return 0;
-}
+//static __always_inline
+//__u32 stats_record_action(struct xdp_md *ctx, __u32 action)
+//{
+//	if (action >= XDP_ACTION_MAX)
+//		return XDP_ABORTED;
+//
+//	/* Lookup in kernel BPF-side return pointer to actual data record */
+//	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
+//	if (!rec)
+//		return XDP_ABORTED;
+//
+//	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
+//	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
+//	 * without atomic operations.
+//	 */
+//	rec->rx_packets++;
+//	rec->rx_bytes += (ctx->data_end - ctx->data);
+//
+//	return action;
+//}
+//
+///* Header cursor to keep track of current parsing position */
+//struct hdr_cursor {
+//	void *pos;
+//};
+//
+//static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
+//					void *data_end,
+//					struct ethhdr **ethhdr)
+//{
+//	struct ethhdr *eth = nh->pos;
+//	int hdrsize = sizeof(*eth);
+//	/* Byte-count bounds check; check if current pointer + size of header
+//	 * is after data_end.
+//	 */
+//	if (nh->pos + hdrsize > data_end)
+//		return -1;
+//
+//	nh->pos += hdrsize;
+//	*ethhdr = eth;
+//
+//	return eth->h_proto; /* network-byte-order */
+//}
+//
+//static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
+//		                        void *data_end,
+//					struct iphdr **ip4hdr)
+//{
+//	struct iphdr *ip4h = nh->pos;
+//	int hdrsize = sizeof(*ip4h);
+//	if (nh->pos + hdrsize >data_end)
+//		return -1;
+//	int actual_hdrsize = ip4h->ihl*4;
+//	if (nh->pos + actual_hdrsize > data_end)
+//		return -1;
+//	nh->pos += actual_hdrsize;
+//	*ip4hdr = ip4h; /* Network byte order */
+//	return 0;
+//}
 
 SEC("xdp_sock_0")
 int xdp_sock_prog_0(struct xdp_md *ctx)
