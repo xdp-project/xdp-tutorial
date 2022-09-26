@@ -638,7 +638,7 @@ int main(int argc, char **argv)
 				sz : 0,
 				old_prog_fd : 0
 		};
-		int err_0=bpf_xdp_detach(cfg.ifindex, cfg.xdp_flags, 0, &attach_opts);
+		int err_0=bpf_xdp_detach(cfg.ifindex, cfg.xdp_flags, &attach_opts);
 		return err_0;
 	}
 
