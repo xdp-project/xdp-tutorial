@@ -655,15 +655,16 @@ int main(int argc, char **argv)
 			/* Error handling done in load_bpf_and_xdp_attach() */
 			exit(EXIT_FAILURE);
 		}
-		if (cfg->progsec[0])
+		if (cfg.progsec[0])
 			/* Find a matching BPF prog section name */
-			bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg->progsec);
+			bpf_prog = bpf_object__find_program_by_name(bpf_obj, cfg.progsec);
 		else
-			/* Find the first program */
-			bpf_prog = bpf_program__next(NULL, bpf_obj);
+//			/* Find the first program */
+//			bpf_prog = bpf_program__next(NULL, bpf_obj);
+			bpf_prog = NULL ;
 
 		if (!bpf_prog) {
-			fprintf(stderr, "ERR: couldn't find a program in ELF section '%s'\n", cfg->progsec);
+			fprintf(stderr, "ERR: couldn't find a program in ELF section '%s'\n", cfg.progsec);
 			exit(EXIT_FAIL_BPF);
 		}
 		int ret=bpf_object__load(bpf_obj) ;
@@ -684,7 +685,7 @@ int main(int argc, char **argv)
 		 * is our select file-descriptor handle. Next step is attaching this FD
 		 * to a kernel hook point, in this case XDP net_device link-level hook.
 		 */
-		err = xdp_link_attach(cfg->ifindex, cfg->xdp_flags, prog_fd);
+		err = xdp_link_attach(cfg.ifindex, cfg.xdp_flags, prog_fd);
 		if (err)
 			exit(err);
 
