@@ -647,7 +647,7 @@ int main(int argc, char **argv)
 		struct bpf_map *map;
 
 //		bpf_obj = load_bpf_and_xdp_attach(&cfg);
-		bpf_obj = bpf_object__open(cfg.filename);
+		bpf_obj = bpf_object__open_file(cfg.filename, NULL);
 		if (!bpf_obj) {
 			/* Error handling done in load_bpf_and_xdp_attach() */
 			exit(EXIT_FAILURE);
