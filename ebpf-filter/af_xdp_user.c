@@ -659,9 +659,9 @@ int main(int argc, char **argv)
 			/* Find a matching BPF prog section name */
 			bpf_prog = bpf_object__find_program_by_name(bpf_obj, cfg.progsec);
 		else
-//			/* Find the first program */
-//			bpf_prog = bpf_program__next(NULL, bpf_obj);
-			bpf_prog = NULL ;
+			/* Find the first program */
+			bpf_prog = bpf_object__next_program(bpf_obj, NULL);
+//			bpf_prog = NULL ;
 
 		if (!bpf_prog) {
 			fprintf(stderr, "ERR: couldn't find a program in ELF section '%s'\n", cfg.progsec);
