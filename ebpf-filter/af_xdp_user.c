@@ -685,7 +685,11 @@ int main(int argc, char **argv)
 		 * is our select file-descriptor handle. Next step is attaching this FD
 		 * to a kernel hook point, in this case XDP net_device link-level hook.
 		 */
-		err = xdp_link_attach(cfg.ifindex, cfg.xdp_flags, prog_fd);
+		struct bpf_xdp_attach_opts attach_opts = {
+				sz : 0,
+				old_prog_fd: 0
+		};
+		err = xdp_link_attach(cfg.ifindex, prog_fd, cfg.xdp_flags, &attach_opts);
 		if (err)
 			exit(err);
 
