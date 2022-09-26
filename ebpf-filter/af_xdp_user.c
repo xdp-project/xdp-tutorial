@@ -617,6 +617,9 @@ int main(int argc, char **argv)
 	struct xsk_umem_info *umem;
 	struct xsk_socket_info *xsk_socket_0;
 	struct bpf_object *bpf_obj = NULL;
+	struct bpf_program *bpf_prog ;
+	int prog_fd ;
+	int err;
 	pthread_t stats_poll_thread;
 
 	/* Global shutdown handler */
@@ -652,12 +655,38 @@ int main(int argc, char **argv)
 			/* Error handling done in load_bpf_and_xdp_attach() */
 			exit(EXIT_FAILURE);
 		}
+		if (cfg->progsec[0])
+			/* Find a matching BPF prog section name */
+			bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg->progsec);
+		else
+			/* Find the first program */
+			bpf_prog = bpf_program__next(NULL, bpf_obj);
+
+		if (!bpf_prog) {
+			fprintf(stderr, "ERR: couldn't find a program in ELF section '%s'\n", cfg->progsec);
+			exit(EXIT_FAIL_BPF);
+		}
 		int ret=bpf_object__load(bpf_obj) ;
 		if ( ret < 0 )
 		{
 			fprintf(stderr, "ERROR: bpf_object__load fails: %s\n",
 							strerror(ret));
 		}
+//			strncpy(cfg->progsec, bpf_program__title(bpf_prog, false), sizeof(cfg->progsec));
+
+		prog_fd = bpf_program__fd(bpf_prog);
+		if (prog_fd <= 0) {
+			fprintf(stderr, "ERR: bpf_program__fd failed\n");
+			exit(EXIT_FAIL_BPF);
+		}
+
+		/* At this point: BPF-progs are (only) loaded by the kernel, and prog_fd
+		 * is our select file-descriptor handle. Next step is attaching this FD
+		 * to a kernel hook point, in this case XDP net_device link-level hook.
+		 */
+		err = xdp_link_attach(cfg->ifindex, cfg->xdp_flags, prog_fd);
+		if (err)
+			exit(err);
 
 		/* We also need to load the xsks_map */
 		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map_0");
