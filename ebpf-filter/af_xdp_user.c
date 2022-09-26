@@ -634,7 +634,11 @@ int main(int argc, char **argv)
 
 	/* Unload XDP program if requested */
 	if (cfg.do_unload) {
-		int err_0=xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+		struct bpf_xdp_attach_opts attach_opts = {
+				sz : 0,
+				old_prog_fd : 0
+		};
+		int err_0=bpf_xdp_detach(cfg.ifindex, cfg.xdp_flags, 0, &attach_opts);
 		return err_0;
 	}
 
