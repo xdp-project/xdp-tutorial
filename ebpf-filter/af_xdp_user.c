@@ -641,7 +641,7 @@ int main(int argc, char **argv)
 //				sz : 0,
 //				old_prog_fd : 0
 //		};
-		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_program_fd=-1) ;
+		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=-1) ;
 		int err_0=bpf_xdp_detach(cfg.ifindex, cfg.xdp_flags, &attach_opts);
 		return err_0;
 	}
@@ -686,10 +686,11 @@ int main(int argc, char **argv)
 		 * is our select file-descriptor handle. Next step is attaching this FD
 		 * to a kernel hook point, in this case XDP net_device link-level hook.
 		 */
-		struct bpf_xdp_attach_opts attach_opts = {
-				sz : 0,
-				old_prog_fd: 0
-		};
+//		struct bpf_xdp_attach_opts attach_opts = {
+//				sz : 0,
+//				old_prog_fd: 0
+//		};
+		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=-1) ;
 		err = bpf_xdp_attach(cfg.ifindex, prog_fd, cfg.xdp_flags, &attach_opts);
 		if (err)
 			exit(err);
