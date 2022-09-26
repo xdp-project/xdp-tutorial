@@ -95,7 +95,7 @@ struct {
 //	return 0;
 //}
 
-SEC("xdp_sock_0")
+SEC("xdp")
 int xdp_sock_prog_0(struct xdp_md *ctx)
 {
 //    int index = ctx->rx_queue_index;
