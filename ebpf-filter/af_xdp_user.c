@@ -652,7 +652,12 @@ int main(int argc, char **argv)
 			/* Error handling done in load_bpf_and_xdp_attach() */
 			exit(EXIT_FAILURE);
 		}
-		bpf_object__load(bpf_obj) ;
+		int ret=bpf_object__load(bpf_obj) ;
+		if ( ret < 0 )
+		{
+			fprintf(stderr, "ERROR: bpf_object__load fails: %s\n",
+							strerror(ret));
+		}
 
 		/* We also need to load the xsks_map */
 		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map_0");
