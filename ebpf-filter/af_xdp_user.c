@@ -655,6 +655,10 @@ int main(int argc, char **argv)
 
 		/* We also need to load the xsks_map */
 		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map_0");
+		if ( map == NULL ) {
+			fprintf(stderr, "ERROR:bpf_object__find_map_by_name returns NULL for xsks_map_0\n") ;
+			exit(EXIT_FAILURE);
+		}
 		xsks_map_0_fd = bpf_map__fd(map);
 		if (xsks_map_0_fd < 0) {
 			fprintf(stderr, "ERROR: no xsks map 0 found: %s\n",
