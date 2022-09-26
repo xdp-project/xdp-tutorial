@@ -769,7 +769,7 @@ int main(int argc, char **argv)
 //			sz : 0,
 //			old_prog_fd : 0
 //	};
-	LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_program_fd=-1) ;
+	LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=-1) ;
 	bpf_xdp_detach(cfg.ifindex, cfg.xdp_flags, &attach_opts);
 
 	return EXIT_OK;
