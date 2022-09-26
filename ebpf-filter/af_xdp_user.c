@@ -689,7 +689,7 @@ int main(int argc, char **argv)
 				sz : 0,
 				old_prog_fd: 0
 		};
-		err = xdp_link_attach(cfg.ifindex, prog_fd, cfg.xdp_flags, &attach_opts);
+		err = bpf_xdp_attach(cfg.ifindex, prog_fd, cfg.xdp_flags, &attach_opts);
 		if (err)
 			exit(err);
 
