@@ -646,7 +646,8 @@ int main(int argc, char **argv)
 	if (cfg.filename[0] != 0) {
 		struct bpf_map *map;
 
-		bpf_obj = load_bpf_and_xdp_attach(&cfg);
+//		bpf_obj = load_bpf_and_xdp_attach(&cfg);
+		bpf_obj = bpf_object__open(cfg.filename);
 		if (!bpf_obj) {
 			/* Error handling done in load_bpf_and_xdp_attach() */
 			exit(EXIT_FAILURE);
@@ -718,7 +719,11 @@ int main(int argc, char **argv)
 	/* Cleanup */
 	xsk_socket__delete(xsk_socket_0->xsk);
 	xsk_umem__delete(umem->umem);
-	xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+	struct bpf_xdp_attach_opts attach_opts = {
+			sz : 0,
+			old_prog_fd : 0
+	};
+	bpf_xdp_detach(cfg.ifindex, cfg.xdp_flags, &attach_opts);
 
 	return EXIT_OK;
 }
