@@ -693,7 +693,10 @@ int main(int argc, char **argv)
 		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=-1) ;
 		err = bpf_xdp_attach(cfg.ifindex, prog_fd, cfg.xdp_flags, &attach_opts);
 		if (err)
-			exit(err);
+		{
+			fprintf(stderr, "ERROR:bpf_xdp_attach returns %d\n", err) ;
+			exit(EXIT_FAILURE);
+		}
 
 		/* We also need to load the xsks_map */
 		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map_0");
