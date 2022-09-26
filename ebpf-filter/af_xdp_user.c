@@ -655,10 +655,10 @@ int main(int argc, char **argv)
 			/* Error handling done in load_bpf_and_xdp_attach() */
 			exit(EXIT_FAILURE);
 		}
-		if (cfg.progsec[0])
-			/* Find a matching BPF prog section name */
-			bpf_prog = bpf_object__find_program_by_name(bpf_obj, cfg.progsec);
-		else
+//		if (cfg.progsec[0])
+//			/* Find a matching BPF prog section name */
+//			bpf_prog = bpf_object__find_program_by_name(bpf_obj, cfg.progsec);
+//		else
 			/* Find the first program */
 			bpf_prog = bpf_object__next_program(bpf_obj, NULL);
 //			bpf_prog = NULL ;
