@@ -652,7 +652,7 @@ int main(int argc, char **argv)
 //				old_prog_fd : 0
 //		};
 		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=0) ;
-		int err_0=bpf_xdp_detach(cfg.ifindex, cfg.xdp_flags, &attach_opts);
+		int err_0=bpf_xdp_detach(cfg.ifindex, 0, &attach_opts);
 		return err_0;
 	}
 
@@ -701,7 +701,7 @@ int main(int argc, char **argv)
 //				old_prog_fd: 0
 //		};
 		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=0) ;
-		err = bpf_xdp_attach(cfg.ifindex, prog_fd, 0, &attach_opts);
+		err = bpf_xdp_attach(cfg.ifindex, prog_fd, XDP_FLAGS_REPLACE, &attach_opts);
 		if (err)
 		{
 			fprintf(stderr, "ERROR:bpf_xdp_attach returns %d\n", err) ;
@@ -783,7 +783,7 @@ int main(int argc, char **argv)
 //			old_prog_fd : 0
 //	};
 	LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=-1) ;
-	bpf_xdp_detach(cfg.ifindex, cfg.xdp_flags, &attach_opts);
+	bpf_xdp_detach(cfg.ifindex, 0, &attach_opts);
 
 	return EXIT_OK;
 }
