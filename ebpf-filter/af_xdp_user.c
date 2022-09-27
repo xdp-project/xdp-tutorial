@@ -701,7 +701,7 @@ int main(int argc, char **argv)
 //				old_prog_fd: 0
 //		};
 		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=0) ;
-		err = bpf_xdp_attach(cfg.ifindex, prog_fd, 0, &attach_opts);
+		err = bpf_xdp_attach(cfg.ifindex, prog_fd, XDP_FLAGS_REPLACE, &attach_opts);
 		if (err)
 		{
 			fprintf(stderr, "ERROR:bpf_xdp_attach returns %d\n", err) ;
