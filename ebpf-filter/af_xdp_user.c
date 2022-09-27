@@ -249,7 +249,8 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	if (ret)
 		goto error_exit;
 
-	ret = bpf_get_link_xdp_id(slot == 0 ? cfg->ifindex : cfg->redirect_ifindex, &prog_id, cfg->xdp_flags);
+//	ret = bpf_get_link_xdp_id(slot == 0 ? cfg->ifindex : cfg->redirect_ifindex, &prog_id, cfg->xdp_flags);
+	ret = bpf_xdp_query_id(slot == 0 ? cfg->ifindex : cfg->redirect_ifindex, cfg->xdp_flags, &prog_id);
 	if (ret)
 		goto error_exit;
 
