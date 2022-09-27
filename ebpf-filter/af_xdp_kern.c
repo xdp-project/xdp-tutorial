@@ -144,3 +144,4 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 }
 
 char _license[] SEC("license") = "GPL";
+char _license2[] SEC("license2") = "GPL";
