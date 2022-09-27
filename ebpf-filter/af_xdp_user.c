@@ -622,6 +622,8 @@ int main(int argc, char **argv)
 	int err;
 	pthread_t stats_poll_thread;
 
+	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
+
 	/* Global shutdown handler */
 	signal(SIGINT, exit_application);
 
