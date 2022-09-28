@@ -26,14 +26,14 @@ struct {
 	__uint(max_entries, 64);
 	__type(key, int);
 	__type(value, int);
-} xsks_map_0 SEC(".maps") ;
+} xsks_map SEC(".maps") ;
 
-struct {
-	__uint(type, BPF_MAP_TYPE_XSKMAP);
-	__uint(max_entries, 64);
-	__type(key, int);
-	__type(value, int);
-} xsks_map_1 SEC(".maps") ;
+//struct {
+//	__uint(type, BPF_MAP_TYPE_XSKMAP);
+//	__uint(max_entries, 64);
+//	__type(key, int);
+//	__type(value, int);
+//} xsks_map_1 SEC(".maps") ;
 
 static __always_inline
 __u32 stats_record_action(struct xdp_md *ctx, __u32 action)
@@ -98,12 +98,12 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 SEC("xdp")
 int xdp_sock_prog_0(struct xdp_md *ctx)
 {
-//    int index = ctx->rx_queue_index;
+    int index = ctx->rx_queue_index;
     __u32 action = XDP_PASS; /* Default action */
 //    __u32 action = XDP_DROP; /* Default action */
     /* A set entry here means that the correspnding queue_id
      * has an active AF_XDP socket bound to it. */
-//    if (bpf_map_lookup_elem(&xsks_map_0, &index))
+    if (bpf_map_lookup_elem(&xsks_map, &index))
     {
     	void *data_end = (void *)(long)ctx->data_end;
     	void *data = (void *)(long)ctx->data;
@@ -136,7 +136,7 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 
 			}
 
-//        return bpf_redirect_map(&xsks_map_0, index, 0);
+        return bpf_redirect_map(&xsks_map, index, 0);
     }
 out:
 	return stats_record_action(ctx, action); /* read via xdp_stats */

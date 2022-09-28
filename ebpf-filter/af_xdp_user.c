@@ -611,7 +611,7 @@ static void exit_application(int signal)
 int main(int argc, char **argv)
 {
 	int ret;
-	int xsks_map_0_fd;
+	int xsks_map_fd;
 	void *packet_buffer;
 	uint64_t packet_buffer_size;
 	struct rlimit rlim = {RLIM_INFINITY, RLIM_INFINITY};
@@ -712,15 +712,15 @@ int main(int argc, char **argv)
 		}
 
 		/* We also need to load the xsks_map */
-		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map_0");
+		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map");
 		if ( map == NULL ) {
-			fprintf(stderr, "ERROR:bpf_object__find_map_by_name returns NULL for xsks_map_0\n") ;
+			fprintf(stderr, "ERROR:bpf_object__find_map_by_name returns NULL for xsks_map\n") ;
 			exit(EXIT_FAILURE);
 		}
-		xsks_map_0_fd = bpf_map__fd(map);
-		if (xsks_map_0_fd < 0) {
-			fprintf(stderr, "ERROR: no xsks map 0 found: %s\n",
-				strerror(xsks_map_0_fd));
+		xsks_map_fd = bpf_map__fd(map);
+		if (xsks_map_fd < 0) {
+			fprintf(stderr, "ERROR: no xsks map found: %s\n",
+				strerror(xsks_map_fd));
 			exit(EXIT_FAILURE);
 		}
 	}
