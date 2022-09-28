@@ -98,7 +98,6 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 SEC("xdp")
 int xdp_sock_prog_0(struct xdp_md *ctx)
 {
-	return XDP_DROP;
     int index = ctx->rx_queue_index;
     __u32 action = XDP_PASS; /* Default action */
 //    __u32 action = XDP_DROP; /* Default action */
@@ -130,14 +129,14 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 				if (rc != 0) goto out ;
 
 				int protocol=iphdr->protocol;
-				if ( protocol == IPPROTO_UDP ) {
+				if ( protocol == IPPROTO_TCP ) {
 					action = XDP_DROP ;
 					goto out;
 				}
 
 			}
 
-        return bpf_redirect_map(&xsks_map_0, index, 0);
+//        return bpf_redirect_map(&xsks_map_0, index, 0);
     }
 out:
 	return stats_record_action(ctx, action); /* read via xdp_stats */
