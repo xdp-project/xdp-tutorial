@@ -678,6 +678,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ERR: couldn't find a program in ELF section '%s'\n", cfg.progsec);
 			exit(EXIT_FAIL_BPF);
 		}
+		bpf_program__set_type(bpf_prog,BPF_PROG_TYPE_XDP) ;
+
 		int ret=bpf_object__load(bpf_obj) ;
 		if ( ret < 0 )
 		{
