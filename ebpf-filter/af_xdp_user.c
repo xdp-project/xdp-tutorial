@@ -275,10 +275,10 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 			goto error_exit;
 
 		for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
-			*xsk_ring_prod__fill_addr(&xsk_info->fq, idx++) =
+			*xsk_ring_prod__fill_addr(fq, idx++) =
 				umem_alloc_umem_frame(xsk_info->umem);
 
-		xsk_ring_prod__submit(&xsk_info->fq,
+		xsk_ring_prod__submit(fq,
 					  XSK_RING_PROD__DEFAULT_NUM_DESCS);
 	}
 	return xsk_info;
