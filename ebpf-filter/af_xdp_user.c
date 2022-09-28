@@ -216,7 +216,7 @@ static uint64_t xsk_umem_free_frames(struct xsk_umem_info *umem)
 }
 
 static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
-						    struct xsk_umem_info *umem, int slot)
+						    struct xsk_umem_info *umem, struct xsk_ring_prod *fq,int slot)
 {
 	struct xsk_socket_config xsk_cfg;
 	struct xsk_socket_info *xsk_info;
@@ -266,7 +266,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 //	if (slot == 0)
 	{
 		/* Stuff the receive path with buffers, we assume we have enough */
-		ret = xsk_ring_prod__reserve(&xsk_info->fq,
+		ret = xsk_ring_prod__reserve(fq,
 						 XSK_RING_PROD__DEFAULT_NUM_DESCS,
 						 &idx);
 
@@ -757,7 +757,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Open and configure the AF_XDP (xsk) socket */
-	xsk_socket_0 = xsk_configure_socket(&cfg, umem, 0);
+	xsk_socket_0 = xsk_configure_socket(&cfg, umem, &fq, 0);
 	if (xsk_socket_0 == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 0 \"%s\"\n",
 			strerror(errno));
