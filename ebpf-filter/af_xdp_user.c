@@ -635,6 +635,7 @@ int main(int argc, char **argv)
 	struct xsk_socket_info *xsk_socket_0;
 	struct bpf_object *bpf_obj = NULL;
 	struct bpf_program *bpf_prog ;
+	struct xdp_program *xdp_prog ;
 	int prog_fd ;
 	int err;
 	pthread_t stats_poll_thread;
@@ -669,68 +670,71 @@ int main(int argc, char **argv)
 	if (cfg.filename[0] != 0) {
 		struct bpf_map *map;
 
-//		bpf_obj = load_bpf_and_xdp_attach(&cfg);
-		bpf_obj = bpf_object__open_file(cfg.filename, NULL);
-		if (!bpf_obj) {
-			/* Error handling done in load_bpf_and_xdp_attach() */
-			exit(EXIT_FAILURE);
-		}
-//		if (cfg.progsec[0])
-//			/* Find a matching BPF prog section name */
-//			bpf_prog = bpf_object__find_program_by_name(bpf_obj, cfg.progsec);
-//		else
-			/* Find the first program */
-			bpf_prog = bpf_object__next_program(bpf_obj, NULL);
-//			bpf_prog = NULL ;
-
-		if (!bpf_prog) {
-			fprintf(stderr, "ERR: couldn't find a program in ELF section '%s'\n", cfg.progsec);
-			exit(EXIT_FAIL_BPF);
-		}
-		bpf_program__set_type(bpf_prog,BPF_PROG_TYPE_XDP) ;
-
-		int ret=bpf_object__load(bpf_obj) ;
-		if ( ret < 0 )
-		{
-			fprintf(stderr, "ERROR: bpf_object__load fails: %s\n",
-							strerror(ret));
-		}
-//			strncpy(cfg->progsec, bpf_program__title(bpf_prog, false), sizeof(cfg->progsec));
-
-		prog_fd = bpf_program__fd(bpf_prog);
-		if (prog_fd <= 0) {
-			fprintf(stderr, "ERR: bpf_program__fd failed\n");
-			exit(EXIT_FAIL_BPF);
-		}
-
-		/* At this point: BPF-progs are (only) loaded by the kernel, and prog_fd
-		 * is our select file-descriptor handle. Next step is attaching this FD
-		 * to a kernel hook point, in this case XDP net_device link-level hook.
-		 */
-//		struct bpf_xdp_attach_opts attach_opts = {
-//				sz : 0,
-//				old_prog_fd: 0
-//		};
-		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=0) ;
-		err = bpf_xdp_attach(cfg.ifindex, prog_fd, 0, &attach_opts);
-		if (err)
-		{
-			fprintf(stderr, "ERROR:bpf_xdp_attach returns %d\n", err) ;
-			exit(EXIT_FAILURE);
-		}
-
-		/* We also need to load the xsks_map */
-		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map");
-		if ( map == NULL ) {
-			fprintf(stderr, "ERROR:bpf_object__find_map_by_name returns NULL for xsks_map\n") ;
-			exit(EXIT_FAILURE);
-		}
-		xsks_map_fd = bpf_map__fd(map);
-		if (xsks_map_fd < 0) {
-			fprintf(stderr, "ERROR: no xsks map found: %s\n",
-				strerror(xsks_map_fd));
-			exit(EXIT_FAILURE);
-		}
+////		bpf_obj = load_bpf_and_xdp_attach(&cfg);
+//		bpf_obj = bpf_object__open_file(cfg.filename, NULL);
+//		if (!bpf_obj) {
+//			/* Error handling done in load_bpf_and_xdp_attach() */
+//			exit(EXIT_FAILURE);
+//		}
+////		if (cfg.progsec[0])
+////			/* Find a matching BPF prog section name */
+////			bpf_prog = bpf_object__find_program_by_name(bpf_obj, cfg.progsec);
+////		else
+//			/* Find the first program */
+//			bpf_prog = bpf_object__next_program(bpf_obj, NULL);
+////			bpf_prog = NULL ;
+//
+//		if (!bpf_prog) {
+//			fprintf(stderr, "ERR: couldn't find a program in ELF section '%s'\n", cfg.progsec);
+//			exit(EXIT_FAIL_BPF);
+//		}
+//		bpf_program__set_type(bpf_prog,BPF_PROG_TYPE_XDP) ;
+//
+//		int ret=bpf_object__load(bpf_obj) ;
+//		if ( ret < 0 )
+//		{
+//			fprintf(stderr, "ERROR: bpf_object__load fails: %s\n",
+//							strerror(ret));
+//		}
+////			strncpy(cfg->progsec, bpf_program__title(bpf_prog, false), sizeof(cfg->progsec));
+//
+//		prog_fd = bpf_program__fd(bpf_prog);
+//		if (prog_fd <= 0) {
+//			fprintf(stderr, "ERR: bpf_program__fd failed\n");
+//			exit(EXIT_FAIL_BPF);
+//		}
+//
+//		/* At this point: BPF-progs are (only) loaded by the kernel, and prog_fd
+//		 * is our select file-descriptor handle. Next step is attaching this FD
+//		 * to a kernel hook point, in this case XDP net_device link-level hook.
+//		 */
+////		struct bpf_xdp_attach_opts attach_opts = {
+////				sz : 0,
+////				old_prog_fd: 0
+////		};
+//		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=0) ;
+//		err = bpf_xdp_attach(cfg.ifindex, prog_fd, 0, &attach_opts);
+//		if (err)
+//		{
+//			fprintf(stderr, "ERROR:bpf_xdp_attach returns %d\n", err) ;
+//			exit(EXIT_FAILURE);
+//		}
+//
+//		/* We also need to load the xsks_map */
+//		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map");
+//		if ( map == NULL ) {
+//			fprintf(stderr, "ERROR:bpf_object__find_map_by_name returns NULL for xsks_map\n") ;
+//			exit(EXIT_FAILURE);
+//		}
+//		xsks_map_fd = bpf_map__fd(map);
+//		if (xsks_map_fd < 0) {
+//			fprintf(stderr, "ERROR: no xsks map found: %s\n",
+//				strerror(xsks_map_fd));
+//			exit(EXIT_FAILURE);
+//		}
+		xdp_prog=xdp_program__open_file(cfg.filename,"xdp", NULL)  ;
+		err=xdp_program__attach(xdp_prog,
+				cfg.ifindex, XDP_MODE_NATIVE, 0);
 	}
 
 	/* Allow unlimited locking of memory, so all memory needed for packet
@@ -793,8 +797,10 @@ int main(int argc, char **argv)
 //			sz : 0,
 //			old_prog_fd : 0
 //	};
-	LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=-1) ;
-	bpf_xdp_detach(cfg.ifindex, 0, &attach_opts);
+//	LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=-1) ;
+//	bpf_xdp_detach(cfg.ifindex, 0, &attach_opts);
+	xdp_program__detach(xdp_prog, cfg.ifindex, XDP_MODE_NATIVE, 0);
+	xdp_program__close(xdp_prog) ;
 
 	return EXIT_OK;
 }
