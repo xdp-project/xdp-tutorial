@@ -235,6 +235,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	xsk_cfg.libbpf_flags = 0;
 	xsk_cfg.xdp_flags = cfg->xdp_flags;
 	xsk_cfg.bind_flags = cfg->xsk_bind_flags;
+	xsk_cfg.libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
 //	ret = xsk_socket__create_shared(&xsk_info->xsk,
 //			                 (slot == 0) ? cfg->ifname : cfg->redirect_ifname,
 //			                 cfg->xsk_if_queue,
