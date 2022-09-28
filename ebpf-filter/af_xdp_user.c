@@ -235,7 +235,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	xsk_cfg.libbpf_flags = 0;
 	xsk_cfg.xdp_flags = cfg->xdp_flags;
 	xsk_cfg.bind_flags = cfg->xsk_bind_flags;
-	xsk_cfg.libxsk_flags = 0;
+	xsk_cfg.libxdp_flags = 0;
 //	ret = xsk_socket__create_shared(&xsk_info->xsk,
 //			                 (slot == 0) ? cfg->ifname : cfg->redirect_ifname,
 //			                 cfg->xsk_if_queue,
@@ -734,7 +734,7 @@ int main(int argc, char **argv)
 //		}
 		xdp_prog=xdp_program__open_file(cfg.filename,"xdp", NULL)  ;
 		err=xdp_program__attach(xdp_prog,
-				cfg.ifindex, XDP_MODE_NATIVE, 0);
+				cfg.ifindex, XDP_MODE_SKB, 0);
 	}
 
 	/* Allow unlimited locking of memory, so all memory needed for packet
@@ -799,7 +799,7 @@ int main(int argc, char **argv)
 //	};
 //	LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=-1) ;
 //	bpf_xdp_detach(cfg.ifindex, 0, &attach_opts);
-	xdp_program__detach(xdp_prog, cfg.ifindex, XDP_MODE_NATIVE, 0);
+	xdp_program__detach(xdp_prog, cfg.ifindex, XDP_MODE_SKB, 0);
 	xdp_program__close(xdp_prog) ;
 
 	return EXIT_OK;
