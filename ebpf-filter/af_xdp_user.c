@@ -222,7 +222,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	struct xsk_socket_config xsk_cfg;
 	struct xsk_socket_info *xsk_info;
 	uint32_t idx;
-	uint32_t prog_id = 0;
+//	uint32_t prog_id = 0;
 	int i;
 	int ret;
 
@@ -266,10 +266,10 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 		goto error_exit;
 
 
-//	ret = bpf_get_link_xdp_id(slot == 0 ? cfg->ifindex : cfg->redirect_ifindex, &prog_id, cfg->xdp_flags);
-	ret = bpf_xdp_query_id(slot == 0 ? cfg->ifindex : cfg->redirect_ifindex, cfg->xdp_flags, &prog_id);
-	if (ret)
-		goto error_exit;
+////	ret = bpf_get_link_xdp_id(slot == 0 ? cfg->ifindex : cfg->redirect_ifindex, &prog_id, cfg->xdp_flags);
+//	ret = bpf_xdp_query_id(slot == 0 ? cfg->ifindex : cfg->redirect_ifindex, cfg->xdp_flags, &prog_id);
+//	if (ret)
+//		goto error_exit;
 
 
 //	if (slot == 0)
@@ -658,12 +658,13 @@ int main(int argc, char **argv)
 
 	/* Unload XDP program if requested */
 	if (cfg.do_unload) {
-//		struct bpf_xdp_attach_opts attach_opts = {
-//				sz : 0,
-//				old_prog_fd : 0
-//		};
-		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=0) ;
-		int err_0=bpf_xdp_detach(cfg.ifindex, 0, &attach_opts);
+////		struct bpf_xdp_attach_opts attach_opts = {
+////				sz : 0,
+////				old_prog_fd : 0
+////		};
+//		LIBBPF_OPTS(bpf_xdp_attach_opts, attach_opts, .old_prog_fd=0) ;
+//		int err_0=bpf_xdp_detach(cfg.ifindex, 0, &attach_opts);
+		int err_0=0;
 		return err_0;
 	}
 
@@ -733,7 +734,7 @@ int main(int argc, char **argv)
 //				strerror(xsks_map_fd));
 //			exit(EXIT_FAILURE);
 //		}
-		xdp_prog=xdp_program__open_file(cfg.filename,"xdp", NULL)  ;
+		xdp_prog=xdp_program__open_file(cfg.filename,NULL, NULL)  ;
 		err=xdp_program__attach(xdp_prog,
 				cfg.ifindex, XDP_MODE_SKB, 0);
 	}
