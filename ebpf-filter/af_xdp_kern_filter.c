@@ -38,22 +38,24 @@ struct {
 static __always_inline
 __u32 stats_record_action(struct xdp_md *ctx, __u32 action)
 {
-	if (action >= XDP_ACTION_MAX)
-		return XDP_ABORTED;
-
-	/* Lookup in kernel BPF-side return pointer to actual data record */
-	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
-	if (!rec)
-		return XDP_ABORTED;
-
-	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
-	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
-	 * without atomic operations.
-	 */
-	rec->rx_packets++;
-	rec->rx_bytes += (ctx->data_end - ctx->data);
-
 	return action;
+
+//	if (action >= XDP_ACTION_MAX)
+//		return XDP_ABORTED;
+//
+//	/* Lookup in kernel BPF-side return pointer to actual data record */
+//	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
+//	if (!rec)
+//		return XDP_ABORTED;
+//
+//	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
+//	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
+//	 * without atomic operations.
+//	 */
+//	rec->rx_packets++;
+//	rec->rx_bytes += (ctx->data_end - ctx->data);
+//
+//	return action;
 }
 
 /* Header cursor to keep track of current parsing position */
