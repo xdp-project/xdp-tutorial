@@ -137,7 +137,7 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 
 				int protocol=iphdr->protocol;
 				bpf_printk("protocol=%d\n", protocol) ;
-				if ( protocol == IPPROTO_TCP ) {
+				if ( mapped && protocol == IPPROTO_TCP ) {
 					action = XDP_DROP ;
 					goto out;
 				}
