@@ -419,27 +419,28 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 //			/* No more transmit frames, drop the packet */
 //			return false ;
 //		}
-		ret = xsk_ring_prod__reserve(&xsk_dst->tx, 1, &tx_idx);
-		if (ret != 1) {
-			/* No more transmit slots, drop the packet */
-			return false;
-		}
-		struct xdp_desc *tx_desc=xsk_ring_prod__tx_desc(&xsk_dst->tx, tx_idx);
-//		tx_desc->addr=tx_frame ;
-		tx_desc->addr=addr ;
-		tx_desc->len = len ;
-//		memcpy(xsk_umem__get_data(xsk_dst->umem->buffer,tx_frame), pkt, len) ;
-		xsk_ring_prod__submit(&xsk_dst->tx, 1) ;
-//		xsk_free_umem_frame(xsk_src, addr) ;
-
-//		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
-//		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
-//		xsk_ring_prod__submit(&xsk->tx, 1);
-		xsk_dst->outstanding_tx++;
-
-		xsk_dst->stats.tx_bytes += len;
-		xsk_dst->stats.tx_packets++;
-		return true;
+		return false ; // Not transmitting anything
+//		ret = xsk_ring_prod__reserve(&xsk_dst->tx, 1, &tx_idx);
+//		if (ret != 1) {
+//			/* No more transmit slots, drop the packet */
+//			return false;
+//		}
+//		struct xdp_desc *tx_desc=xsk_ring_prod__tx_desc(&xsk_dst->tx, tx_idx);
+////		tx_desc->addr=tx_frame ;
+//		tx_desc->addr=addr ;
+//		tx_desc->len = len ;
+////		memcpy(xsk_umem__get_data(xsk_dst->umem->buffer,tx_frame), pkt, len) ;
+//		xsk_ring_prod__submit(&xsk_dst->tx, 1) ;
+////		xsk_free_umem_frame(xsk_src, addr) ;
+//
+////		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
+////		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
+////		xsk_ring_prod__submit(&xsk->tx, 1);
+//		xsk_dst->outstanding_tx++;
+//
+//		xsk_dst->stats.tx_bytes += len;
+//		xsk_dst->stats.tx_packets++;
+//		return true;
 	}
 
 	return false;
