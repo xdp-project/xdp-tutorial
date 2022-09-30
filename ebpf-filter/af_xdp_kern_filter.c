@@ -7,6 +7,8 @@
 
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
+#include <xdp/xdp_helpers.h>
+
 
 #include "common_kern_user.h" /* defines: struct datarec; */
 
@@ -29,11 +31,16 @@ struct {
 } xsks_map SEC(".maps") ;
 
 struct {
-	__uint(type, BPF_MAP_TYPE_XSKMAP);
-	__uint(max_entries, 64);
-	__type(key, int);
-	__type(value, int);
-} xsks_map_1 SEC(".maps") ;
+        __uint(priority, 1);
+        __uint(XDP_PASS, 1);
+} XDP_RUN_CONFIG(xdp_sock_prog_0);
+
+//struct {
+//	__uint(type, BPF_MAP_TYPE_XSKMAP);
+//	__uint(max_entries, 64);
+//	__type(key, int);
+//	__type(value, int);
+//} xsks_map_1 SEC(".maps") ;
 
 static __always_inline
 __u32 stats_record_action(struct xdp_md *ctx, __u32 action)
