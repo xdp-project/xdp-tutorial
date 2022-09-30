@@ -101,8 +101,11 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 SEC("xdp")
 int xdp_sock_prog_0(struct xdp_md *ctx)
 {
-//	return XDP_PASS;
+
     int index = ctx->rx_queue_index;
+    bpf_printk("index=%d returning XDP_PASS\n") ;
+	return XDP_PASS;
+
     __u32 action = XDP_PASS; /* Default action */
 //    __u32 action = XDP_DROP; /* Default action */
     /* A set entry here means that the correspnding queue_id
