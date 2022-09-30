@@ -793,7 +793,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, xsk_socket_0, fq);
+	rx_and_process(&cfg, xsk_socket_0, &fq);
 
 	/* Cleanup */
 	xsk_socket__delete(xsk_socket_0->xsk);
