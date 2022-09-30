@@ -109,7 +109,7 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
      * has an active AF_XDP socket bound to it. */
     void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
     bpf_printk("index=%d mapped=%p\n", index, mapped) ;
-    if (mapped)
+//    if (mapped)
     {
     	void *data_end = (void *)(long)ctx->data_end;
     	void *data = (void *)(long)ctx->data;
@@ -144,8 +144,11 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 
 			}
 
-		bpf_printk("returning through bpf_redirect_map\n");
-        return bpf_redirect_map(&xsks_map, index, 0);
+		if(mapped)
+		{
+			bpf_printk("returning through bpf_redirect_map\n");
+			return bpf_redirect_map(&xsks_map, index, 0);
+		}
     }
 out:
 	return stats_record_action(ctx, action); /* read via xdp_stats */
