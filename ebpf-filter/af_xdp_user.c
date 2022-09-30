@@ -743,6 +743,7 @@ int main(int argc, char **argv)
 //				strerror(xsks_map_fd));
 //			exit(EXIT_FAILURE);
 //		}
+		fprintf(stderr,"Opening program file %s\n", cfg.filename) ;
 		xdp_prog=xdp_program__open_file(cfg.filename,NULL, NULL)  ;
 		err=xdp_program__attach(xdp_prog,
 				cfg.ifindex, XDP_MODE_SKB, 0);
