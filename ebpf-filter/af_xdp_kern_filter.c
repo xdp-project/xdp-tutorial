@@ -38,6 +38,7 @@ struct {
 static __always_inline
 __u32 stats_record_action(struct xdp_md *ctx, __u32 action)
 {
+	bpf_printk("stats_record_action action=%d\n", action);
 	return action;
 
 //	if (action >= XDP_ACTION_MAX)
@@ -132,6 +133,7 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 				if (rc != 0) goto out ;
 
 				int protocol=iphdr->protocol;
+				bpf_printk("protocol=%d\n", protocol) ;
 				if ( protocol == IPPROTO_TCP ) {
 					action = XDP_DROP ;
 					goto out;
@@ -139,6 +141,7 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 
 			}
 
+		bpf_printk("returning through bpf_redirect_map\n");
         return bpf_redirect_map(&xsks_map, index, 0);
     }
 out:
