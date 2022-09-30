@@ -107,8 +107,8 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 //    __u32 action = XDP_DROP; /* Default action */
     /* A set entry here means that the correspnding queue_id
      * has an active AF_XDP socket bound to it. */
-    int mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-    bpf_printk("index=%d mapped=%d\n", index, mapped) ;
+    void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
+    bpf_printk("index=%d mapped=%p\n", index, mapped) ;
     if (mapped)
     {
     	void *data_end = (void *)(long)ctx->data_end;
