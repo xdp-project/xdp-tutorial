@@ -299,7 +299,8 @@ error_exit:
 
 static void complete_tx(struct xsk_socket_info *xsk,
 		struct xsk_socket_info *xsk_src,
-		struct xsk_ring_prod *fq
+		struct xsk_ring_prod *fq,
+		struct xsk_ring_prod *cq
 		)
 {
 	unsigned int completed;
@@ -312,7 +313,7 @@ static void complete_tx(struct xsk_socket_info *xsk,
 
 
 	/* Collect/free completed TX buffers */
-	completed = xsk_ring_cons__peek(&xsk->cq,
+	completed = xsk_ring_cons__peek(cq,
 					XSK_RING_CONS__DEFAULT_NUM_DESCS,
 					&idx_cq);
 
@@ -320,10 +321,10 @@ static void complete_tx(struct xsk_socket_info *xsk,
 	if (completed > 0) {
 		for (int i = 0; i < completed; i++)
 			umem_free_umem_frame(xsk->umem,
-					    *xsk_ring_cons__comp_addr(&xsk->cq,
+					    *xsk_ring_cons__comp_addr(cq,
 								      idx_cq++));
 
-		xsk_ring_cons__release(&xsk->cq, completed);
+		xsk_ring_cons__release(cq, completed);
 		xsk->outstanding_tx -= completed < xsk->outstanding_tx ?
 			completed : xsk->outstanding_tx;
 	}
@@ -446,7 +447,8 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 
 static void handle_receive_packets(struct xsk_socket_info *xsk_dst,
 		struct xsk_socket_info *xsk_src,
-		struct xsk_ring_prod *fq)
+		struct xsk_ring_prod *fq,
+		struct xsk_ring_prod *cq)
 {
 	unsigned int rcvd, stock_frames, i;
 	uint32_t idx_rx = 0, idx_fq = 0;
@@ -496,13 +498,14 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst,
 	xsk_ring_cons__release(&xsk_src->rx, rcvd);
 
 	/* Do we need to wake up the kernel for transmission */
-	complete_tx(xsk_dst, xsk_src, fq);
+	complete_tx(xsk_dst, xsk_src, fq, cq);
 //	complete_tx(xsk_src);
   }
 
 static void rx_and_process(struct config *cfg,
 			   struct xsk_socket_info *xsk_socket_0,
-			   struct xsk_ring_prod *fq)
+			   struct xsk_ring_prod *fq,
+			   struct xsk_ring_prod *cq)
 {
 	struct pollfd fds[2];
 	int ret, nfds = 1;
@@ -520,7 +523,7 @@ static void rx_and_process(struct config *cfg,
 			if(INSTRUMENT) {
 				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 			}
-		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_0, fq) ;
+		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_0, fq, cq) ;
 //		handle_receive_packets(xsk_socket);
 	}
 }
@@ -796,7 +799,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, xsk_socket_0, &fq);
+	rx_and_process(&cfg, xsk_socket_0, &fq, &cq);
 
 	/* Cleanup */
 	xsk_socket__delete(xsk_socket_0->xsk);
