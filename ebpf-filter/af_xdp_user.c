@@ -441,7 +441,9 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 	return false;
 }
 
-static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_socket_info *xsk_src)
+static void handle_receive_packets(struct xsk_socket_info *xsk_dst,
+		struct xsk_socket_info *xsk_src,
+		struct xsk_ring_prod *fq)
 {
 	unsigned int rcvd, stock_frames, i;
 	uint32_t idx_rx = 0, idx_fq = 0;
@@ -452,24 +454,24 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
 		return;
 
 	/* Stuff the ring with as much frames as possible */
-	stock_frames = xsk_prod_nb_free(&xsk_src->fq,
+	stock_frames = xsk_prod_nb_free(fq,
 					xsk_umem_free_frames(xsk_src->umem));
 
 	if (stock_frames > 0) {
 
-		ret = xsk_ring_prod__reserve(&xsk_src->fq, stock_frames,
+		ret = xsk_ring_prod__reserve(fq, stock_frames,
 					     &idx_fq);
 
 		/* This should not happen, but just in case */
 		while (ret != stock_frames)
-			ret = xsk_ring_prod__reserve(&xsk_src->fq, rcvd,
+			ret = xsk_ring_prod__reserve(fq, rcvd,
 						     &idx_fq);
 
 		for (i = 0; i < stock_frames; i++)
-			*xsk_ring_prod__fill_addr(&xsk_src->fq, idx_fq++) =
+			*xsk_ring_prod__fill_addr(fq, idx_fq++) =
 				umem_alloc_umem_frame(xsk_src->umem);
 
-		xsk_ring_prod__submit(&xsk_src->fq, stock_frames);
+		xsk_ring_prod__submit(fq, stock_frames);
 	}
 
 	/* Process received packets */
@@ -496,7 +498,8 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst, struct xsk_s
   }
 
 static void rx_and_process(struct config *cfg,
-			   struct xsk_socket_info *xsk_socket_0)
+			   struct xsk_socket_info *xsk_socket_0,
+			   struct xsk_ring_prod *fq)
 {
 	struct pollfd fds[2];
 	int ret, nfds = 1;
@@ -514,7 +517,7 @@ static void rx_and_process(struct config *cfg,
 			if(INSTRUMENT) {
 				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 			}
-		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_0) ;
+		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_0, fq) ;
 //		handle_receive_packets(xsk_socket);
 	}
 }
@@ -790,7 +793,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, xsk_socket_0);
+	rx_and_process(&cfg, xsk_socket_0, fq);
 
 	/* Cleanup */
 	xsk_socket__delete(xsk_socket_0->xsk);
