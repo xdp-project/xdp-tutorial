@@ -124,6 +124,7 @@ int xdp_sock_prog_0(struct xdp_md *ctx)
 		 * header type in the packet correct?), and bounds checking.
 		 */
 		nh_type = parse_ethhdr(&nh, data_end, &eth);
+		bpf_printk("nh_type=0x%04x ETH_P_IP=0x%04x\n", nh_type, ETH_P_IP);
 		if (nh_type == bpf_htons(ETH_P_IP))
 			{
 						/* Assignment additions go below here */
