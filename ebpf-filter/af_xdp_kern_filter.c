@@ -33,7 +33,7 @@ struct {
 struct {
         __uint(priority, 1);
         __uint(XDP_PASS, 1);
-} XDP_RUN_CONFIG(xdp_sock_prog_0);
+} XDP_RUN_CONFIG(xdp_sock_prog);
 
 //struct {
 //	__uint(type, BPF_MAP_TYPE_XSKMAP);
@@ -106,7 +106,7 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 }
 
 SEC("xdp")
-int xdp_sock_prog_0(struct xdp_md *ctx)
+int xdp_sock_prog(struct xdp_md *ctx)
 {
 
     int index = ctx->rx_queue_index;
