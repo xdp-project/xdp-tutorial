@@ -110,7 +110,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 {
 
     int index = ctx->rx_queue_index;
-    bpf_printk("index=%d returning XDP_PASS\n") ;
+    bpf_printk("index=%d returning XDP_PASS\n", index) ;
 	return XDP_PASS;
 
     __u32 action = XDP_PASS; /* Default action */
