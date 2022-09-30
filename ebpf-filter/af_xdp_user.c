@@ -745,8 +745,14 @@ int main(int argc, char **argv)
 //		}
 		fprintf(stderr,"Opening program file %s\n", cfg.filename) ;
 		xdp_prog=xdp_program__open_file(cfg.filename,NULL, NULL)  ;
+		fprintf(stderr,"xdp_prog=%p\n", xdp_prog) ;
 		err=xdp_program__attach(xdp_prog,
 				cfg.ifindex, XDP_MODE_SKB, 0);
+		if (err)
+		{
+			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	/* Allow unlimited locking of memory, so all memory needed for packet
