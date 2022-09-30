@@ -297,7 +297,10 @@ error_exit:
 	return NULL;
 }
 
-static void complete_tx(struct xsk_socket_info *xsk, struct xsk_socket_info *xsk_src)
+static void complete_tx(struct xsk_socket_info *xsk,
+		struct xsk_socket_info *xsk_src,
+		struct xsk_ring_prod *fq
+		)
 {
 	unsigned int completed;
 	uint32_t idx_cq;
@@ -493,7 +496,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst,
 	xsk_ring_cons__release(&xsk_src->rx, rcvd);
 
 	/* Do we need to wake up the kernel for transmission */
-	complete_tx(xsk_dst, xsk_src);
+	complete_tx(xsk_dst, xsk_src, fq);
 //	complete_tx(xsk_src);
   }
 
