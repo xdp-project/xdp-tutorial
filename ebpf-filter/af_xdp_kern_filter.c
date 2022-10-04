@@ -110,15 +110,15 @@ int xdp_sock_prog(struct xdp_md *ctx)
 {
 
     int index = ctx->rx_queue_index;
-    bpf_printk("index=%d returning XDP_PASS\n", index) ;
+    //    __u32 action = XDP_DROP; /* Default action */
+	/* A set entry here means that the correspnding queue_id
+	 * has an active AF_XDP socket bound to it. */
+	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
+//	bpf_printk("index=%d mapped=%p\n", index, mapped) ;
+    bpf_printk("index=%d mapped=%p returning XDP_PASS\n", index, mapped) ;
 	return XDP_PASS;
 
     __u32 action = XDP_PASS; /* Default action */
-//    __u32 action = XDP_DROP; /* Default action */
-    /* A set entry here means that the correspnding queue_id
-     * has an active AF_XDP socket bound to it. */
-    void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-    bpf_printk("index=%d mapped=%p\n", index, mapped) ;
 //    if (mapped)
     {
     	void *data_end = (void *)(long)ctx->data_end;
