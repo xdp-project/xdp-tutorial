@@ -300,7 +300,7 @@ error_exit:
 static void complete_tx(struct xsk_socket_info *xsk,
 		struct xsk_socket_info *xsk_src,
 		struct xsk_ring_prod *fq,
-		struct xsk_ring_prod *cq
+		struct xsk_ring_cons *cq
 		)
 {
 	unsigned int completed;
@@ -506,7 +506,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst,
 static void rx_and_process(struct config *cfg,
 			   struct xsk_socket_info *xsk_socket_0,
 			   struct xsk_ring_prod *fq,
-			   struct xsk_ring_prod *cq)
+			   struct xsk_ring_cons *cq)
 {
 	struct pollfd fds[2];
 	int ret, nfds = 1;
