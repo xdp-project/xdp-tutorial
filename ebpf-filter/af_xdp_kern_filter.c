@@ -13,7 +13,7 @@
 #include "common_kern_user.h" /* defines: struct datarec; */
 
 enum {
-	k_tracing = 0
+	k_tracing = 1
 };
 /* Lesson#1: See how a map is defined.
  * - Here an array with XDP_ACTION_MAX (max_)entries are created.
