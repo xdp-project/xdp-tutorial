@@ -41,6 +41,10 @@
 #define RX_BATCH_SIZE      64
 #define INVALID_UMEM_FRAME UINT64_MAX
 
+enum {
+	k_rx_queue_count = 16
+};
+
 struct xsk_umem_info {
 //	struct xsk_ring_prod fq;
 //	struct xsk_ring_cons cq;
@@ -80,6 +84,10 @@ struct xsk_socket_info {
 
 //	uint32_t outstanding_tx;
 
+};
+
+struct all_socket_info {
+	struct xsk_socket_info *xsk_socket_info[k_rx_queue_count] ;
 };
 
 struct socket_stats {
@@ -304,6 +312,24 @@ error_exit:
 	return NULL;
 }
 
+static struct all_socket_info *xsk_configure_socket_all(struct config *cfg,
+						    struct xsk_umem_info *umem,
+							struct xsk_ring_prod *fq,
+							struct xsk_ring_cons *cq)
+{
+
+	struct all_socket_info *xsk_info_all = calloc(1, sizeof(*xsk_info_all))
+	for(int q=0; q<k_rx_queue_count; q+=1)
+	{
+		xsk_info_all[q]=xsk_configure_socket(cfg, umem,fq, cq, q);
+		if(xsk_info_all[q] == NULL )
+		{
+			fprintf(stderr, "ERROR: Cannot set up socket %d\n", q) ;
+			return NULL ;
+		}
+	}
+	return xsk_info_all;
+}
 //static void complete_tx(struct xsk_socket_info *xsk,
 //		struct xsk_socket_info *xsk_src,
 //		struct xsk_ring_prod *fq,
@@ -513,27 +539,31 @@ static void handle_receive_packets(
   }
 
 static void rx_and_process(struct config *cfg,
-			   struct xsk_socket_info *xsk_socket_0,
+			   struct all_socket_info *all_socket_info,
 			   struct xsk_ring_prod *fq,
 			   struct xsk_ring_cons *cq)
 {
-	struct pollfd fds[2];
-	int ret, nfds = 1;
+	struct pollfd fds[k_rx_queue_count];
+	int ret, nfds = k_rx_queue_count;
 
 	memset(fds, 0, sizeof(fds));
-	fds[0].fd = xsk_socket__fd(xsk_socket_0->xsk);
-	fds[0].events = POLLIN;
+	for(int q=0; q<k_rx_queue_count; q+=1) {
+		fds[q].fd = xsk_socket__fd(all_socket_info->xsk_socket_info[q]->xsk);
+		fds[q].events = POLLIN;
+	}
 
 	while(!global_exit) {
 //		if (cfg->xsk_poll_mode) {
 			ret = poll(fds, nfds, -1);
-			if (ret <= 0 || ret > 1)
+			if (ret <= 0 || ret > k_rx_queue_count)
 				continue;
 //		}
-			if(INSTRUMENT) {
-				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
-			}
-		if ( fds[0].revents & POLLIN ) handle_receive_packets(xsk_socket_0, xsk_socket_0, fq, cq) ;
+//			if(INSTRUMENT) {
+//				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
+//			}
+		for(int q=0; q<k_rx_queue_count; q+=1) {
+			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], fq, cq) ;
+		}
 //		handle_receive_packets(xsk_socket);
 	}
 }
@@ -652,7 +682,7 @@ int main(int argc, char **argv)
 		.progsec_1 = "xdp_sock_1"
 	};
 	struct xsk_umem_info *umem;
-	struct xsk_socket_info *xsk_socket_0;
+	struct all_socket_info *all_socket_info;
 	struct bpf_object *bpf_obj = NULL;
 	struct bpf_program *bpf_prog ;
 	struct xdp_program *xdp_prog ;
@@ -800,9 +830,9 @@ int main(int argc, char **argv)
 	}
 
 	/* Open and configure the AF_XDP (xsk) socket */
-	xsk_socket_0 = xsk_configure_socket(&cfg, umem, &fq, &cq, cfg.xsk_if_queue);
-	if (xsk_socket_0 == NULL) {
-		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 0 \"%s\"\n",
+	all_socket_info = xsk_configure_socket_all(&cfg, umem, &fq, &cq);
+	if (all_socket_info) {
+		fprintf(stderr, "ERROR: Can't setup AF_XDP sockets \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
@@ -819,10 +849,12 @@ int main(int argc, char **argv)
 	}
 
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, xsk_socket_0, &fq, &cq);
+	rx_and_process(&cfg, all_socket_info, &fq, &cq);
 
 	/* Cleanup */
-	xsk_socket__delete(xsk_socket_0->xsk);
+	for(int q=0; q<k_rx_queue_count; q += 1) {
+		xsk_socket__delete(all_socket_info->xsk_socket_info[q]) ;
+	}
 	xsk_umem__delete(umem->umem);
 //	struct bpf_xdp_attach_opts attach_opts = {
 //			sz : 0,
