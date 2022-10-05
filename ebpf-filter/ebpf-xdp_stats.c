@@ -287,12 +287,12 @@ int main(int argc, char **argv)
 	/* Cmdline options can change progsec */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
-	/* Required option */
-	if (cfg.ifindex == -1) {
-		fprintf(stderr, "ERR: required option --dev missing\n\n");
-		usage(argv[0], __doc__, long_options, (argc == 1));
-		return EXIT_FAIL_OPTION;
-	}
+//	/* Required option */
+//	if (cfg.ifindex == -1) {
+//		fprintf(stderr, "ERR: required option --dev missing\n\n");
+//		usage(argv[0], __doc__, long_options, (argc == 1));
+//		return EXIT_FAIL_OPTION;
+//	}
 
 //	/* Use the --dev name as subdir for finding pinned maps */
 //	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, cfg.ifname);
