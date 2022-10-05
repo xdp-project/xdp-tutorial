@@ -78,7 +78,7 @@ struct xsk_socket_info {
 	struct xsk_umem_info *umem;
 	struct xsk_socket *xsk;
 
-	uint32_t outstanding_tx;
+//	uint32_t outstanding_tx;
 
 };
 
@@ -304,38 +304,38 @@ error_exit:
 	return NULL;
 }
 
-static void complete_tx(struct xsk_socket_info *xsk,
-		struct xsk_socket_info *xsk_src,
-		struct xsk_ring_prod *fq,
-		struct xsk_ring_cons *cq
-		)
-{
-	unsigned int completed;
-	uint32_t idx_cq;
-
-	if (!xsk->outstanding_tx)
-		return;
-
-	sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
-
-
-	/* Collect/free completed TX buffers */
-	completed = xsk_ring_cons__peek(cq,
-					XSK_RING_CONS__DEFAULT_NUM_DESCS,
-					&idx_cq);
-
-	assert(completed <= xsk->outstanding_tx) ;
-	if (completed > 0) {
-		for (int i = 0; i < completed; i++)
-			umem_free_umem_frame(xsk->umem,
-					    *xsk_ring_cons__comp_addr(cq,
-								      idx_cq++));
-
-		xsk_ring_cons__release(cq, completed);
-		xsk->outstanding_tx -= completed < xsk->outstanding_tx ?
-			completed : xsk->outstanding_tx;
-	}
-}
+//static void complete_tx(struct xsk_socket_info *xsk,
+//		struct xsk_socket_info *xsk_src,
+//		struct xsk_ring_prod *fq,
+//		struct xsk_ring_cons *cq
+//		)
+//{
+//	unsigned int completed;
+//	uint32_t idx_cq;
+//
+//	if (!xsk->outstanding_tx)
+//		return;
+//
+//	sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+//
+//
+//	/* Collect/free completed TX buffers */
+//	completed = xsk_ring_cons__peek(cq,
+//					XSK_RING_CONS__DEFAULT_NUM_DESCS,
+//					&idx_cq);
+//
+//	assert(completed <= xsk->outstanding_tx) ;
+//	if (completed > 0) {
+//		for (int i = 0; i < completed; i++)
+//			umem_free_umem_frame(xsk->umem,
+//					    *xsk_ring_cons__comp_addr(cq,
+//								      idx_cq++));
+//
+//		xsk_ring_cons__release(cq, completed);
+//		xsk->outstanding_tx -= completed < xsk->outstanding_tx ?
+//			completed : xsk->outstanding_tx;
+//	}
+//}
 
 static inline __sum16 csum16_add(__sum16 csum, __be16 addend)
 {
@@ -494,7 +494,7 @@ static void handle_receive_packets(
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx++)->len;
 
-		bool transmitted=process_packet(xsk_src, addr, len) ;
+		bool transmitted=process_packet(xsk_src, addr, len, stats) ;
 
 		if(INSTRUMENT) printf("addr=0x%lx len=%u transmitted=%u\n", addr, len, transmitted);
 		if (!transmitted)
@@ -508,7 +508,7 @@ static void handle_receive_packets(
 	xsk_ring_cons__release(&xsk_src->rx, rcvd);
 
 	/* Do we need to wake up the kernel for transmission */
-	complete_tx(xsk_src, fq, cq);
+//	complete_tx(xsk_src, fq, cq);
 //	complete_tx(xsk_src);
   }
 
@@ -797,7 +797,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Open and configure the AF_XDP (xsk) socket */
-	xsk_socket_0 = xsk_configure_socket(&cfg, umem, &fq, &cq, cfg->xsk_if_queue);
+	xsk_socket_0 = xsk_configure_socket(&cfg, umem, &fq, &cq, cfg.xsk_if_queue);
 	if (xsk_socket_0 == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 0 \"%s\"\n",
 			strerror(errno));
