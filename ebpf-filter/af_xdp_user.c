@@ -73,13 +73,16 @@ struct transfer_state {
 struct xsk_socket_info {
 	struct xsk_ring_cons rx;
 	struct xsk_ring_prod tx;
-	struct xsk_ring_prod fq;
-	struct xsk_ring_cons cq;
+//	struct xsk_ring_prod fq;
+//	struct xsk_ring_cons cq;
 	struct xsk_umem_info *umem;
 	struct xsk_socket *xsk;
 
 	uint32_t outstanding_tx;
 
+};
+
+struct socket_stats {
 	struct stats_record stats;
 	struct stats_record prev_stats;
 	struct transfer_state trans;
@@ -217,7 +220,10 @@ static uint64_t xsk_umem_free_frames(struct xsk_umem_info *umem)
 }
 
 static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
-						    struct xsk_umem_info *umem, struct xsk_ring_prod *fq,int slot)
+						    struct xsk_umem_info *umem,
+							struct xsk_ring_prod *fq,
+							struct xsk_ring_cons *cq,
+							int if_queue)
 {
 	struct xsk_socket_config xsk_cfg;
 	struct xsk_socket_info *xsk_info;
@@ -249,8 +255,8 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 //							 &xsk_cfg);
 
 	ret = xsk_socket__create(&xsk_info->xsk,
-			                 (slot == 0) ? cfg->ifname : cfg->redirect_ifname,
-				              cfg->xsk_if_queue,
+			                 cfg->ifname,
+				              if_queue,
 							  umem->umem,
 							  &xsk_info->rx,
 				              &xsk_info->tx,
@@ -605,7 +611,7 @@ static void stats_print(struct stats_record *stats_rec,
 static void *stats_poll(void *arg)
 {
 	unsigned int interval = 2;
-	struct xsk_socket_info *xsk = arg;
+	struct socket_stats *stats = arg;
 	static struct stats_record previous_stats = { 0 };
 
 	previous_stats.timestamp = gettime();
@@ -615,9 +621,9 @@ static void *stats_poll(void *arg)
 
 	while (!global_exit) {
 		sleep(interval);
-		xsk->stats.timestamp = gettime();
-		stats_print(&xsk->stats, &previous_stats);
-		previous_stats = xsk->stats;
+		stats->stats.timestamp = gettime();
+		stats_print(&(stats->stats), &previous_stats);
+		stats->prev_stats = stats->stats;
 	}
 	return NULL;
 }
@@ -789,7 +795,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Open and configure the AF_XDP (xsk) socket */
-	xsk_socket_0 = xsk_configure_socket(&cfg, umem, &fq, 0);
+	xsk_socket_0 = xsk_configure_socket(&cfg, umem, &fq, &cq, cfg->xsk_if_queue);
 	if (xsk_socket_0 == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP socket 0 \"%s\"\n",
 			strerror(errno));
