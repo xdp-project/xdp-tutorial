@@ -659,6 +659,9 @@ int main(int argc, char **argv)
 	int prog_fd ;
 	int err;
 	pthread_t stats_poll_thread;
+	struct socket_stats stats;
+
+	memset(&stats, 0, sizeof(stats));
 
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
@@ -807,7 +810,7 @@ int main(int argc, char **argv)
 	/* Start thread to do statistics display */
 	if (verbose && 0 == INSTRUMENT) {
 		ret = pthread_create(&stats_poll_thread, NULL, stats_poll,
-				     xsk_socket_0);
+				     &stats);
 		if (ret) {
 			fprintf(stderr, "ERROR: Failed creating statistics thread "
 				"\"%s\"\n", strerror(errno));
