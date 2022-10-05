@@ -12,6 +12,9 @@
 
 #include "common_kern_user.h" /* defines: struct datarec; */
 
+enum {
+	k_tracing = 0
+};
 /* Lesson#1: See how a map is defined.
  * - Here an array with XDP_ACTION_MAX (max_)entries are created.
  * - The idea is to keep stats per (enum) xdp_action
@@ -36,18 +39,10 @@ struct {
         __uint(XDP_PASS, 1);
 } XDP_RUN_CONFIG(xdp_sock_prog);
 
-//struct {
-//	__uint(type, BPF_MAP_TYPE_XSKMAP);
-//	__uint(max_entries, 64);
-//	__type(key, int);
-//	__type(value, int);
-//} xsks_map_1 SEC(".maps") ;
-
 static __always_inline
 __u32 stats_record_action(struct xdp_md *ctx, __u32 action)
 {
-	bpf_printk("stats_record_action action=%d\n", action);
-//	return action;
+	if( k_tracing ) bpf_printk("stats_record_action action=%d\n", action);
 
 	if (action >= XDP_ACTION_MAX)
 		return XDP_ABORTED;
@@ -64,8 +59,7 @@ __u32 stats_record_action(struct xdp_md *ctx, __u32 action)
 	rec->rx_packets++;
 	rec->rx_bytes += (ctx->data_end - ctx->data);
 
-//	return action;
-	return XDP_PASS;
+	return action;
 }
 
 /* Header cursor to keep track of current parsing position */
@@ -112,16 +106,13 @@ int xdp_sock_prog(struct xdp_md *ctx)
 {
 
     int index = ctx->rx_queue_index;
-    //    __u32 action = XDP_DROP; /* Default action */
 	/* A set entry here means that the correspnding queue_id
 	 * has an active AF_XDP socket bound to it. */
 	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-	bpf_printk("index=%d mapped=%p\n", index, mapped) ;
-//    bpf_printk("index=%d mapped=%p returning XDP_PASS\n", index, mapped) ;
-//	return XDP_PASS;
+	if( k_tracing ) bpf_printk("index=%d mapped=%p\n", index, mapped) ;
 
     __u32 action = XDP_PASS; /* Default action */
-//    if (mapped)
+    if (mapped)
     {
     	void *data_end = (void *)(long)ctx->data_end;
     	void *data = (void *)(long)ctx->data;
@@ -138,7 +129,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 		 * header type in the packet correct?), and bounds checking.
 		 */
 		nh_type = parse_ethhdr(&nh, data_end, &eth);
-		bpf_printk("nh_type=0x%04x ETH_P_IP=0x%04x\n", nh_type, ETH_P_IP);
+		if( k_tracing ) bpf_printk("nh_type=0x%04x ETH_P_IP=0x%04x\n", nh_type, ETH_P_IP);
 		if (nh_type == bpf_htons(ETH_P_IP))
 			{
 						/* Assignment additions go below here */
@@ -148,7 +139,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 				if (rc != 0) goto out ;
 
 				int protocol=iphdr->protocol;
-				bpf_printk("protocol=%d\n", protocol) ;
+				if( k_tracing ) bpf_printk("protocol=%d\n", protocol) ;
 				if ( protocol == IPPROTO_UDP ) {
 					action = XDP_DROP ;
 					goto out;
@@ -156,11 +147,8 @@ int xdp_sock_prog(struct xdp_md *ctx)
 
 			}
 
-		if(mapped)
-		{
-			bpf_printk("returning through bpf_redirect_map\n");
-			return bpf_redirect_map(&xsks_map, index, 0);
-		}
+		if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
+		return bpf_redirect_map(&xsks_map, index, 0);
     }
 out:
 	return stats_record_action(ctx, action); /* read via xdp_stats */
