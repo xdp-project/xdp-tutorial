@@ -47,24 +47,25 @@ static __always_inline
 __u32 stats_record_action(struct xdp_md *ctx, __u32 action)
 {
 	bpf_printk("stats_record_action action=%d\n", action);
-	return action;
-
-//	if (action >= XDP_ACTION_MAX)
-//		return XDP_ABORTED;
-//
-//	/* Lookup in kernel BPF-side return pointer to actual data record */
-//	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
-//	if (!rec)
-//		return XDP_ABORTED;
-//
-//	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
-//	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
-//	 * without atomic operations.
-//	 */
-//	rec->rx_packets++;
-//	rec->rx_bytes += (ctx->data_end - ctx->data);
-//
 //	return action;
+
+	if (action >= XDP_ACTION_MAX)
+		return XDP_ABORTED;
+
+	/* Lookup in kernel BPF-side return pointer to actual data record */
+	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
+	if (!rec)
+		return XDP_ABORTED;
+
+	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
+	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
+	 * without atomic operations.
+	 */
+	rec->rx_packets++;
+	rec->rx_bytes += (ctx->data_end - ctx->data);
+
+//	return action;
+	return XDP_PASS;
 }
 
 /* Header cursor to keep track of current parsing position */
@@ -148,7 +149,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 
 				int protocol=iphdr->protocol;
 				bpf_printk("protocol=%d\n", protocol) ;
-				if ( mapped && protocol == IPPROTO_TCP ) {
+				if ( protocol == IPPROTO_UDP ) {
 					action = XDP_DROP ;
 					goto out;
 				}
