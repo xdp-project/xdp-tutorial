@@ -21,6 +21,7 @@ struct {
 	__uint(max_entries, XDP_ACTION_MAX);
 	__type(key, int);
 	__type(value, struct datarec);
+	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } xdp_stats_map SEC(".maps");
 
 struct {
