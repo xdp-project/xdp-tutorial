@@ -836,7 +836,7 @@ int main(int argc, char **argv)
 
 	/* Open and configure the AF_XDP (xsk) socket */
 	all_socket_info = xsk_configure_socket_all(&cfg, umem, &fq, &cq);
-	if (all_socket_info) {
+	if (all_socket_info == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP sockets \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
