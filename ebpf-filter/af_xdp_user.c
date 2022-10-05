@@ -323,9 +323,9 @@ static struct all_socket_info *xsk_configure_socket_all(struct config *cfg,
 			if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
 				goto error_exit;
 
-			for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
+			for (int i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
 				*xsk_ring_prod__fill_addr(fq, idx++) =
-					umem_alloc_umem_frame(xsk_info->umem);
+					umem_alloc_umem_frame(umem);
 
 			xsk_ring_prod__submit(fq,
 						  XSK_RING_PROD__DEFAULT_NUM_DESCS);
