@@ -235,7 +235,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 {
 	struct xsk_socket_config xsk_cfg;
 	struct xsk_socket_info *xsk_info;
-	uint32_t idx;
+//	uint32_t idx;
 //	uint32_t prog_id = 0;
 	int i;
 	int ret;
@@ -287,24 +287,6 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 //		goto error_exit;
 
 
-//	if (slot == 0)
-	{
-		/* Stuff the receive path with buffers, we assume we have enough */
-		ret = xsk_ring_prod__reserve(fq,
-						 XSK_RING_PROD__DEFAULT_NUM_DESCS,
-						 &idx);
-
-		printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
-		if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
-			goto error_exit;
-
-		for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
-			*xsk_ring_prod__fill_addr(fq, idx++) =
-				umem_alloc_umem_frame(xsk_info->umem);
-
-		xsk_ring_prod__submit(fq,
-					  XSK_RING_PROD__DEFAULT_NUM_DESCS);
-	}
 	return xsk_info;
 
 error_exit:
@@ -318,6 +300,8 @@ static struct all_socket_info *xsk_configure_socket_all(struct config *cfg,
 							struct xsk_ring_cons *cq)
 {
 
+	uint32_t idx;
+	int ret=0;
 	struct all_socket_info *xsk_info_all = calloc(1, sizeof(*xsk_info_all));
 	for(int q=0; q<k_rx_queue_count; q+=1)
 	{
@@ -328,7 +312,28 @@ static struct all_socket_info *xsk_configure_socket_all(struct config *cfg,
 			return NULL ;
 		}
 	}
+	//	if (slot == 0)
+		{
+			/* Stuff the receive path with buffers, we assume we have enough */
+			ret = xsk_ring_prod__reserve(fq,
+							 XSK_RING_PROD__DEFAULT_NUM_DESCS,
+							 &idx);
+
+			printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
+			if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
+				goto error_exit;
+
+			for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
+				*xsk_ring_prod__fill_addr(fq, idx++) =
+					umem_alloc_umem_frame(xsk_info->umem);
+
+			xsk_ring_prod__submit(fq,
+						  XSK_RING_PROD__DEFAULT_NUM_DESCS);
+		}
 	return xsk_info_all;
+	error_exit:
+		errno = -ret;
+		return NULL;
 }
 //static void complete_tx(struct xsk_socket_info *xsk,
 //		struct xsk_socket_info *xsk_src,
