@@ -318,7 +318,7 @@ static struct all_socket_info *xsk_configure_socket_all(struct config *cfg,
 							struct xsk_ring_cons *cq)
 {
 
-	struct all_socket_info *xsk_info_all = calloc(1, sizeof(*xsk_info_all))
+	struct all_socket_info *xsk_info_all = calloc(1, sizeof(*xsk_info_all));
 	for(int q=0; q<k_rx_queue_count; q+=1)
 	{
 		xsk_info_all[q]=xsk_configure_socket(cfg, umem,fq, cq, q);
@@ -562,7 +562,7 @@ static void rx_and_process(struct config *cfg,
 //				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 //			}
 		for(int q=0; q<k_rx_queue_count; q+=1) {
-			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], fq, cq) ;
+			if ( fds[q].revents & POLLIN ) handle_receive_packets(cfg,all_socket_info->xsk_socket_info[q], fq, cq) ;
 		}
 //		handle_receive_packets(xsk_socket);
 	}
