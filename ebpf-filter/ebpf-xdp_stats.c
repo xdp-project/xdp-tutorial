@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 		.max_entries = XDP_ACTION_MAX,
 	};
 	struct bpf_map_info info = { 0 };
-	char pin_dir[PATH_MAX];
+//	char pin_dir[PATH_MAX];
 	int stats_map_fd;
 	int interval = 2;
 	int len, err;
@@ -294,15 +294,16 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
-	/* Use the --dev name as subdir for finding pinned maps */
-	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, cfg.ifname);
-	if (len < 0) {
-		fprintf(stderr, "ERR: creating pin dirname\n");
-		return EXIT_FAIL_OPTION;
-	}
+//	/* Use the --dev name as subdir for finding pinned maps */
+//	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, cfg.ifname);
+//	if (len < 0) {
+//		fprintf(stderr, "ERR: creating pin dirname\n");
+//		return EXIT_FAIL_OPTION;
+//	}
 
 	for ( ;; ) {
-		stats_map_fd = open_bpf_map_file(pin_dir, "xdp_stats_map", &info);
+//		stats_map_fd = open_bpf_map_file(pin_dir, "xdp_stats_map", &info);
+		stats_map_fd = open_bpf_map_file(pin_base_dir, "xdp_stats_map", &info);
 		if (stats_map_fd < 0) {
 			return EXIT_FAIL_BPF;
 		}
