@@ -9,5 +9,6 @@ COMMON_DIR = ../common/
 
 # Extend with another COMMON_OBJS
 COMMON_OBJS += $(COMMON_DIR)/common_libbpf.o
+LIBS += -lz
 
 include $(COMMON_DIR)/common.mk
