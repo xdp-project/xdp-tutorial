@@ -321,8 +321,8 @@ static struct all_socket_info *xsk_configure_socket_all(struct config *cfg,
 	struct all_socket_info *xsk_info_all = calloc(1, sizeof(*xsk_info_all));
 	for(int q=0; q<k_rx_queue_count; q+=1)
 	{
-		xsk_info_all[q]=xsk_configure_socket(cfg, umem,fq, cq, q);
-		if(xsk_info_all[q] == NULL )
+		xsk_info_all->xsk_socket_info[q]=xsk_configure_socket(cfg, umem,fq, cq, q);
+		if(xsk_info_all->xsk_socket_info[q] == NULL )
 		{
 			fprintf(stderr, "ERROR: Cannot set up socket %d\n", q) ;
 			return NULL ;
