@@ -244,23 +244,23 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	xsk_cfg.bind_flags = cfg->xsk_bind_flags;
 	xsk_cfg.libxdp_flags = XSK_LIBXDP_FLAGS__INHIBIT_PROG_LOAD;
 //	xsk_cfg.libxdp_flags = 0;
-//	ret = xsk_socket__create_shared(&xsk_info->xsk,
-//			                 (slot == 0) ? cfg->ifname : cfg->redirect_ifname,
-//			                 cfg->xsk_if_queue,
-//							 umem->umem,
-//							 &xsk_info->rx,
-//				             &xsk_info->tx,
-//							 &xsk_info->fq,
-//							 &xsk_info->cq,
-//							 &xsk_cfg);
-
-	ret = xsk_socket__create(&xsk_info->xsk,
+	ret = xsk_socket__create_shared(&xsk_info->xsk,
 			                 cfg->ifname,
-				              if_queue,
-							  umem->umem,
-							  &xsk_info->rx,
-				              &xsk_info->tx,
-							  &xsk_cfg);
+			                 if_queue,
+							 umem->umem,
+							 &xsk_info->rx,
+				             &xsk_info->tx,
+							 fq,
+							 cq,
+							 &xsk_cfg);
+
+//	ret = xsk_socket__create(&xsk_info->xsk,
+//			                 cfg->ifname,
+//				              if_queue,
+//							  umem->umem,
+//							  &xsk_info->rx,
+//				              &xsk_info->tx,
+//							  &xsk_cfg);
 	printf("xsk_socket__create returns %d\n", ret) ;
 	if (ret)
 		goto error_exit;
