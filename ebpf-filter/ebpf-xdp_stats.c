@@ -303,7 +303,7 @@ int main(int argc, char **argv)
 
 	for ( ;; ) {
 //		stats_map_fd = open_bpf_map_file(pin_dir, "xdp_stats_map", &info);
-		stats_map_fd = open_bpf_map_file(pin_base_dir, "xdp_stats_map", &info);
+		stats_map_fd = open_bpf_map_file(pin_basedir, "xdp_stats_map", &info);
 		if (stats_map_fd < 0) {
 			return EXIT_FAIL_BPF;
 		}
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
 			       );
 		}
 
-		err = stats_poll(pin_dir, stats_map_fd, info.id, info.type, interval);
+		err = stats_poll(pin_basedir, stats_map_fd, info.id, info.type, interval);
 		close(stats_map_fd);
 		if (err < 0)
 			return err;
