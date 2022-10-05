@@ -362,8 +362,9 @@ static bool skipsend(struct transfer_state *trans)
 	return true;
 //	return (trans->udp_packet_count & 1) ? true : false ;
 }
-static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_info *xsk_src,
-			   uint64_t addr, uint32_t len)
+static bool process_packet(struct xsk_socket_info *xsk_src,
+			   uint64_t addr, uint32_t len,
+			   struct socket_stats *stats)
 {
 	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem->buffer, addr);
 
@@ -390,10 +391,10 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 		    len > (sizeof(*eth) + sizeof(*ip))) {
 			if ( ip->protocol == IPPROTO_UDP ) {
 				uint8_t current_data=pkt[sizeof(*eth) + sizeof(*ip) + sizeof(struct udphdr)];
-				if(current_data == xsk_src->prev_sequence) xsk_src->stats.rx_duplicate += 1;
-				if(current_data != ((xsk_src->prev_sequence+1) & 0xff)) xsk_src->stats.rx_outofsequence += 1;
-                xsk_src->prev_sequence =  current_data;
-                if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,xsk_src->stats.rx_packets,xsk_src->stats.rx_duplicate,xsk_src->stats.rx_outofsequence);
+				if(current_data == stats->prev_sequence) stats->stats.rx_duplicate += 1;
+				if(current_data != ((stats->prev_sequence+1) & 0xff)) stats->stats.rx_outofsequence += 1;
+                stats->prev_sequence =  current_data;
+                if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,stats->stats.rx_packets,stats->stats.rx_duplicate,stats->stats.rx_outofsequence);
 //				if(skipsend(&xsk_src->trans)) return false ;
                 return false ;
 			}
@@ -453,10 +454,11 @@ static bool process_packet(struct xsk_socket_info *xsk_dst, struct xsk_socket_in
 	return false;
 }
 
-static void handle_receive_packets(struct xsk_socket_info *xsk_dst,
+static void handle_receive_packets(
 		struct xsk_socket_info *xsk_src,
 		struct xsk_ring_prod *fq,
-		struct xsk_ring_prod *cq)
+		struct xsk_ring_prod *cq,
+		struct socket_stats *stats)
 {
 	unsigned int rcvd, stock_frames, i;
 	uint32_t idx_rx = 0, idx_fq = 0;
@@ -492,21 +494,21 @@ static void handle_receive_packets(struct xsk_socket_info *xsk_dst,
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx++)->len;
 
-		bool transmitted=process_packet(xsk_dst, xsk_src, addr, len) ;
+		bool transmitted=process_packet(xsk_src, addr, len) ;
 
 		if(INSTRUMENT) printf("addr=0x%lx len=%u transmitted=%u\n", addr, len, transmitted);
 		if (!transmitted)
 			umem_free_umem_frame(xsk_src->umem, addr);
 
-		xsk_src->stats.rx_bytes += len;
-		xsk_src->stats.rx_packets += 1;
+		stats->stats.rx_bytes += len;
+		stats->stats.rx_packets += 1;
 	}
 
-	xsk_src->stats.rx_batch_count += 1;
+	stats->stats.rx_batch_count += 1;
 	xsk_ring_cons__release(&xsk_src->rx, rcvd);
 
 	/* Do we need to wake up the kernel for transmission */
-	complete_tx(xsk_dst, xsk_src, fq, cq);
+	complete_tx(xsk_src, fq, cq);
 //	complete_tx(xsk_src);
   }
 
