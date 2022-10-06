@@ -102,19 +102,21 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 }
 
 SEC("xdp")
+static long display_loop(u32 index, void *vctx)
+{
+	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
+	if(mapped != NULL) {
+		bpf_printk("index%d mapped=%p\n", index, mapped) ;
+	}
+	return 0;
+}
+
+SEC("xdp")
 int xdp_sock_prog(struct xdp_md *ctx)
 {
 
     int index = ctx->rx_queue_index;
-    int a;
-#pragma GCC unroll 64
-    for(a=0; a<64; a+=1)
-    {
-    	void * mapped0=bpf_map_lookup_elem(&xsks_map, &a) ;
-    	if(mapped0 != NULL) {
-    		bpf_printk("a%d mapped0=%p\n", a, mapped0) ;
-    	}
-    }
+    bpf_loop(64,display_loop,ctx,0);
 	/* A set entry here means that the correspnding queue_id
 	 * has an active AF_XDP socket bound to it. */
 	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
