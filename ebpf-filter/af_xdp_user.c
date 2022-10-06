@@ -599,7 +599,7 @@ static void rx_and_process(struct config *cfg,
 //				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 //			}
 		for(int q=0; q<k_rx_queue_count; q+=1) {
-			if ( fds[q].revents & POLLIN ) handle_receive_packets(cfg,all_socket_info->xsk_socket_info[q], &stats) ;
+			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], &stats) ;
 		}
 //		handle_receive_packets(xsk_socket);
 	}
