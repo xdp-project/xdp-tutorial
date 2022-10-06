@@ -102,7 +102,7 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 }
 
 SEC("xdp")
-static long display_loop(u32 index, void *vctx)
+static long display_loop(__u32 index, void *vctx)
 {
 	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
 	if(mapped != NULL) {
