@@ -77,9 +77,9 @@ struct transfer_state {
 struct xsk_socket_info {
 	struct xsk_ring_cons rx;
 	struct xsk_ring_prod tx;
-//	struct xsk_ring_prod fq;
-//	struct xsk_ring_cons cq;
-	struct xsk_umem_info *umem;
+	struct xsk_ring_prod fq;
+	struct xsk_ring_cons cq;
+	struct xsk_umem_info umem;
 	struct xsk_socket *xsk;
 
 //	uint32_t outstanding_tx;
@@ -157,15 +157,19 @@ static const struct option_wrapper long_options[] = {
 
 static bool global_exit;
 
-static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size, struct xsk_ring_prod *fq, struct xsk_ring_cons *cq)
+static struct xsk_umem_info *configure_xsk_umem(struct xsk_umem_info *umem,
+		                                        void *buffer,
+												uint64_t size,
+												struct xsk_ring_prod *fq,
+												struct xsk_ring_cons *cq)
 {
-	struct xsk_umem_info *umem;
+//	struct xsk_umem_info *umem;
 	int ret;
 	int i;
 
-	umem = calloc(1, sizeof(*umem));
-	if (!umem)
-		return NULL;
+//	umem = calloc(1, sizeof(*umem));
+//	if (!umem)
+//		return NULL;
 
 //	ret = xsk_umem__create(&umem->umem, buffer, size, &umem->fq, &umem->cq,
 //			       NULL);
@@ -228,9 +232,9 @@ static uint64_t xsk_umem_free_frames(struct xsk_umem_info *umem)
 }
 
 static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
-						    struct xsk_umem_info *umem,
-							struct xsk_ring_prod *fq,
-							struct xsk_ring_cons *cq,
+//						    struct xsk_umem_info *umem,
+//							struct xsk_ring_prod *fq,
+//							struct xsk_ring_cons *cq,
 							int if_queue)
 {
 	struct xsk_socket_config xsk_cfg;
@@ -244,22 +248,40 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	if (!xsk_info)
 		return NULL;
 
-	xsk_info->umem = umem;
+	/* Allocate memory for NUM_FRAMES of the default XDP frame size */
+	int packet_buffer_size = NUM_FRAMES * FRAME_SIZE * 2;
+	void *packet_buffer;
+	if (posix_memalign(&packet_buffer,
+			   getpagesize(), /* PAGE_SIZE aligned */
+			   packet_buffer_size)) {
+		fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n",
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	configure_xsk_umem(&(xsk_info->umem),
+			           packet_buffer,
+					   packet_buffer_size,
+					   &(xsk_info->fq), &(xsk_info->cq));
+	if (xsk_info->umem == NULL) {
+		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 	xsk_cfg.rx_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
 	xsk_cfg.tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
 	xsk_cfg.libbpf_flags = 0;
 	xsk_cfg.xdp_flags = cfg->xdp_flags;
 	xsk_cfg.bind_flags = cfg->xsk_bind_flags;
-	xsk_cfg.libxdp_flags = XSK_LIBXDP_FLAGS__INHIBIT_PROG_LOAD;
-//	xsk_cfg.libxdp_flags = 0;
+//	xsk_cfg.libxdp_flags = XSK_LIBXDP_FLAGS__INHIBIT_PROG_LOAD;
+	xsk_cfg.libxdp_flags = 0;
 	ret = xsk_socket__create_shared(&xsk_info->xsk,
 			                 cfg->ifname,
 			                 if_queue,
-							 umem->umem,
+							 xsk_info->umem,
 							 &xsk_info->rx,
 				             &xsk_info->tx,
-							 fq,
-							 cq,
+							 &(xsk_info->fq),
+							 &(xsk_info->cq),
 							 &xsk_cfg);
 
 //	ret = xsk_socket__create(&xsk_info->xsk,
@@ -286,6 +308,22 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 //	if (ret)
 //		goto error_exit;
 
+	/* Stuff the receive path with buffers, we assume we have enough */
+	u32 idx;
+	ret = xsk_ring_prod__reserve(&xsk_info->fq,
+					 XSK_RING_PROD__DEFAULT_NUM_DESCS,
+					 &idx);
+
+	printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
+	if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
+		goto error_exit;
+
+	for (int i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
+		*xsk_ring_prod__fill_addr(&xsk_info->fq, idx++) =
+			umem_alloc_umem_frame(&xsk_info->umem);
+
+	xsk_ring_prod__submit(&xsk_info->fq,
+				  XSK_RING_PROD__DEFAULT_NUM_DESCS);
 
 	return xsk_info;
 
@@ -294,10 +332,7 @@ error_exit:
 	return NULL;
 }
 
-static struct all_socket_info *xsk_configure_socket_all(struct config *cfg,
-						    struct xsk_umem_info *umem,
-							struct xsk_ring_prod *fq,
-							struct xsk_ring_cons *cq)
+static struct all_socket_info *xsk_configure_socket_all(struct config *cfg)
 {
 
 	uint32_t idx;
@@ -305,31 +340,31 @@ static struct all_socket_info *xsk_configure_socket_all(struct config *cfg,
 	struct all_socket_info *xsk_info_all = calloc(1, sizeof(*xsk_info_all));
 	for(int q=0; q<k_rx_queue_count; q+=1)
 	{
-		xsk_info_all->xsk_socket_info[q]=xsk_configure_socket(cfg, umem,fq, cq, q);
+		xsk_info_all->xsk_socket_info[q]=xsk_configure_socket(cfg, q);
 		if(xsk_info_all->xsk_socket_info[q] == NULL )
 		{
 			fprintf(stderr, "ERROR: Cannot set up socket %d\n", q) ;
 			return NULL ;
 		}
 	}
-	//	if (slot == 0)
-		{
-			/* Stuff the receive path with buffers, we assume we have enough */
-			ret = xsk_ring_prod__reserve(fq,
-							 XSK_RING_PROD__DEFAULT_NUM_DESCS,
-							 &idx);
-
-			printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
-			if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
-				goto error_exit;
-
-			for (int i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
-				*xsk_ring_prod__fill_addr(fq, idx++) =
-					umem_alloc_umem_frame(umem);
-
-			xsk_ring_prod__submit(fq,
-						  XSK_RING_PROD__DEFAULT_NUM_DESCS);
-		}
+//	//	if (slot == 0)
+//		{
+//			/* Stuff the receive path with buffers, we assume we have enough */
+//			ret = xsk_ring_prod__reserve(fq,
+//							 XSK_RING_PROD__DEFAULT_NUM_DESCS,
+//							 &idx);
+//
+//			printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
+//			if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
+//				goto error_exit;
+//
+//			for (int i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
+//				*xsk_ring_prod__fill_addr(fq, idx++) =
+//					umem_alloc_umem_frame(umem);
+//
+//			xsk_ring_prod__submit(fq,
+//						  XSK_RING_PROD__DEFAULT_NUM_DESCS);
+//		}
 	return xsk_info_all;
 	error_exit:
 		errno = -ret;
@@ -545,8 +580,7 @@ static void handle_receive_packets(
 
 static void rx_and_process(struct config *cfg,
 			   struct all_socket_info *all_socket_info,
-			   struct xsk_ring_prod *fq,
-			   struct xsk_ring_cons *cq)
+			   struct socket_stats *stats)
 {
 	struct pollfd fds[k_rx_queue_count];
 	int ret, nfds = k_rx_queue_count;
@@ -567,7 +601,7 @@ static void rx_and_process(struct config *cfg,
 //				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 //			}
 		for(int q=0; q<k_rx_queue_count; q+=1) {
-			if ( fds[q].revents & POLLIN ) handle_receive_packets(cfg,all_socket_info->xsk_socket_info[q], fq, cq) ;
+			if ( fds[q].revents & POLLIN ) handle_receive_packets(cfg,all_socket_info->xsk_socket_info[q], &stats) ;
 		}
 //		handle_receive_packets(xsk_socket);
 	}
@@ -804,39 +838,39 @@ int main(int argc, char **argv)
 
 	}
 
-	/* Allow unlimited locking of memory, so all memory needed for packet
-	 * buffers can be locked.
-	 */
-	if (setrlimit(RLIMIT_MEMLOCK, &rlim)) {
-		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+//	/* Allow unlimited locking of memory, so all memory needed for packet
+//	 * buffers can be locked.
+//	 */
+//	if (setrlimit(RLIMIT_MEMLOCK, &rlim)) {
+//		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
+//			strerror(errno));
+//		exit(EXIT_FAILURE);
+//	}
+//
+//	/* Allocate memory for NUM_FRAMES of the default XDP frame size */
+//	packet_buffer_size = NUM_FRAMES * FRAME_SIZE * 2;
+//	if (posix_memalign(&packet_buffer,
+//			   getpagesize(), /* PAGE_SIZE aligned */
+//			   packet_buffer_size)) {
+//		fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n",
+//			strerror(errno));
+//		exit(EXIT_FAILURE);
+//	}
 
-	/* Allocate memory for NUM_FRAMES of the default XDP frame size */
-	packet_buffer_size = NUM_FRAMES * FRAME_SIZE * 2;
-	if (posix_memalign(&packet_buffer,
-			   getpagesize(), /* PAGE_SIZE aligned */
-			   packet_buffer_size)) {
-		fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	/* Initialize shared packet_buffer for umem usage */
-	struct xsk_ring_prod fq ;
-	struct xsk_ring_cons cq ;
-	memset(&fq,0,sizeof(fq));
-	memset(&cq,0,sizeof(cq));
-	umem = configure_xsk_umem(packet_buffer, packet_buffer_size, &fq, &cq);
-	if (umem == NULL) {
-		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+//	/* Initialize shared packet_buffer for umem usage */
+//	struct xsk_ring_prod fq ;
+//	struct xsk_ring_cons cq ;
+//	memset(&fq,0,sizeof(fq));
+//	memset(&cq,0,sizeof(cq));
+//	umem = configure_xsk_umem(packet_buffer, packet_buffer_size, &fq, &cq);
+//	if (umem == NULL) {
+//		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
+//			strerror(errno));
+//		exit(EXIT_FAILURE);
+//	}
 
 	/* Open and configure the AF_XDP (xsk) socket */
-	all_socket_info = xsk_configure_socket_all(&cfg, umem, &fq, &cq);
+	all_socket_info = xsk_configure_socket_all(&cfg);
 	if (all_socket_info == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP sockets \"%s\"\n",
 			strerror(errno));
@@ -863,7 +897,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, all_socket_info, &fq, &cq);
+	rx_and_process(&cfg, all_socket_info, &stats);
 
 	/* Cleanup */
 	for(int q=0; q<k_rx_queue_count; q += 1) {
