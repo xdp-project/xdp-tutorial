@@ -106,6 +106,14 @@ int xdp_sock_prog(struct xdp_md *ctx)
 {
 
     int index = ctx->rx_queue_index;
+    int a;
+    for(a=0; a<64; a+=1)
+    {
+    	void * mapped0=bpf_map_lookup_elem(&xsks_map, &a) ;
+    	if(mapped0 != NULL) {
+    		bpf_printk("q=%d mapped0=%p\n", q, mapped0) ;
+    	}
+    }
 	/* A set entry here means that the correspnding queue_id
 	 * has an active AF_XDP socket bound to it. */
 	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
