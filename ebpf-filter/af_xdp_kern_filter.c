@@ -103,10 +103,10 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 
 
 static __always_inline void display_one(int index) {
-	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-	if(mapped != NULL) {
+//	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
+//	if(mapped != NULL) {
 		bpf_printk("index%d mapped=%p\n", index, mapped) ;
-	}
+//	}
 }
 
 static __always_inline void display_all(void) {
