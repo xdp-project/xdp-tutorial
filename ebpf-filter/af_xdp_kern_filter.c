@@ -107,7 +107,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 
     int index = ctx->rx_queue_index;
     int a;
-//#pragma unroll
+#pragma gcc unroll 64
     for(a=0; a<64; a+=1)
     {
     	void * mapped0=bpf_map_lookup_elem(&xsks_map, &a) ;
