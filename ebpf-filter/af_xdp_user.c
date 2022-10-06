@@ -801,13 +801,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
 			exit(EXIT_FAILURE);
 		}
-		// Set up xsks map
-		err=xsk_setup_xdp_prog(cfg.ifindex, NULL);
-		if (err)
-		{
-			fprintf(stderr, "ERROR:xsk_setup_xdp_prog returns %d\n", err) ;
-			exit(EXIT_FAILURE);
-		}
 
 	}
 
@@ -847,6 +840,14 @@ int main(int argc, char **argv)
 	if (all_socket_info == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP sockets \"%s\"\n",
 			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	// Set up xsks map
+	err=xsk_setup_xdp_prog(cfg.ifindex, NULL);
+	if (err)
+	{
+		fprintf(stderr, "ERROR:xsk_setup_xdp_prog returns %d\n", err) ;
 		exit(EXIT_FAILURE);
 	}
 
