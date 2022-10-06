@@ -277,7 +277,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	ret = xsk_socket__create_shared(&xsk_info->xsk,
 			                 cfg->ifname,
 			                 if_queue,
-							 &xsk_info->umem,
+							 &xsk_info->umem.umem,
 							 &xsk_info->rx,
 				             &xsk_info->tx,
 							 &(xsk_info->fq),
@@ -432,7 +432,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len,
 			   struct socket_stats *stats)
 {
-	uint8_t *pkt = xsk_umem__get_data(xsk_src->buffer, addr);
+	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem.buffer, addr);
 
         /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
 	 *
@@ -599,7 +599,7 @@ static void rx_and_process(struct config *cfg,
 //				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 //			}
 		for(int q=0; q<k_rx_queue_count; q+=1) {
-			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], &stats) ;
+			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], stats) ;
 		}
 //		handle_receive_packets(xsk_socket);
 	}
@@ -899,7 +899,7 @@ int main(int argc, char **argv)
 
 	/* Cleanup */
 	for(int q=0; q<k_rx_queue_count; q += 1) {
-		xsk_socket__delete(all_socket_info->xsk_socket_info[q]) ;
+		xsk_socket__delete(all_socket_info->xsk_socket_info[q]->xsk) ;
 	}
 	xsk_umem__delete(umem->umem);
 //	struct bpf_xdp_attach_opts attach_opts = {
