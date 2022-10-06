@@ -801,6 +801,14 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
 			exit(EXIT_FAILURE);
 		}
+		// Set up xsks map
+		err=xsk_setup_xdp_prog(cfg.ifindex, NULL);
+		if (err)
+		{
+			fprintf(stderr, "ERROR:xsk_setup_xdp_prog returns %d\n", err) ;
+			exit(EXIT_FAILURE);
+		}
+
 	}
 
 	/* Allow unlimited locking of memory, so all memory needed for packet
