@@ -111,7 +111,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
     {
     	void * mapped0=bpf_map_lookup_elem(&xsks_map, &a) ;
     	if(mapped0 != NULL) {
-    		bpf_printk("q=%d mapped0=%p\n", q, mapped0) ;
+    		bpf_printk("a%d mapped0=%p\n", a, mapped0) ;
     	}
     }
 	/* A set entry here means that the correspnding queue_id
