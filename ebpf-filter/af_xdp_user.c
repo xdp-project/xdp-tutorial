@@ -262,11 +262,11 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 			           packet_buffer,
 					   packet_buffer_size,
 					   &(xsk_info->fq), &(xsk_info->cq));
-	if (xsk_info->umem == NULL) {
-		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+//	if (xsk_info->umem == NULL) {
+//		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
+//			strerror(errno));
+//		exit(EXIT_FAILURE);
+//	}
 	xsk_cfg.rx_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
 	xsk_cfg.tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
 	xsk_cfg.libbpf_flags = 0;
@@ -277,7 +277,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	ret = xsk_socket__create_shared(&xsk_info->xsk,
 			                 cfg->ifname,
 			                 if_queue,
-							 xsk_info->umem,
+							 &xsk_info->umem,
 							 &xsk_info->rx,
 				             &xsk_info->tx,
 							 &(xsk_info->fq),
@@ -309,7 +309,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 //		goto error_exit;
 
 	/* Stuff the receive path with buffers, we assume we have enough */
-	u32 idx;
+	__u32 idx;
 	ret = xsk_ring_prod__reserve(&xsk_info->fq,
 					 XSK_RING_PROD__DEFAULT_NUM_DESCS,
 					 &idx);
@@ -432,7 +432,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len,
 			   struct socket_stats *stats)
 {
-	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem->buffer, addr);
+	uint8_t *pkt = xsk_umem__get_data(xsk_src->buffer, addr);
 
         /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
 	 *
@@ -522,8 +522,6 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 
 static void handle_receive_packets(
 		struct xsk_socket_info *xsk_src,
-		struct xsk_ring_prod *fq,
-		struct xsk_ring_prod *cq,
 		struct socket_stats *stats)
 {
 	unsigned int rcvd, stock_frames, i;
@@ -535,24 +533,24 @@ static void handle_receive_packets(
 		return;
 
 	/* Stuff the ring with as much frames as possible */
-	stock_frames = xsk_prod_nb_free(fq,
-					xsk_umem_free_frames(xsk_src->umem));
+	stock_frames = xsk_prod_nb_free(&xsk_src->fq,
+					xsk_umem_free_frames(&xsk_src->umem));
 
 	if (stock_frames > 0) {
 
-		ret = xsk_ring_prod__reserve(fq, stock_frames,
+		ret = xsk_ring_prod__reserve(&xsk_src->fq, stock_frames,
 					     &idx_fq);
 
 		/* This should not happen, but just in case */
 		while (ret != stock_frames)
-			ret = xsk_ring_prod__reserve(fq, rcvd,
+			ret = xsk_ring_prod__reserve(&xsk_src->fq, rcvd,
 						     &idx_fq);
 
 		for (i = 0; i < stock_frames; i++)
-			*xsk_ring_prod__fill_addr(fq, idx_fq++) =
-				umem_alloc_umem_frame(xsk_src->umem);
+			*xsk_ring_prod__fill_addr(&xsk_src->fq, idx_fq++) =
+				umem_alloc_umem_frame(&xsk_src->umem);
 
-		xsk_ring_prod__submit(fq, stock_frames);
+		xsk_ring_prod__submit(&xsk_src->fq, stock_frames);
 	}
 
 	/* Process received packets */
@@ -564,7 +562,7 @@ static void handle_receive_packets(
 
 		if(INSTRUMENT) printf("addr=0x%lx len=%u transmitted=%u\n", addr, len, transmitted);
 		if (!transmitted)
-			umem_free_umem_frame(xsk_src->umem, addr);
+			umem_free_umem_frame(&xsk_src->umem, addr);
 
 		stats->stats.rx_bytes += len;
 		stats->stats.rx_packets += 1;
