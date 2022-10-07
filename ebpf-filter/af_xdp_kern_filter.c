@@ -190,54 +190,54 @@ SEC("xdp")
 int xdp_sock_prog(struct xdp_md *ctx)
 {
 	return XDP_PASS;  // Processign done by the revised default program
-//	display_all() ;
-//    int index = ctx->rx_queue_index;
-//	/* A set entry here means that the correspnding queue_id
-//	 * has an active AF_XDP socket bound to it. */
-//	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-//	if( k_tracing ) bpf_printk("index=%d mapped=%p\n", index, mapped) ;
-//
-//    __u32 action = XDP_PASS; /* Default action */
-//    if (mapped)
-//    {
-//    	void *data_end = (void *)(long)ctx->data_end;
-//    	void *data = (void *)(long)ctx->data;
-//    	struct ethhdr *eth;
-//        /* These keep track of the next header type and iterator pointer */
-//		struct hdr_cursor nh;
-//		int nh_type;
-//
-//		/* Start next header cursor position at data start */
-//		nh.pos = data;
-//
-//		/* Packet parsing in steps: Get each header one at a time, aborting if
-//		 * parsing fails. Each helper function does sanity checking (is the
-//		 * header type in the packet correct?), and bounds checking.
-//		 */
-//		nh_type = parse_ethhdr(&nh, data_end, &eth);
-//		if( k_tracing ) bpf_printk("nh_type=0x%04x ETH_P_IP=0x%04x\n", nh_type, ETH_P_IP);
-//		if (nh_type == bpf_htons(ETH_P_IP))
-//			{
-//						/* Assignment additions go below here */
-//				struct iphdr *iphdr;
-//				int rc;
-//				rc = parse_ip4hdr(&nh, data_end, &iphdr);
-//				if (rc != 0) goto out ;
-//
-//				int protocol=iphdr->protocol;
-//				if( k_tracing ) bpf_printk("protocol=%d\n", protocol) ;
-//				if ( protocol == IPPROTO_UDP ) {
-//					action = XDP_DROP ;
-//					goto out;
-//				}
-//
-//			}
-//
-//		if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
-//		return bpf_redirect_map(&xsks_map, index, 0);
-//    }
-//out:
-//	return stats_record_action(ctx, action); /* read via xdp_stats */
+	display_all() ;
+    int index = ctx->rx_queue_index;
+	/* A set entry here means that the correspnding queue_id
+	 * has an active AF_XDP socket bound to it. */
+	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
+	if( k_tracing ) bpf_printk("index=%d mapped=%p\n", index, mapped) ;
+
+    __u32 action = XDP_PASS; /* Default action */
+    if (mapped)
+    {
+    	void *data_end = (void *)(long)ctx->data_end;
+    	void *data = (void *)(long)ctx->data;
+    	struct ethhdr *eth;
+        /* These keep track of the next header type and iterator pointer */
+		struct hdr_cursor nh;
+		int nh_type;
+
+		/* Start next header cursor position at data start */
+		nh.pos = data;
+
+		/* Packet parsing in steps: Get each header one at a time, aborting if
+		 * parsing fails. Each helper function does sanity checking (is the
+		 * header type in the packet correct?), and bounds checking.
+		 */
+		nh_type = parse_ethhdr(&nh, data_end, &eth);
+		if( k_tracing ) bpf_printk("nh_type=0x%04x ETH_P_IP=0x%04x\n", nh_type, ETH_P_IP);
+		if (nh_type == bpf_htons(ETH_P_IP))
+			{
+						/* Assignment additions go below here */
+				struct iphdr *iphdr;
+				int rc;
+				rc = parse_ip4hdr(&nh, data_end, &iphdr);
+				if (rc != 0) goto out ;
+
+				int protocol=iphdr->protocol;
+				if( k_tracing ) bpf_printk("protocol=%d\n", protocol) ;
+				if ( protocol == IPPROTO_UDP ) {
+					action = XDP_DROP ;
+					goto out;
+				}
+
+			}
+
+		if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
+		return bpf_redirect_map(&xsks_map, index, 0);
+    }
+out:
+	return stats_record_action(ctx, action); /* read via xdp_stats */
 }
 
 char _license[] SEC("license") = "GPL";
