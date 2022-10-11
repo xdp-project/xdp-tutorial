@@ -164,6 +164,25 @@ static const struct option_wrapper long_options[] = {
 	{{0, 0, NULL,  0 }, NULL, false}
 };
 
+enum {
+	k_bytesperline = 16
+};
+static void hexdump1(FILE *out, const char *data, unsigned long length)
+{
+	fprintf(out, "\n0x%04x", data ) ;
+	for(int a=0; a<length; a+=1) fprintf(out, " %02x", data[a]) ;
+	fprintf(out, "\n") ;
+}
+static void hexdump(FILE *out, const void *data, unsigned long length)
+{
+	const char * cdata = data ;
+	unsigned long fullcount=length / k_bytesperline ;
+	unsigned int tailcount=length % k_bytesperline ;
+	for(unsigned long i=0; i<fullcount; i+=1 ) {
+		hexdump1(out, cdata+(i*k_bytesperline), k_bytesperline) ;
+	}
+	if ( tailcount > 0 ) hexdump1(out, cdata+(fullcount*k_bytesperline), tailcount) ;
+}
 static bool global_exit;
 
 static struct xsk_umem_info *configure_xsk_umem(struct xsk_umem_info *umem,
@@ -452,6 +471,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			if (filter_pass(saddr, daddr, protocol))
 			{
 				stats->stats.filter_passes[protocol] += 1;
+				hexdump(stdout, pkt, (len < 32) ? len : 32) ;
 				ssize_t ret=write(tap_fd,  pkt, len) ;
 				if ( ret != len ) {
 					fprintf(stderr, "Error, wrong length write. %u bytes requested, %ld bytes delivered, errno=%d %s\n",
