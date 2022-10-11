@@ -398,13 +398,14 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 	*sum = ~csum16_add(csum16_sub(~(*sum), old), new);
 }
 
-static bool skipsend(struct transfer_state *trans)
-{
-	trans->udp_packet_count += 1 ;
-	if (trans->udp_packet_count < 10 ) return false ;
-	return true;
-//	return (trans->udp_packet_count & 1) ? true : false ;
-}
+//static bool skipsend(struct transfer_state *trans)
+//{
+//	trans->udp_packet_count += 1 ;
+//	if (trans->udp_packet_count < 10 ) return false ;
+//	return true;
+////	return (trans->udp_packet_count & 1) ? true : false ;
+//}
+
 static bool process_packet(struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len,
 			   struct socket_stats *stats)
@@ -438,7 +439,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 				if(current_data != ((stats->prev_sequence+1) & 0xff)) stats->stats.rx_outofsequence += 1;
                 stats->prev_sequence =  current_data;
                 if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,stats->stats.rx_packets,stats->stats.rx_duplicate,stats->stats.rx_outofsequence);
-				if(k_skipping && skipsend(&xsk_src->trans)) return false ;
+//				if(k_skipping && skipsend(&xsk_src->trans)) return false ;
                 return false ;
 			}
 
