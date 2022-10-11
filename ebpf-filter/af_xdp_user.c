@@ -167,10 +167,10 @@ static const struct option_wrapper long_options[] = {
 enum {
 	k_bytesperline = 16
 };
-static void hexdump1(FILE *out, const char *data, unsigned long length)
+static void hexdump1(FILE *out, const char *data, unsigned long offset, unsigned long length)
 {
-	fprintf(out, "\n0x%04x", data ) ;
-	for(int a=0; a<length; a+=1) fprintf(out, " %02x", data[a]) ;
+	fprintf(out, "\n0x%04x", offset ) ;
+	for(int a=0; a<length; a+=1) fprintf(out, " %02x", data[offset+a]) ;
 	fprintf(out, "\n") ;
 }
 static void hexdump(FILE *out, const void *data, unsigned long length)
@@ -179,9 +179,9 @@ static void hexdump(FILE *out, const void *data, unsigned long length)
 	unsigned long fullcount=length / k_bytesperline ;
 	unsigned int tailcount=length % k_bytesperline ;
 	for(unsigned long i=0; i<fullcount; i+=1 ) {
-		hexdump1(out, cdata+(i*k_bytesperline), k_bytesperline) ;
+		hexdump1(out, cdata, (i*k_bytesperline), k_bytesperline) ;
 	}
-	if ( tailcount > 0 ) hexdump1(out, cdata+(fullcount*k_bytesperline), tailcount) ;
+	if ( tailcount > 0 ) hexdump1(out, cdata, (fullcount*k_bytesperline), tailcount) ;
 }
 static bool global_exit;
 
