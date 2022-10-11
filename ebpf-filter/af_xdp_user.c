@@ -42,7 +42,8 @@
 #define INVALID_UMEM_FRAME UINT64_MAX
 
 enum {
-	k_rx_queue_count = 16
+	k_rx_queue_count = 16 ,
+	k_skipping = false
 };
 
 struct xsk_umem_info {
@@ -332,8 +333,8 @@ error_exit:
 static struct all_socket_info *xsk_configure_socket_all(struct config *cfg)
 {
 
-	uint32_t idx;
-	int ret=0;
+//	uint32_t idx;
+//	int ret=0;
 	struct all_socket_info *xsk_info_all = calloc(1, sizeof(*xsk_info_all));
 	for(int q=0; q<k_rx_queue_count; q+=1)
 	{
@@ -420,8 +421,8 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 	 * - Recalculate the icmp checksum */
 
 	if (true) {
-		int ret;
-		uint32_t tx_idx = 0;
+//		int ret;
+//		uint32_t tx_idx = 0;
 //		uint64_t tx_frame;
 //		uint8_t tmp_mac[ETH_ALEN];
 //		struct in6_addr tmp_ip;
@@ -437,7 +438,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 				if(current_data != ((stats->prev_sequence+1) & 0xff)) stats->stats.rx_outofsequence += 1;
                 stats->prev_sequence =  current_data;
                 if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,stats->stats.rx_packets,stats->stats.rx_duplicate,stats->stats.rx_outofsequence);
-//				if(skipsend(&xsk_src->trans)) return false ;
+				if(k_skipping && skipsend(&xsk_src->trans)) return false ;
                 return false ;
 			}
 
@@ -877,7 +878,7 @@ int main(int argc, char **argv)
 	for(int q=0; q<k_rx_queue_count; q += 1) {
 		xsk_socket__delete(all_socket_info->xsk_socket_info[q]->xsk) ;
 	}
-	xsk_umem__delete(umem->umem);
+//	xsk_umem__delete(umem->umem);
 //	struct bpf_xdp_attach_opts attach_opts = {
 //			sz : 0,
 //			old_prog_fd : 0
