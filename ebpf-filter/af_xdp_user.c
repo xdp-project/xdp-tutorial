@@ -446,8 +446,8 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 		if (ntohs(eth->h_proto) == ETH_P_IP &&
 		    len > (sizeof(*eth) + sizeof(*ip))) {
 			__u8 protocol=ip->protocol;
-			__u32 saddr=ntoh(ip->saddr) ;
-			__u32 daddr=ntoh(ip->daddr)
+			__u32 saddr=ntohl(ip->saddr) ;
+			__u32 daddr=ntohl(ip->daddr) ;
 
 			if (filter_pass(saddr, daddr, protocol))
 			{
@@ -461,66 +461,8 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			} else {
 				stats->stats.filter_drops += 1;
 			}
-//			if ( ip->protocol == IPPROTO_UDP ) {
-//				uint8_t current_data=pkt[sizeof(*eth) + sizeof(*ip) + sizeof(struct udphdr)];
-//				if(current_data == stats->prev_sequence) stats->stats.rx_duplicate += 1;
-//				if(current_data != ((stats->prev_sequence+1) & 0xff)) stats->stats.rx_outofsequence += 1;
-//                stats->prev_sequence =  current_data;
-//                if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,stats->stats.rx_packets,stats->stats.rx_duplicate,stats->stats.rx_outofsequence);
-////				if(k_skipping && skipsend(&xsk_src->trans)) return false ;
-//                return false ;
-//			}
-
 		}
-		//		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
-//		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
-//			return false;
-//
-//		memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
-//		memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
-//		memcpy(eth->h_source, tmp_mac, ETH_ALEN);
-//
-//		memcpy(&tmp_ip, &ipv6->saddr, sizeof(tmp_ip));
-//		memcpy(&ipv6->saddr, &ipv6->daddr, sizeof(tmp_ip));
-//		memcpy(&ipv6->daddr, &tmp_ip, sizeof(tmp_ip));
-//
-//		icmp->icmp6_type = ICMPV6_ECHO_REPLY;
-//
-//		csum_replace2(&icmp->icmp6_cksum,
-//			      htons(ICMPV6_ECHO_REQUEST << 8),
-//			      htons(ICMPV6_ECHO_REPLY << 8));
-//
-//		/* Here we sent the packet out of the receive port. Note that
-//		 * we allocate one entry and schedule it. Your design would be
-//		 * faster if you do batch processing/transmission */
-
-//		tx_frame = xsk_alloc_umem_frame(xsk_dst) ;
-//		if ( tx_frame == INVALID_UMEM_FRAME ) {
-//			/* No more transmit frames, drop the packet */
-//			return false ;
-//		}
 		return false ; // Not transmitting anything
-//		ret = xsk_ring_prod__reserve(&xsk_dst->tx, 1, &tx_idx);
-//		if (ret != 1) {
-//			/* No more transmit slots, drop the packet */
-//			return false;
-//		}
-//		struct xdp_desc *tx_desc=xsk_ring_prod__tx_desc(&xsk_dst->tx, tx_idx);
-////		tx_desc->addr=tx_frame ;
-//		tx_desc->addr=addr ;
-//		tx_desc->len = len ;
-////		memcpy(xsk_umem__get_data(xsk_dst->umem->buffer,tx_frame), pkt, len) ;
-//		xsk_ring_prod__submit(&xsk_dst->tx, 1) ;
-////		xsk_free_umem_frame(xsk_src, addr) ;
-//
-////		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
-////		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
-////		xsk_ring_prod__submit(&xsk->tx, 1);
-//		xsk_dst->outstanding_tx++;
-//
-//		xsk_dst->stats.tx_bytes += len;
-//		xsk_dst->stats.tx_packets++;
-//		return true;
 	}
 
 	return false;
@@ -578,9 +520,6 @@ static void handle_receive_packets(
 	stats->stats.rx_batch_count += 1;
 	xsk_ring_cons__release(&xsk_src->rx, rcvd);
 
-	/* Do we need to wake up the kernel for transmission */
-//	complete_tx(xsk_src, fq, cq);
-//	complete_tx(xsk_src);
   }
 
 static void rx_and_process(struct config *cfg,
