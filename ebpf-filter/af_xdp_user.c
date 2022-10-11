@@ -454,12 +454,12 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 				stats->stats.filter_passes[protocol] += 1;
 				ssize_t ret=write(tap_fd,  pkt, len) ;
 				if ( ret != len ) {
-					fprintf("Error, wrong length write. %u bytes requested, %ld bytes delivered, errno=%d %s\n",
+					fprintf(stderr, "Error, wrong length write. %u bytes requested, %ld bytes delivered, errno=%d %s\n",
 							len, ret, errno, strerror(errno)) ;
 					exit(EXIT_FAILURE);
 				}
 			} else {
-				stats->stats.filter_drops += 1;
+				stats->stats.filter_drops[protocol] += 1;
 			}
 		}
 		return false ; // Not transmitting anything
@@ -625,7 +625,7 @@ static void stats_print(struct stats_record *stats_rec,
 		uint64_t passes=stats_rec->filter_passes[proto] ;
 		uint64_t drops=stats_rec->filter_drops[proto] ;
 		if (passes+drops > 0) {
-			printf("passes[%d]=%lu drops[%d]=%lu total[%d]=%lu", passes, drops, passes+drops);
+			printf("passes[%d]=%lu drops[%d]=%lu total[%d]=%lu", proto, passes, drops, passes+drops);
 		}
 	}
 	printf("\n");
