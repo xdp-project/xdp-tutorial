@@ -696,7 +696,7 @@ int main(int argc, char **argv)
 		.progsec = "xdp_sock_0",
 		.progsec_1 = "xdp_sock_1"
 	};
-	struct xsk_umem_info *umem;
+//	struct xsk_umem_info *umem;
 	struct all_socket_info *all_socket_info;
 //	struct bpf_object *bpf_obj = NULL;
 //	struct bpf_program *bpf_prog ;
