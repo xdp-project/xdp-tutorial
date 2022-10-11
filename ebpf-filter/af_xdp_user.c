@@ -70,6 +70,8 @@ struct stats_record {
 	uint64_t rx_outofsequence;
 	uint64_t rx_duplicate;
 	uint64_t rx_batch_count;
+	uint64_t filter_passes[256] ;
+	uint64_t filter_drops[256] ;
 };
 
 struct transfer_state {
@@ -406,9 +408,13 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 ////	return (trans->udp_packet_count & 1) ? true : false ;
 //}
 
+static bool filter_pass(__u32 saddr, __u32 daddr, __u8 protocol) {
+	return true ;
+}
 static bool process_packet(struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len,
-			   struct socket_stats *stats)
+			   struct socket_stats *stats,
+			   int tap_fd)
 {
 	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem.buffer, addr);
 
@@ -433,15 +439,31 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 //
 		if (ntohs(eth->h_proto) == ETH_P_IP &&
 		    len > (sizeof(*eth) + sizeof(*ip))) {
-			if ( ip->protocol == IPPROTO_UDP ) {
-				uint8_t current_data=pkt[sizeof(*eth) + sizeof(*ip) + sizeof(struct udphdr)];
-				if(current_data == stats->prev_sequence) stats->stats.rx_duplicate += 1;
-				if(current_data != ((stats->prev_sequence+1) & 0xff)) stats->stats.rx_outofsequence += 1;
-                stats->prev_sequence =  current_data;
-                if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,stats->stats.rx_packets,stats->stats.rx_duplicate,stats->stats.rx_outofsequence);
-//				if(k_skipping && skipsend(&xsk_src->trans)) return false ;
-                return false ;
+			__u8 protocol=ip->protocol;
+			__u32 saddr=ntoh(ip->saddr) ;
+			__u32 daddr=ntoh(ip->daddr)
+
+			if (filter_pass(saddr, daddr, protocol))
+			{
+				stats->stats.filter_passes[protocol] += 1;
+				ssize_t ret=write(tap_fd,  pkt, len) ;
+				if ( ret != len ) {
+					fprintf("Error, wrong length write. %u bytes requested, %ld bytes delivered, errno=%d %s\n",
+							len, ret, errno, strerror(errno)) ;
+					exit(EXIT_FAILURE);
+				}
+			} else {
+				stats->stats.filter_drops += 1;
 			}
+//			if ( ip->protocol == IPPROTO_UDP ) {
+//				uint8_t current_data=pkt[sizeof(*eth) + sizeof(*ip) + sizeof(struct udphdr)];
+//				if(current_data == stats->prev_sequence) stats->stats.rx_duplicate += 1;
+//				if(current_data != ((stats->prev_sequence+1) & 0xff)) stats->stats.rx_outofsequence += 1;
+//                stats->prev_sequence =  current_data;
+//                if(INSTRUMENT) printf("sequence=%u receives=%lu rx_duplicate=%lu rx_outofsequence=%lu\n",current_data,stats->stats.rx_packets,stats->stats.rx_duplicate,stats->stats.rx_outofsequence);
+////				if(k_skipping && skipsend(&xsk_src->trans)) return false ;
+//                return false ;
+//			}
 
 		}
 		//		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
@@ -500,7 +522,8 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 
 static void handle_receive_packets(
 		struct xsk_socket_info *xsk_src,
-		struct socket_stats *stats)
+		struct socket_stats *stats,
+		int tap_fd)
 {
 	unsigned int rcvd, stock_frames, i;
 	uint32_t idx_rx = 0, idx_fq = 0;
@@ -536,7 +559,7 @@ static void handle_receive_packets(
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx++)->len;
 
-		bool transmitted=process_packet(xsk_src, addr, len, stats) ;
+		bool transmitted=process_packet(xsk_src, addr, len, stats, tap_fd) ;
 
 		if(INSTRUMENT) printf("addr=0x%lx len=%u transmitted=%u\n", addr, len, transmitted);
 		if (!transmitted)
@@ -556,7 +579,8 @@ static void handle_receive_packets(
 
 static void rx_and_process(struct config *cfg,
 			   struct all_socket_info *all_socket_info,
-			   struct socket_stats *stats)
+			   struct socket_stats *stats,
+			   int tap_fd)
 {
 	struct pollfd fds[k_rx_queue_count];
 	int ret, nfds = k_rx_queue_count;
@@ -577,7 +601,7 @@ static void rx_and_process(struct config *cfg,
 //				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 //			}
 		for(int q=0; q<k_rx_queue_count; q+=1) {
-			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], stats) ;
+			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], stats, tap_fd) ;
 		}
 //		handle_receive_packets(xsk_socket);
 	}
@@ -705,6 +729,7 @@ int main(int argc, char **argv)
 	int err;
 	pthread_t stats_poll_thread;
 	struct socket_stats stats;
+	int tap_fd ;
 
 	memset(&stats, 0, sizeof(stats));
 
@@ -872,10 +897,19 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/* Start TAP */
+	tap_fd = open("/dev/tap0", O_RDWR) ;
+	if(tap_fd < 0) {
+		err = errno ;
+		fprintf(stderr, "ERROR:open gives errno=%d %s\n", err, strerror(err)) ;
+		exit(EXIT_FAILURE);
+	}
+
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, all_socket_info, &stats);
+	rx_and_process(&cfg, all_socket_info, &stats, tap_fd);
 
 	/* Cleanup */
+	close(tap_fd) ;
 	for(int q=0; q<k_rx_queue_count; q += 1) {
 		xsk_socket__delete(all_socket_info->xsk_socket_info[q]->xsk) ;
 	}
