@@ -693,7 +693,7 @@ int tun_alloc(char *dev)
        *
        *        IFF_NO_PI - Do not provide packet information
        */
-      ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+      ifr.ifr_flags = IFF_TUN ;
       if( *dev )
          strncpy(ifr.ifr_name, dev, IFNAMSIZ);
 
