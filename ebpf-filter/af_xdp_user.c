@@ -710,6 +710,7 @@ int main(int argc, char **argv)
 	pthread_t stats_poll_thread;
 	struct socket_stats stats;
 	int tap_fd ;
+	char tap_name[IFNAMSIZ]] ;
 
 	memset(&stats, 0, sizeof(stats));
 
@@ -878,7 +879,8 @@ int main(int argc, char **argv)
 	}
 
 	/* Start TAP */
-	tap_fd = tap_alloc("tap0") ;
+	strcpy(tap_name, "tap0");
+	tap_fd = tap_alloc(tap_name) ;
 	if(tap_fd < 0) {
 		err = errno ;
 		fprintf(stderr, "ERROR:tap_alloc gives errno=%d %s\n", err, strerror(err)) ;
