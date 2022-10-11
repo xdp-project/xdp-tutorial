@@ -15,12 +15,10 @@
 #include "common_kern_user.h" /* defines: struct datarec; */
 
 enum {
-	k_tracing = 1
+	k_tracing = 0 ,
+	k_tracing_detail = 0
 };
-/* Lesson#1: See how a map is defined.
- * - Here an array with XDP_ACTION_MAX (max_)entries are created.
- * - The idea is to keep stats per (enum) xdp_action
- */
+
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, XDP_ACTION_MAX);
@@ -49,15 +47,9 @@ __u32 stats_record_action(struct xdp_md *ctx, __u32 action)
 	if (action >= XDP_ACTION_MAX)
 		return XDP_ABORTED;
 
-	/* Lookup in kernel BPF-side return pointer to actual data record */
 	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &action);
-	if (!rec)
-		return XDP_ABORTED;
+	if (!rec) return XDP_ABORTED;
 
-	/* BPF_MAP_TYPE_PERCPU_ARRAY returns a data record specific to current
-	 * CPU and XDP hooks runs under Softirq, which makes it safe to update
-	 * without atomic operations.
-	 */
 	rec->rx_packets++;
 	rec->rx_bytes += (ctx->data_end - ctx->data);
 
@@ -75,9 +67,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 {
 	struct ethhdr *eth = nh->pos;
 	int hdrsize = sizeof(*eth);
-	/* Byte-count bounds check; check if current pointer + size of header
-	 * is after data_end.
-	 */
+
 	if (nh->pos + hdrsize > data_end)
 		return -1;
 
@@ -96,8 +86,7 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 	if (nh->pos + hdrsize >data_end)
 		return -1;
 	int actual_hdrsize = ip4h->ihl*4;
-	if (nh->pos + actual_hdrsize > data_end)
-		return -1;
+	if (nh->pos + actual_hdrsize > data_end) return -1;
 	nh->pos += actual_hdrsize;
 	*ip4hdr = ip4h; /* Network byte order */
 	return 0;
@@ -106,9 +95,7 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 
 static __always_inline void display_one(int index) {
 	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-//	if(mapped != NULL) {
-		bpf_printk("index%d mapped=%p\n", index, mapped) ;
-//	}
+	bpf_printk("xsks_map[%d]=%p\n", index, mapped) ;
 }
 
 static __always_inline void display_all(void) {
@@ -177,20 +164,12 @@ static __always_inline void display_all(void) {
 	display_one(62) ;
 	display_one(63) ;
 }
-//static long display_loop(__u32 index, void *vctx)
-//{
-//	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-//	if(mapped != NULL) {
-//		bpf_printk("index%d mapped=%p\n", index, mapped) ;
-//	}
-//	return 0;
-//}
 
 SEC("xdp")
 int xdp_sock_prog(struct xdp_md *ctx)
 {
-	return XDP_PASS;  // Processign done by the revised default program
-	display_all() ;
+	return XDP_PASS;  // Processing done by the revised default program
+	if (k_tracing_detail) display_all() ;
     int index = ctx->rx_queue_index;
 	/* A set entry here means that the correspnding queue_id
 	 * has an active AF_XDP socket bound to it. */
@@ -233,6 +212,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 
 			}
 
+		stats_record_action(ctx, XDP_REDIRECT) ;
 		if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
 		return bpf_redirect_map(&xsks_map, index, 0);
     }
