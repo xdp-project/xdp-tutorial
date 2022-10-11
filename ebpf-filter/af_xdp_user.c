@@ -663,19 +663,26 @@ static void stats_print(struct stats_record *stats_rec,
 		   stats_rec->rx_batch_count,
 	       period);
 
-	packets = stats_rec->tx_packets - stats_prev->tx_packets;
-	pps     = packets / period;
+//	packets = stats_rec->tx_packets - stats_prev->tx_packets;
+//	pps     = packets / period;
+//
+//	bytes   = stats_rec->tx_bytes   - stats_prev->tx_bytes;
+//	bps     = (bytes * 8) / period / 1000000;
+//
+//	printf(fmt, "       TX:", stats_rec->tx_packets, pps,
+//	       stats_rec->tx_bytes / 1000 , bps,
+//		   0,
+//		   0,
+//		   0,
+//	       period);
 
-	bytes   = stats_rec->tx_bytes   - stats_prev->tx_bytes;
-	bps     = (bytes * 8) / period / 1000000;
-
-	printf(fmt, "       TX:", stats_rec->tx_packets, pps,
-	       stats_rec->tx_bytes / 1000 , bps,
-		   0,
-		   0,
-		   0,
-	       period);
-
+	for(int proto=0; proto < 256; proto += 1) {
+		uint64_t passes=stats_rec->filter_passes[proto] ;
+		uint64_t drops=stats_rec->filter_drops[proto] ;
+		if (passes+drops > 0) {
+			printf("passes[%d]=%lu drops[%d]=%lu total[%d]=%lu", passes, drops, passes+drops);
+		}
+	}
 	printf("\n");
 }
 
