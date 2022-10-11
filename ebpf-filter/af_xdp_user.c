@@ -169,7 +169,7 @@ enum {
 };
 static void hexdump1(FILE *out, const char *data, unsigned long offset, unsigned long length)
 {
-	fprintf(out, "\n0x%04x", offset ) ;
+	fprintf(out, "\n0x%04lx", offset ) ;
 	for(int a=0; a<length; a+=1) fprintf(out, " %02x", data[offset+a]) ;
 	fprintf(out, "\n") ;
 }
