@@ -171,7 +171,6 @@ static void hexdump1(FILE *out, const char *data, unsigned long offset, unsigned
 {
 	fprintf(out, "\n0x%04lx", offset ) ;
 	for(int a=0; a<length; a+=1) fprintf(out, " %02x", data[offset+a]) ;
-	fprintf(out, "\n") ;
 }
 static void hexdump(FILE *out, const void *data, unsigned long length)
 {
@@ -182,6 +181,7 @@ static void hexdump(FILE *out, const void *data, unsigned long length)
 		hexdump1(out, cdata, (i*k_bytesperline), k_bytesperline) ;
 	}
 	if ( tailcount > 0 ) hexdump1(out, cdata, (fullcount*k_bytesperline), tailcount) ;
+	fprintf(out, "\n") ;
 }
 static bool global_exit;
 
@@ -439,7 +439,7 @@ static bool filter_pass(__u32 saddr, __u32 daddr, __u8 protocol) {
 static bool process_packet(struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len,
 			   struct socket_stats *stats,
-			   int tap_fd)
+			   int tun_fd)
 {
 	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem.buffer, addr);
 
@@ -472,7 +472,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			{
 				stats->stats.filter_passes[protocol] += 1;
 				hexdump(stdout, pkt, (len < 32) ? len : 32) ;
-				ssize_t ret=write(tap_fd,  pkt, len) ;
+				ssize_t ret=write(tun_fd,  pkt+sizeof(struct ethhdr), len-sizeof(struct ethhdr)) ;
 				if ( ret != len ) {
 					fprintf(stderr, "Error, wrong length write. %u bytes requested, %ld bytes delivered, errno=%d %s\n",
 							len, ret, errno, strerror(errno)) ;
@@ -491,7 +491,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 static void handle_receive_packets(
 		struct xsk_socket_info *xsk_src,
 		struct socket_stats *stats,
-		int tap_fd)
+		int tun_fd)
 {
 	unsigned int rcvd, stock_frames, i;
 	uint32_t idx_rx = 0, idx_fq = 0;
@@ -527,7 +527,7 @@ static void handle_receive_packets(
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx++)->len;
 
-		bool transmitted=process_packet(xsk_src, addr, len, stats, tap_fd) ;
+		bool transmitted=process_packet(xsk_src, addr, len, stats, tun_fd) ;
 
 		if(INSTRUMENT) printf("addr=0x%lx len=%u transmitted=%u\n", addr, len, transmitted);
 		if (!transmitted)
@@ -545,7 +545,7 @@ static void handle_receive_packets(
 static void rx_and_process(struct config *cfg,
 			   struct all_socket_info *all_socket_info,
 			   struct socket_stats *stats,
-			   int tap_fd)
+			   int tun_fd)
 {
 	struct pollfd fds[k_rx_queue_count];
 	int ret, nfds = k_rx_queue_count;
@@ -566,7 +566,7 @@ static void rx_and_process(struct config *cfg,
 //				printf("rx_and_process xsk_0=%p fds[0].revents=0x%x\n", xsk_socket_0, fds[0].revents);
 //			}
 		for(int q=0; q<k_rx_queue_count; q+=1) {
-			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], stats, tap_fd) ;
+			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], stats, tun_fd) ;
 		}
 //		handle_receive_packets(xsk_socket);
 	}
@@ -678,7 +678,7 @@ static void exit_application(int signal)
 	global_exit = true;
 }
 
-int tap_alloc(char *dev)
+int tun_alloc(char *dev)
   {
       struct ifreq ifr;
       int fd, err;
@@ -693,7 +693,7 @@ int tap_alloc(char *dev)
        *
        *        IFF_NO_PI - Do not provide packet information
        */
-      ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+      ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
       if( *dev )
          strncpy(ifr.ifr_name, dev, IFNAMSIZ);
 
@@ -729,7 +729,7 @@ int main(int argc, char **argv)
 	int err;
 	pthread_t stats_poll_thread;
 	struct socket_stats stats;
-	int tap_fd ;
+	int tun_fd ;
 	char tap_name[IFNAMSIZ] ;
 
 	memset(&stats, 0, sizeof(stats));
@@ -900,18 +900,18 @@ int main(int argc, char **argv)
 
 	/* Start TAP */
 	strcpy(tap_name, "tap0");
-	tap_fd = tap_alloc(tap_name) ;
-	if(tap_fd < 0) {
+	tun_fd = tun_alloc(tap_name) ;
+	if(tun_fd < 0) {
 		err = errno ;
-		fprintf(stderr, "ERROR:tap_alloc gives errno=%d %s\n", err, strerror(err)) ;
+		fprintf(stderr, "ERROR:tun_alloc gives errno=%d %s\n", err, strerror(err)) ;
 		exit(EXIT_FAILURE);
 	}
 
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, all_socket_info, &stats, tap_fd);
+	rx_and_process(&cfg, all_socket_info, &stats, tun_fd);
 
 	/* Cleanup */
-	close(tap_fd) ;
+	close(tun_fd) ;
 	for(int q=0; q<k_rx_queue_count; q += 1) {
 		xsk_socket__delete(all_socket_info->xsk_socket_info[q]->xsk) ;
 	}
