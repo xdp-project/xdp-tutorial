@@ -239,9 +239,6 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 {
 	struct xsk_socket_config xsk_cfg;
 	struct xsk_socket_info *xsk_info;
-//	uint32_t idx;
-//	uint32_t prog_id = 0;
-	int i;
 	int ret;
 
 	xsk_info = calloc(1, sizeof(*xsk_info));
@@ -347,28 +344,7 @@ static struct all_socket_info *xsk_configure_socket_all(struct config *cfg)
 			return NULL ;
 		}
 	}
-//	//	if (slot == 0)
-//		{
-//			/* Stuff the receive path with buffers, we assume we have enough */
-//			ret = xsk_ring_prod__reserve(fq,
-//							 XSK_RING_PROD__DEFAULT_NUM_DESCS,
-//							 &idx);
-//
-//			printf("xsk_ring_prod__reserve returns %d, XSK_RING_PROD__DEFAULT_NUM_DESCS is %d\n", ret, XSK_RING_PROD__DEFAULT_NUM_DESCS);
-//			if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
-//				goto error_exit;
-//
-//			for (int i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++)
-//				*xsk_ring_prod__fill_addr(fq, idx++) =
-//					umem_alloc_umem_frame(umem);
-//
-//			xsk_ring_prod__submit(fq,
-//						  XSK_RING_PROD__DEFAULT_NUM_DESCS);
-//		}
 	return xsk_info_all;
-	error_exit:
-		errno = -ret;
-		return NULL;
 }
 //static void complete_tx(struct xsk_socket_info *xsk,
 //		struct xsk_socket_info *xsk_src,
@@ -706,9 +682,9 @@ static void exit_application(int signal)
 int main(int argc, char **argv)
 {
 	int ret;
-	int xsks_map_fd;
-	void *packet_buffer;
-	uint64_t packet_buffer_size;
+//	int xsks_map_fd;
+//	void *packet_buffer;
+//	uint64_t packet_buffer_size;
 	struct rlimit rlim = {RLIM_INFINITY, RLIM_INFINITY};
 	struct config cfg = {
 		.ifindex   = -1,
@@ -720,10 +696,10 @@ int main(int argc, char **argv)
 	};
 	struct xsk_umem_info *umem;
 	struct all_socket_info *all_socket_info;
-	struct bpf_object *bpf_obj = NULL;
-	struct bpf_program *bpf_prog ;
+//	struct bpf_object *bpf_obj = NULL;
+//	struct bpf_program *bpf_prog ;
 	struct xdp_program *xdp_prog ;
-	int prog_fd ;
+//	int prog_fd ;
 	int err;
 	pthread_t stats_poll_thread;
 	struct socket_stats stats;
@@ -759,7 +735,7 @@ int main(int argc, char **argv)
 
 	/* Load custom program if configured */
 	if (cfg.filename[0] != 0) {
-		struct bpf_map *map;
+//		struct bpf_map *map;
 
 ////		bpf_obj = load_bpf_and_xdp_attach(&cfg);
 //		bpf_obj = bpf_object__open_file(cfg.filename, NULL);
@@ -836,14 +812,14 @@ int main(int argc, char **argv)
 
 	}
 
-//	/* Allow unlimited locking of memory, so all memory needed for packet
-//	 * buffers can be locked.
-//	 */
-//	if (setrlimit(RLIMIT_MEMLOCK, &rlim)) {
-//		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
-//			strerror(errno));
-//		exit(EXIT_FAILURE);
-//	}
+	/* Allow unlimited locking of memory, so all memory needed for packet
+	 * buffers can be locked.
+	 */
+	if (setrlimit(RLIMIT_MEMLOCK, &rlim)) {
+		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 //
 //	/* Allocate memory for NUM_FRAMES of the default XDP frame size */
 //	packet_buffer_size = NUM_FRAMES * FRAME_SIZE * 2;
