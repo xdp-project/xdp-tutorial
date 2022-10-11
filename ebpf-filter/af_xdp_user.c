@@ -625,7 +625,8 @@ static void stats_print(struct stats_record *stats_rec,
 		uint64_t passes=stats_rec->filter_passes[proto] ;
 		uint64_t drops=stats_rec->filter_drops[proto] ;
 		if (passes+drops > 0) {
-			printf("passes[%d]=%lu drops[%d]=%lu total[%d]=%lu", proto, passes, drops, passes+drops);
+			printf("passes[%d]=%lu drops[%d]=%lu total[%d]=%lu",
+					proto, passes, proto, drops, proto, passes+drops);
 		}
 	}
 	printf("\n");
