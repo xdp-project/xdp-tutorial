@@ -710,7 +710,7 @@ int main(int argc, char **argv)
 	pthread_t stats_poll_thread;
 	struct socket_stats stats;
 	int tap_fd ;
-	char tap_name[IFNAMSIZ]] ;
+	char tap_name[IFNAMSIZ] ;
 
 	memset(&stats, 0, sizeof(stats));
 
