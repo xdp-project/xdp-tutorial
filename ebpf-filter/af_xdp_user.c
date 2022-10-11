@@ -730,7 +730,7 @@ int main(int argc, char **argv)
 	pthread_t stats_poll_thread;
 	struct socket_stats stats;
 	int tun_fd ;
-	char tap_name[IFNAMSIZ] ;
+	char tun_name[IFNAMSIZ] ;
 
 	memset(&stats, 0, sizeof(stats));
 
@@ -899,8 +899,8 @@ int main(int argc, char **argv)
 	}
 
 	/* Start TAP */
-	strcpy(tap_name, "tap0");
-	tun_fd = tun_alloc(tap_name) ;
+	strcpy(tun_name, "tun0");
+	tun_fd = tun_alloc(tun_name) ;
 	if(tun_fd < 0) {
 		err = errno ;
 		fprintf(stderr, "ERROR:tun_alloc gives errno=%d %s\n", err, strerror(err)) ;
