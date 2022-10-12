@@ -489,8 +489,8 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			fprintf(stdout, "iphdr ihl=0x%01x version=0x%01x tos=0x%02x "
 					"tot_len=0x%04x id=0x%04x frag_off=0x%04x ttl=0x%02x "
 					"protocol=0x%02x check=0x%04x saddr=0x%08x daddr=0x%08x",
-					ip->ihl, ip->version, ip->tos, ntohl(ip->tot_len),
-					ntohl(ip->id), ntohl(ip->frag_off), ip->ttl,ip->protocol,
+					ip->ihl, ip->version, ip->tos, ntohs(ip->tot_len),
+					ntohs(ip->id), ntohs(ip->frag_off), ip->ttl,ip->protocol,
 					ip->check, ntohl(ip->saddr), ntohl(ip->daddr));
 			__u8 protocol=ip->protocol;
 			__u32 saddr=ntohl(ip->saddr) ;
