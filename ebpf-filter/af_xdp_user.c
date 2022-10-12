@@ -473,7 +473,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			{
 				stats->stats.filter_passes[protocol] += 1;
 				hexdump(stdout, pkt, (len < 32) ? len : 32) ;
-				uint8_t write_addr=pkt+sizeof(struct ethhdr);
+				uint8_t *write_addr=pkt+sizeof(struct ethhdr);
 				size_t write_len=len-sizeof(struct ethhdr);
 				ssize_t ret=write(tun_fd,  write_addr, write_len) ;
                 fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
