@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include <sys/resource.h>
+#include <sys/socket.h>
 
 #include <bpf/bpf.h>
 #include <xdp/xsk.h>
@@ -472,7 +473,8 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			{
 				stats->stats.filter_passes[protocol] += 1;
 				hexdump(stdout, pkt, (len < 32) ? len : 32) ;
-				ssize_t ret=write(tun_fd,  pkt+sizeof(struct ethhdr), len-sizeof(struct ethhdr)) ;
+				ssize_t ret=send(tun_fd,  pkt+sizeof(struct ethhdr), len-sizeof(struct ethhdr), 0) ;
+                fprintf(stdout, "Write length %ld actual %ld\n", len-sizeof(struct ethhdr), ret) ;
 				if ( ret != len ) {
 					fprintf(stderr, "Error, wrong length write. %u bytes requested, %ld bytes delivered, errno=%d %s\n",
 							len, ret, errno, strerror(errno)) ;
