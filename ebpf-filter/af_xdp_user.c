@@ -29,6 +29,7 @@
 #include <linux/ip.h>
 #include <linux/icmpv6.h>
 #include <linux/udp.h>
+#include <linux/tcp.h>
 
 
 #include <sys/types.h>
