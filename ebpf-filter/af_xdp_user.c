@@ -506,7 +506,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 				size_t write_len=len-sizeof(struct ethhdr);
 				ssize_t ret=write(tun_fd,  write_addr, write_len) ;
                 fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
-				if ( ret != len ) {
+				if ( ret != write_len ) {
 					fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
 							write_len, ret, errno, strerror(errno)) ;
 					exit(EXIT_FAILURE);
