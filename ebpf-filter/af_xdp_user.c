@@ -486,6 +486,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 //		};
 		if (ntohs(eth->h_proto) == ETH_P_IP &&
 		    len > (sizeof(*eth) + sizeof(*ip))) {
+			hexdump(stdout, ip, (len < 32) ? len : 32) ;
 			fprintf(stdout, "iphdr ihl=0x%01x version=0x%01x tos=0x%02x "
 					"tot_len=0x%04x id=0x%04x flags=0x%02x frag_off=0x%04x ttl=0x%02x "
 					"protocol=0x%02x check=0x%04x saddr=0x%08x daddr=0x%08x",
@@ -502,10 +503,10 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			if (filter_pass(saddr, daddr, protocol))
 			{
 				stats->stats.filter_passes[protocol] += 1;
-				hexdump(stdout, pkt, (len < 32) ? len : 32) ;
 				uint8_t *write_addr=pkt+sizeof(struct ethhdr);
 				size_t write_len=len-sizeof(struct ethhdr);
 				ssize_t ret=write(tun_fd,  write_addr, write_len) ;
+				hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
                 fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
 				if ( ret != write_len ) {
 					fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
