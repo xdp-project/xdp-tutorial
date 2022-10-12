@@ -510,7 +510,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			if (filter_pass(saddr, daddr, protocol, sourceport, destport ))
 			{
 				stats->stats.filter_passes[protocol] += 1;
-				uint8_t *write_addr=pkt+sizeof(struct ethhdr);
+				uint8_t *write_addr=ip;
 				size_t write_len=len-sizeof(struct ethhdr);
 				ssize_t ret=write(tun_fd,  write_addr, write_len) ;
 				hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
