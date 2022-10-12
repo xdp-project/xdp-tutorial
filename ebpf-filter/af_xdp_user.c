@@ -469,6 +469,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			__u32 saddr=ntohl(ip->saddr) ;
 			__u32 daddr=ntohl(ip->daddr) ;
 
+			fprintf(stdout, "saddr=0x%08x daddr=0x%08x\n", saddr, daddr) ;
 			if (filter_pass(saddr, daddr, protocol))
 			{
 				stats->stats.filter_passes[protocol] += 1;
