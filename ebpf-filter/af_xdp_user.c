@@ -486,7 +486,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 //		};
 		if (ntohs(eth->h_proto) == ETH_P_IP &&
 		    len > (sizeof(*eth) + sizeof(*ip))) {
-			fprintf("iphdr ihl=0x%01x version=0x%01x tos=0x%02x "
+			fprintf(stdout, "iphdr ihl=0x%01x version=0x%01x tos=0x%02x "
 					"tot_len=0x%04x id=0x%04x frag_off=0x%04x ttl=0x%02x "
 					"protocol=0x%02x check=0x%04x saddr=0x%08x daddr=0x%08x",
 					ip->ihl, ip->version, ip->tos, ntohl(ip->tot_len),
@@ -497,7 +497,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			__u32 daddr=ntohl(ip->daddr) ;
 
 //			fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
-					saddr, daddr) ;
+//					saddr, daddr) ;
 			if (filter_pass(saddr, daddr, protocol))
 			{
 				stats->stats.filter_passes[protocol] += 1;
