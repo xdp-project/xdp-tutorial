@@ -463,13 +463,41 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 		struct iphdr *ip = (struct iphdr *) (eth + 1);
 //		struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
 //
+//		struct iphdr {
+//		#if defined(__LITTLE_ENDIAN_BITFIELD)
+//			__u8	ihl:4,
+//				version:4;
+//		#elif defined (__BIG_ENDIAN_BITFIELD)
+//			__u8	version:4,
+//		  		ihl:4;
+//		#else
+//		#error	"Please fix <asm/byteorder.h>"
+//		#endif
+//			__u8	tos;
+//			__be16	tot_len;
+//			__be16	id;
+//			__be16	frag_off;
+//			__u8	ttl;
+//			__u8	protocol;
+//			__sum16	check;
+//			__be32	saddr;
+//			__be32	daddr;
+//			/*The options start here. */
+//		};
 		if (ntohs(eth->h_proto) == ETH_P_IP &&
 		    len > (sizeof(*eth) + sizeof(*ip))) {
+			fprintf("iphdr ihl=0x%01x version=0x%01x tos=0x%02x "
+					"tot_len=0x%04x id=0x%04x frag_off=0x%04x ttl=0x%02x "
+					"protocol=0x%02x check=0x%04x saddr=0x%08x daddr=0x%08x",
+					ip->ihl, ip->version, ip->tos, ntohl(ip->tot_len),
+					ntohl(ip->id), ntohl(ip->frag_off), ip->ttl,ip->protocol,
+					ip->check, ntohl(ip->saddr), ntohl(ip->daddr));
 			__u8 protocol=ip->protocol;
 			__u32 saddr=ntohl(ip->saddr) ;
 			__u32 daddr=ntohl(ip->daddr) ;
 
-			fprintf(stdout, "saddr=0x%08x daddr=0x%08x\n", saddr, daddr) ;
+//			fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
+					saddr, daddr) ;
 			if (filter_pass(saddr, daddr, protocol))
 			{
 				stats->stats.filter_passes[protocol] += 1;
