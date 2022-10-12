@@ -434,7 +434,7 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 ////	return (trans->udp_packet_count & 1) ? true : false ;
 //}
 
-static bool filter_pass(__u32 saddr, __u32 daddr, __u8 protocol) {
+static bool filter_pass(__u32 saddr, __u32 daddr, __u8 protocol, __u16 sport, __u16 dport) {
 	return true ;
 }
 static bool process_packet(struct xsk_socket_info *xsk_src,
@@ -498,9 +498,15 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			__u32 saddr=ntohl(ip->saddr) ;
 			__u32 daddr=ntohl(ip->daddr) ;
 
+			struct tcphdr *tcp = (struct tcphdr *) (ip + 1);
+//			struct tcphdr {
+//				__be16	source;
+//				__be16	dest;
+			__u32 sourceport=ntohs(tcp->source);
+			__u32 destport=ntohs(tcp->dest) ;
 //			fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
 //					saddr, daddr) ;
-			if (filter_pass(saddr, daddr, protocol))
+			if (filter_pass(saddr, daddr, protocol, sourceport, destport ))
 			{
 				stats->stats.filter_passes[protocol] += 1;
 				uint8_t *write_addr=pkt+sizeof(struct ethhdr);
