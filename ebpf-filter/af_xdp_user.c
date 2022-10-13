@@ -30,6 +30,7 @@
 #include <linux/icmpv6.h>
 #include <linux/udp.h>
 #include <linux/tcp.h>
+#include <linux/icmp.h>
 
 
 #include <sys/types.h>
@@ -695,7 +696,7 @@ static void *stats_poll(void *arg)
 
 static void exit_application(int sig)
 {
-	signal = sig;
+//	signal = sig;
 	global_exit = true;
 }
 
