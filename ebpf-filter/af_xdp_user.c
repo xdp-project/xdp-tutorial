@@ -441,6 +441,9 @@ static bool filter_pass_tcp(__u32 saddr, __u32 daddr, __u16 sport, __u16 dport) 
 static bool filter_pass_udp(__u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
 	return true ;
 }
+static bool filter_pass_icmp(__u32 saddr, __u32 daddr, int type, int code ) {
+	return true ;
+}
 static bool process_packet(struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len,
 			   struct socket_stats *stats,
@@ -550,9 +553,11 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			}
 			else if ( protocol == IPPROTO_ICMP ) {
 				struct icmphdr *icmp = (struct icmphdr *) (ip + 1);
+				int type=icmp->type ;
+				int code=icmp->code ;
 				if ( INSTRUMENT ) fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
 						saddr, daddr, protocol) ;
-				if (filter_pass_udp(saddr, daddr))
+				if (filter_pass_icmp(saddr, daddr, type,code))
 				{
 					stats->stats.filter_passes[protocol] += 1;
 					uint8_t *write_addr=(uint8_t *)ip;
