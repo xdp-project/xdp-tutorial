@@ -702,6 +702,7 @@ static void *tun_read(void *arg)
 	int *tun_fd_p = arg ;
 	int tun_fd=*tun_fd_p ;
 	char buffer[k_buffersize] ;
+	fprintf(stdout, "tun_read thread running\n");
 	while (!global_exit) {
 		ssize_t count=read(tun_fd, buffer, k_buffersize) ;
 		if ( count < 0) {
@@ -711,10 +712,8 @@ static void *tun_read(void *arg)
 		} else if (count == 0) {
 			fprintf(stdout, "tun_read unexpected zero length read\n");
 		} else {
-			ssize_t wcount=write(1, buffer, count) ;
-			if (wcount != count) {
-				fprintf(stdout, "tun_read unexpected wcount=%ld count=%ld\n\n", count, wcount);
-			}
+			fprintf(stdout, "tun_read\n");
+			hexdump(stdout, buffer, count) ;
 		}
 	}
 	return NULL ;
