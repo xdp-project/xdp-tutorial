@@ -247,10 +247,10 @@ int xsk_def_prog(struct xdp_md *ctx)
 					action = XDP_DROP ;
 					goto out;
 				}
-				if ( protocol == IPPROTO_ICMP ) {
-					action = XDP_PASS ;
-					goto out;
-				}
+//				if ( protocol == IPPROTO_ICMP ) {
+//					action = XDP_PASS ;
+//					goto out;
+//				}
 
 			}
 
