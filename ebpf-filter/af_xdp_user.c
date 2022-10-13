@@ -694,6 +694,31 @@ static void *stats_poll(void *arg)
 	return NULL;
 }
 
+enum {
+	k_buffersize = 4096
+};
+static void *tun_read(void *arg)
+{
+	int *tun_fd_p = arg ;
+	int tun_fd=*tun_fd_p ;
+	char buffer[k_buffersize] ;
+	while (!global_exit) {
+		ssize_t count=read(tun_fd, buffer, k_buffersize) ;
+		if ( count < 0) {
+			int err = errno ;
+			fprintf(stderr, "ERROR:tun_read gives errno=%d %s\n", err, strerror(err)) ;
+			exit(EXIT_FAILURE);
+		} else if (count == 0) {
+			fprintf(stdout, "tun_read unexpected zero length read\n");
+		} else {
+			ssize_t wcount=write(1, buffer, count) ;
+			if (wcount != count) {
+				fprintf(stdout, "tun_read unexpected wcount=%ld count=%ld\n\n", count, wcount);
+			}
+		}
+	}
+	return NULL ;
+}
 static void exit_application(int sig)
 {
 //	signal = sig;
@@ -750,6 +775,7 @@ int main(int argc, char **argv)
 //	int prog_fd ;
 	int err;
 	pthread_t stats_poll_thread;
+	pthread_t tun_read_thread;
 	struct socket_stats stats;
 	int tun_fd ;
 	char tun_name[IFNAMSIZ] ;
@@ -926,6 +952,14 @@ int main(int argc, char **argv)
 	if(tun_fd < 0) {
 		err = errno ;
 		fprintf(stderr, "ERROR:tun_alloc gives errno=%d %s\n", err, strerror(err)) ;
+		exit(EXIT_FAILURE);
+	}
+
+	// Start thread to read from the tun
+	ret = pthread_create(&tun_read_thread, NULL, tun_read, &tun_fd) ;
+	if (ret) {
+		fprintf(stderr, "ERROR: Failed creating tun_read thread "
+			"\"%s\"\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
