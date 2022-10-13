@@ -450,137 +450,63 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			   int tun_fd)
 {
 	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem.buffer, addr);
+	bool pass=false ;
 
-        /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
-	 *
-	 * Some assumptions to make it easier:
-	 * - No VLAN handling
-	 * - Only if nexthdr is ICMP
-	 * - Just return all data with MAC/IP swapped, and type set to
-	 *   ICMPV6_ECHO_REPLY
-	 * - Recalculate the icmp checksum */
 
-	if (true) {
-//		int ret;
-//		uint32_t tx_idx = 0;
-//		uint64_t tx_frame;
-//		uint8_t tmp_mac[ETH_ALEN];
-//		struct in6_addr tmp_ip;
-		struct ethhdr *eth = (struct ethhdr *) pkt;
-		struct iphdr *ip = (struct iphdr *) (eth + 1);
-//		struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
-//
-//		struct iphdr {
-//		#if defined(__LITTLE_ENDIAN_BITFIELD)
-//			__u8	ihl:4,
-//				version:4;
-//		#elif defined (__BIG_ENDIAN_BITFIELD)
-//			__u8	version:4,
-//		  		ihl:4;
-//		#else
-//		#error	"Please fix <asm/byteorder.h>"
-//		#endif
-//			__u8	tos;
-//			__be16	tot_len;
-//			__be16	id;
-//			__be16	frag_off;
-//			__u8	ttl;
-//			__u8	protocol;
-//			__sum16	check;
-//			__be32	saddr;
-//			__be32	daddr;
-//			/*The options start here. */
-//		};
-		if (ntohs(eth->h_proto) == ETH_P_IP &&
-		    len > (sizeof(*eth) + sizeof(*ip))) {
-			hexdump(stdout, ip, (len < 32) ? len : 32) ;
-			fprintf(stdout, "iphdr ihl=0x%01x version=0x%01x tos=0x%02x "
-					"tot_len=0x%04x id=0x%04x flags=0x%02x frag_off=0x%04x ttl=0x%02x "
-					"protocol=0x%02x check=0x%04x saddr=0x%08x daddr=0x%08x",
-					ip->ihl, ip->version, ip->tos, ntohs(ip->tot_len),
-					ntohs(ip->id),ntohs(ip->frag_off) >> 13,
-					ntohs(ip->frag_off) & 0x1fff, ip->ttl,ip->protocol,
-					ip->check, ntohl(ip->saddr), ntohl(ip->daddr));
-			__u8 protocol=ip->protocol;
-			__u32 saddr=ntohl(ip->saddr) ;
-			__u32 daddr=ntohl(ip->daddr) ;
+	struct ethhdr *eth = (struct ethhdr *) pkt;
+	struct iphdr *ip = (struct iphdr *) (eth + 1);
+	if (ntohs(eth->h_proto) == ETH_P_IP &&
+		len > (sizeof(*eth) + sizeof(*ip))) {
+		__u8 protocol=ip->protocol;
+		__u32 saddr=ntohl(ip->saddr) ;
+		__u32 daddr=ntohl(ip->daddr) ;
+		hexdump(stdout, ip, (len < 32) ? len : 32) ;
+		if ( INSTRUMENT ) fprintf(stdout, "iphdr ihl=0x%01x version=0x%01x tos=0x%02x "
+				"tot_len=0x%04x id=0x%04x flags=0x%02x frag_off=0x%04x ttl=0x%02x "
+				"protocol=0x%02x check=0x%04x saddr=0x%08x daddr=0x%08x",
+				ip->ihl, ip->version, ip->tos, ntohs(ip->tot_len),
+				ntohs(ip->id),ntohs(ip->frag_off) >> 13,
+				ntohs(ip->frag_off) & 0x1fff, ip->ttl,ip->protocol,
+				ip->check, ntohl(ip->saddr), ntohl(ip->daddr));
+		if ( INSTRUMENT ) fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
+				saddr, daddr, protocol ) ;
 
-			if ( protocol == IPPROTO_TCP ) {
-				struct tcphdr *tcp = (struct tcphdr *) (ip + 1);
-				__u32 sourceport=ntohs(tcp->source);
-				__u32 destport=ntohs(tcp->dest) ;
-				if ( INSTRUMENT ) fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
-						saddr, daddr, protocol ) ;
-				if (filter_pass_tcp(saddr, daddr, sourceport, destport ))
-				{
-					stats->stats.filter_passes[protocol] += 1;
-					uint8_t *write_addr=(uint8_t *)ip;
-					size_t write_len=len-sizeof(struct ethhdr);
-					ssize_t ret=write(tun_fd,  write_addr, write_len) ;
-					hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
-					fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
-					if ( ret != write_len ) {
-						fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
-								write_len, ret, errno, strerror(errno)) ;
-						exit(EXIT_FAILURE);
-					}
-				} else {
-					stats->stats.filter_drops[protocol] += 1;
-				}
-			}
-			else if ( protocol == IPPROTO_UDP ) {
-				struct udphdr *tcp = (struct udphdr *) (ip + 1);
-				__u32 sourceport=ntohs(tcp->source);
-				__u32 destport=ntohs(tcp->dest) ;
-				if ( INSTRUMENT ) fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
-						saddr, daddr, protocol) ;
-				if (filter_pass_udp(saddr, daddr, sourceport, destport ))
-				{
-					stats->stats.filter_passes[protocol] += 1;
-					uint8_t *write_addr=(uint8_t *)ip;
-					size_t write_len=len-sizeof(struct ethhdr);
-					ssize_t ret=write(tun_fd,  write_addr, write_len) ;
-					hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
-					fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
-					if ( ret != write_len ) {
-						fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
-								write_len, ret, errno, strerror(errno)) ;
-						exit(EXIT_FAILURE);
-					}
-				} else {
-					stats->stats.filter_drops[protocol] += 1;
-				}
-			}
-			else if ( protocol == IPPROTO_ICMP ) {
-				struct icmphdr *icmp = (struct icmphdr *) (ip + 1);
-				int type=icmp->type ;
-				int code=icmp->code ;
-				if ( INSTRUMENT ) fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
-						saddr, daddr, protocol) ;
-				if (filter_pass_icmp(saddr, daddr, type,code))
-				{
-					stats->stats.filter_passes[protocol] += 1;
-					uint8_t *write_addr=(uint8_t *)ip;
-					size_t write_len=len-sizeof(struct ethhdr);
-					ssize_t ret=write(tun_fd,  write_addr, write_len) ;
-					hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
-					fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
-					if ( ret != write_len ) {
-						fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
-								write_len, ret, errno, strerror(errno)) ;
-						exit(EXIT_FAILURE);
-					}
-				} else {
-					stats->stats.filter_drops[protocol] += 1;
-				}
-			} else {
-				stats->stats.filter_drops[protocol] += 1;
-			}
+		if ( protocol == IPPROTO_TCP ) {
+			struct tcphdr *tcp = (struct tcphdr *) (ip + 1);
+			__u32 sourceport=ntohs(tcp->source);
+			__u32 destport=ntohs(tcp->dest) ;
+			pass=filter_pass_tcp(saddr, daddr, sourceport, destport ) ;
 		}
-		return false ; // Not transmitting anything
+		else if ( protocol == IPPROTO_UDP ) {
+			struct udphdr *tcp = (struct udphdr *) (ip + 1);
+			__u32 sourceport=ntohs(tcp->source);
+			__u32 destport=ntohs(tcp->dest) ;
+			pass = filter_pass_udp(saddr, daddr, sourceport, destport ) ;
+		}
+		else if ( protocol == IPPROTO_ICMP ) {
+			struct icmphdr *icmp = (struct icmphdr *) (ip + 1);
+			int type=icmp->type ;
+			int code=icmp->code ;
+			pass = filter_pass_icmp(saddr, daddr, type,code);
+		}
+		if (pass)
+		{
+			stats->stats.filter_passes[protocol] += 1;
+			uint8_t *write_addr=(uint8_t *)ip;
+			size_t write_len=len-sizeof(struct ethhdr);
+			ssize_t ret=write(tun_fd,  write_addr, write_len) ;
+			hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
+			fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
+			if ( ret != write_len ) {
+				fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
+						write_len, ret, errno, strerror(errno)) ;
+				exit(EXIT_FAILURE);
+			}
+		} else {
+			stats->stats.filter_drops[protocol] += 1;
+		}
 	}
-
-	return false;
+	return false ; // Not transmitting anything
 }
 
 static void handle_receive_packets(
@@ -767,9 +693,9 @@ static void *stats_poll(void *arg)
 	return NULL;
 }
 
-static void exit_application(int signal)
+static void exit_application(int sig)
 {
-	signal = signal;
+	signal = sig;
 	global_exit = true;
 }
 
