@@ -435,7 +435,10 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 ////	return (trans->udp_packet_count & 1) ? true : false ;
 //}
 
-static bool filter_pass(__u32 saddr, __u32 daddr, __u8 protocol, __u16 sport, __u16 dport) {
+static bool filter_pass_tcp(__u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
+	return true ;
+}
+static bool filter_pass_udp(__u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
 	return true ;
 }
 static bool process_packet(struct xsk_socket_info *xsk_src,
@@ -499,26 +502,71 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			__u32 saddr=ntohl(ip->saddr) ;
 			__u32 daddr=ntohl(ip->daddr) ;
 
-			struct tcphdr *tcp = (struct tcphdr *) (ip + 1);
-//			struct tcphdr {
-//				__be16	source;
-//				__be16	dest;
-			__u32 sourceport=ntohs(tcp->source);
-			__u32 destport=ntohs(tcp->dest) ;
-//			fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
-//					saddr, daddr) ;
-			if (filter_pass(saddr, daddr, protocol, sourceport, destport ))
-			{
-				stats->stats.filter_passes[protocol] += 1;
-				uint8_t *write_addr=(uint8_t *)ip;
-				size_t write_len=len-sizeof(struct ethhdr);
-				ssize_t ret=write(tun_fd,  write_addr, write_len) ;
-				hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
-                fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
-				if ( ret != write_len ) {
-					fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
-							write_len, ret, errno, strerror(errno)) ;
-					exit(EXIT_FAILURE);
+			if ( protocol == IPPROTO_TCP ) {
+				struct tcphdr *tcp = (struct tcphdr *) (ip + 1);
+				__u32 sourceport=ntohs(tcp->source);
+				__u32 destport=ntohs(tcp->dest) ;
+				if ( INSTRUMENT ) fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
+						saddr, daddr, protocol ) ;
+				if (filter_pass_tcp(saddr, daddr, sourceport, destport ))
+				{
+					stats->stats.filter_passes[protocol] += 1;
+					uint8_t *write_addr=(uint8_t *)ip;
+					size_t write_len=len-sizeof(struct ethhdr);
+					ssize_t ret=write(tun_fd,  write_addr, write_len) ;
+					hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
+					fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
+					if ( ret != write_len ) {
+						fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
+								write_len, ret, errno, strerror(errno)) ;
+						exit(EXIT_FAILURE);
+					}
+				} else {
+					stats->stats.filter_drops[protocol] += 1;
+				}
+			}
+			else if ( protocol == IPPROTO_UDP ) {
+				struct udphdr *tcp = (struct udphdr *) (ip + 1);
+				__u32 sourceport=ntohs(tcp->source);
+				__u32 destport=ntohs(tcp->dest) ;
+				if ( INSTRUMENT ) fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
+						saddr, daddr, protocol) ;
+				if (filter_pass_udp(saddr, daddr, sourceport, destport ))
+				{
+					stats->stats.filter_passes[protocol] += 1;
+					uint8_t *write_addr=(uint8_t *)ip;
+					size_t write_len=len-sizeof(struct ethhdr);
+					ssize_t ret=write(tun_fd,  write_addr, write_len) ;
+					hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
+					fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
+					if ( ret != write_len ) {
+						fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
+								write_len, ret, errno, strerror(errno)) ;
+						exit(EXIT_FAILURE);
+					}
+				} else {
+					stats->stats.filter_drops[protocol] += 1;
+				}
+			}
+			else if ( protocol == IPPROTO_ICMP ) {
+				struct icmphdr *icmp = (struct icmphdr *) (ip + 1);
+				if ( INSTRUMENT ) fprintf(stdout, "saddr=0x%08x daddr=0x%08x protocol=0x%02x\n",
+						saddr, daddr, protocol) ;
+				if (filter_pass_udp(saddr, daddr))
+				{
+					stats->stats.filter_passes[protocol] += 1;
+					uint8_t *write_addr=(uint8_t *)ip;
+					size_t write_len=len-sizeof(struct ethhdr);
+					ssize_t ret=write(tun_fd,  write_addr, write_len) ;
+					hexdump(stdout, write_addr, (write_len < 32) ? write_len : 32) ;
+					fprintf(stdout, "Write length %lu actual %ld\n", write_len, ret) ;
+					if ( ret != write_len ) {
+						fprintf(stderr, "Error. %lu bytes requested, %ld bytes delivered, errno=%d %s\n",
+								write_len, ret, errno, strerror(errno)) ;
+						exit(EXIT_FAILURE);
+					}
+				} else {
+					stats->stats.filter_drops[protocol] += 1;
 				}
 			} else {
 				stats->stats.filter_drops[protocol] += 1;
