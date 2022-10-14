@@ -30,12 +30,30 @@ enum {
 	k_tracing_detail = 0
 };
 
+enum {
+	k_hashmap_size = 64
+};
 struct {
 	__uint(type, BPF_MAP_TYPE_XSKMAP);
 	__uint(key_size, sizeof(int));
 	__uint(value_size, sizeof(int));
 	__uint(max_entries, DEFAULT_QUEUE_IDS);
 } xsks_map SEC(".maps");
+
+struct fivetuple {
+	__u32 saddr ; // Source address (network byte order)
+	__u32 daddr ; // Destination address (network byte order)
+	__u16 sport ; // Source port (network byte order) use 0 for ICMP
+	__u16 dport ; // Destination port (network byte order) use 0 for ICMP
+	__u8 protocol ; // Protocol
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH) ;
+	__uint(key_size, sizeof(struct fivetuple)) ;
+	__uint(value_size, sizeof(__u8)) ;
+	__uint(max_entries, k_hashmap_size) ;
+} accept_map SEC(".maps");
 
 struct {
 	__uint(priority, 20);
@@ -243,11 +261,10 @@ int xsk_def_prog(struct xdp_md *ctx)
 
 				int protocol=iphdr->protocol;
 				if( k_tracing ) bpf_printk("protocol=%d\n", protocol) ;
-				if ( protocol == IPPROTO_UDP ) {
-					action = XDP_DROP ;
-					goto out;
-				}
-//				if ( protocol == IPPROTO_ICMP ) {
+//				if ( protocol == IPPROTO_UDP ) {
+//					action = XDP_PASS ;
+//					goto out;
+//				} else if ( protocol == IPPROTO_ICMP ) {
 //					action = XDP_PASS ;
 //					goto out;
 //				}
