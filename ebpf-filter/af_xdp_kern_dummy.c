@@ -171,7 +171,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 	return XDP_PASS;  // Processing done by the revised default program
 	if (k_tracing_detail) display_all() ;
     int index = ctx->rx_queue_index;
-	/* A set entry here means that the correspnding queue_id
+	/* A set entry here means that the corresponding queue_id
 	 * has an active AF_XDP socket bound to it. */
 	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
 	if( k_tracing ) bpf_printk("index=%d mapped=%p\n", index, mapped) ;
