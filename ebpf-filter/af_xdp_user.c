@@ -132,7 +132,7 @@ enum {
 
 const struct bpf_map_info map_expect = {
 	.key_size    = sizeof(struct fivetuple),
-	.value_size  = sizeof(enum action_enum),
+	.value_size  = sizeof(enum xdp_action),
 	.max_entries = k_hashmap_size,
 	.type = BPF_MAP_TYPE_HASH
 };
