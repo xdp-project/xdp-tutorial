@@ -449,7 +449,7 @@ static bool filter_pass_tcp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 s
 }
 static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
 	struct fivetuple f ;
-	enum xdp_action a;
+	enum xdp_action a=0;
 	f.saddr=saddr;
 	f.daddr=daddr;
 	f.sport=sport;
@@ -467,7 +467,7 @@ static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 s
 }
 static bool filter_pass_icmp(int accept_map_fd, __u32 saddr, __u32 daddr, int type, int code ) {
 	struct fivetuple f ;
-	enum xdp_action a;
+	enum xdp_action a=0;
 	f.saddr=saddr;
 	f.daddr=daddr;
 	f.sport=0;
