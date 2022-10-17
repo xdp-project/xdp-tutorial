@@ -47,6 +47,10 @@
 #define RX_BATCH_SIZE      64
 #define INVALID_UMEM_FRAME UINT64_MAX
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
 enum {
 	k_instrument = 0 ,
 	k_verify_umem = 0 ,
