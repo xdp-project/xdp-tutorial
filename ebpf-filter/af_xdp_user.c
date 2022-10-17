@@ -431,7 +431,7 @@ static inline __sum16 csum16_sub(__sum16 csum, __be16 addend)
 
 static bool filter_pass_tcp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
 	struct fivetuple f ;
-	enum xdp_action a;
+	enum xdp_action a=0;
 	f.saddr=saddr;
 	f.daddr=daddr;
 	f.sport=sport;
