@@ -4,6 +4,8 @@
 #include <linux/in.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
+#include <linux/tcp.h>
+#include <linux/udp.h>
 
 #include <linux/bpf.h>
 #include <bpf/bpf_endian.h>
@@ -34,11 +36,11 @@ enum {
 	k_hashmap_size = 64
 };
 
-enum action_enum {
-	k_action_redirect ,
-	k_action_pass ,
-	k_action_drop
-}  ;
+//enum action_enum {
+//	k_action_redirect ,
+//	k_action_pass ,
+//	k_action_drop
+//}  ;
 struct {
 	__uint(type, BPF_MAP_TYPE_XSKMAP);
 	__uint(key_size, sizeof(int));
@@ -239,7 +241,7 @@ int xsk_def_prog(struct xdp_md *ctx)
 	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
 	if( k_tracing ) bpf_printk("xsks_map[%d]=%p\n", index, mapped) ;
 
-    enum action_enum action = XDP_PASS; /* Default action */
+    enum xdp_action action = XDP_PASS; /* Default action */
     if (mapped)
     {
     	void *data_end = (void *)(long)ctx->data_end;
@@ -270,7 +272,7 @@ int xsk_def_prog(struct xdp_md *ctx)
 				if( k_tracing ) bpf_printk("protocol=%d\n", protocol) ;
 
 				struct fivetuple f ;
-				f->protocol = IPPROTO_UDP ;
+				f.protocol = IPPROTO_UDP ;
 				f.saddr = iphdr->saddr ;
 				f.daddr = iphdr->daddr ;
 				if ( protocol == IPPROTO_TCP ) {
@@ -278,17 +280,22 @@ int xsk_def_prog(struct xdp_md *ctx)
 					f.sport = t->source ;
 					f.dport = t->dest ;
 					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
-					action = *(enum action_enum *) v_permit ;
+					action = *(enum xdp_action *) v_permit ;
 				} else if ( protocol == IPPROTO_UDP ) {
 					struct udphdr *u = (struct udphdr *)(iphdr+1) ;
 					f.sport = u->source ;
 					f.dport = u->dest ;
 					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
-					action = *(enum action_enum *) v_permit ;
+					action = *(enum xdp_action *) v_permit ;
+				} else if ( protocol == IPPROTO_UDP ) {
+					f.sport = 0 ;
+					f.dport = 0 ;
+					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
+					action = *(enum xdp_action *) v_permit ;
 				}
 			}
 
-		if ( action == k_action_redirect) {
+		if ( action == XDP_REDIRECT) {
 			stats_record_action(ctx, XDP_REDIRECT);
 			if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
 			return bpf_redirect_map(&xsks_map, index, 0);
