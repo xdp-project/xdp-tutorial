@@ -246,6 +246,20 @@ static __always_inline int parse_tcp4hdr(struct hdr_cursor *nh,
 	return 0;
 }
 
+static __always_inline int parse_udp4hdr(struct hdr_cursor *nh,
+		                        void *data_end,
+					struct udphdr **udp4hdr)
+{
+	struct udphdr *udp4h = nh->pos;
+	int hdrsize = sizeof(*udp4h);
+	if (nh->pos + hdrsize >data_end)
+		return -1;
+	int actual_hdrsize=hdrsize ;
+	nh->pos += actual_hdrsize;
+	*udp4hdr = udp4h; /* Network byte order */
+	return 0;
+}
+
 
 SEC("xdp")
 int xsk_def_prog(struct xdp_md *ctx)
