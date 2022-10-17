@@ -229,6 +229,23 @@ static __always_inline int parse_ip4hdr(struct hdr_cursor *nh,
 	return 0;
 }
 
+static __always_inline int parse_tcp4hdr(struct hdr_cursor *nh,
+		                        void *data_end,
+					struct tcphdr **tcp4hdr)
+{
+	struct tcphdr *tcp4h = nh->pos;
+	int hdrsize = sizeof(*tcp4h);
+	if (nh->pos + hdrsize >data_end)
+		return -1;
+//	int actual_hdrsize = ip4h->ihl*4;
+//	if (nh->pos + actual_hdrsize > data_end)
+//		return -1;
+	int actual_hdrsize=hdrsize ; // Ignore the possibility of TCP options
+	nh->pos += actual_hdrsize;
+	*tcp4hdr = tcp4h; /* Network byte order */
+	return 0;
+}
+
 
 SEC("xdp")
 int xsk_def_prog(struct xdp_md *ctx)
@@ -276,18 +293,24 @@ int xsk_def_prog(struct xdp_md *ctx)
 				f.saddr = iphdr->saddr ;
 				f.daddr = iphdr->daddr ;
 				if ( protocol == IPPROTO_TCP ) {
-					struct tcphdr *t= (struct tcphdr *)(iphdr+1) ;
+					struct tcphdr *t ;
+					rc = parse_tcp4hdr(&nh, data_end, &t);
+					if (rc != 0) goto out ;
+//					struct tcphdr *t= (struct tcphdr *)(iphdr+1) ;
 					f.sport = t->source ;
 					f.dport = t->dest ;
 					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
 					action = *(enum xdp_action *) v_permit ;
 				} else if ( protocol == IPPROTO_UDP ) {
-					struct udphdr *u = (struct udphdr *)(iphdr+1) ;
+					struct udphdr *u ;
+					rc = parse_udp4hdr(&nh, data_end, &u);
+					if (rc != 0) goto out ;
+//					struct udphdr *u = (struct udphdr *)(iphdr+1) ;
 					f.sport = u->source ;
 					f.dport = u->dest ;
 					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
 					action = *(enum xdp_action *) v_permit ;
-				} else if ( protocol == IPPROTO_UDP ) {
+				} else if ( protocol == IPPROTO_ICMP ) {
 					f.sport = 0 ;
 					f.dport = 0 ;
 					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
