@@ -126,6 +126,10 @@ enum action_enum {
 	k_action_drop
 }  ;
 
+enum {
+	k_hashmap_size = 64
+};
+
 const struct bpf_map_info map_expect = {
 	.key_size    = sizeof(struct fivetuple),
 	.value_size  = sizeof(enum action_enum),
@@ -427,20 +431,20 @@ static inline __sum16 csum16_sub(__sum16 csum, __be16 addend)
 
 static bool filter_pass_tcp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
 	struct fivetuple f ;
-	enum action_enum *a;
+	enum xdp_action a;
 	f.saddr=saddr;
 	f.daddr=daddr;
 	f.sport=sport;
 	f.dport=dport;
 	f.protocol=IPPROTO_TCP;
-	int ret = bpf_map_lookup_elem(&accept_map_fd, &a, &f);
+	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
 		return a == k_action_pass;
 	}
 	a = k_action_pass;
 	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
-	ret = bpf_map_update_elem(&accept_map_fd,&f, &a, BPF_ANY) ;
+	ret = bpf_map_update_elem(accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
 }
 static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
@@ -451,32 +455,32 @@ static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 s
 	f.sport=sport;
 	f.dport=dport;
 	f.protocol=IPPROTO_UDP;
-	int ret = bpf_map_lookup_elem(&accept_map_fd, &a, &f);
+	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
 		return a == k_action_pass;
 	}
 	a = k_action_pass;
 	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
-	ret = bpf_map_update_elem(&accept_map_fd,&f, &a, BPF_ANY) ;
+	ret = bpf_map_update_elem(accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
 }
 static bool filter_pass_icmp(int accept_map_fd, __u32 saddr, __u32 daddr, int type, int code ) {
 	struct fivetuple f ;
-	enum action_enum *a;
+	enum action_enum a;
 	f.saddr=saddr;
 	f.daddr=daddr;
 	f.sport=0;
 	f.dport=0;
 	f.protocol=IPPROTO_ICMP;
-	int ret = bpf_map_lookup_elem(&accept_map_fd, &a, &f);
+	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
 		return a == k_action_pass;
 	}
 	a = k_action_pass;
 	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
-	ret = bpf_map_update_elem(&accept_map_fd,&f, &a, BPF_ANY) ;
+	ret = bpf_map_update_elem(accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
 }
 static bool process_packet(struct xsk_socket_info *xsk_src,
