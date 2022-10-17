@@ -232,7 +232,7 @@ static int stats_poll(const char *pin_dir, int map_fd, __u32 id,
 
 const char *pin_basedir =  "/sys/fs/bpf";
 
-int open_bpf_map_file(const char *pin_dir,
+static int open_bpf_map_file(const char *pin_dir,
 		      const char *mapname,
 		      struct bpf_map_info *info)
 {

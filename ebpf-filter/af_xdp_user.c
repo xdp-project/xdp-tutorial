@@ -42,7 +42,6 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
-
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
 #define RX_BATCH_SIZE      64
@@ -51,6 +50,7 @@
 enum {
 	k_instrument = 0 ,
 	k_verify_umem = 0 ,
+	k_verbose = 1 ,
 	k_rx_queue_count = 16 ,
 	k_skipping = false
 };
@@ -104,6 +104,37 @@ struct socket_stats {
 	struct transfer_state trans;
 	uint8_t prev_sequence;
 };
+
+//struct {
+//	__uint(type, BPF_MAP_TYPE_HASH) ;
+//	__uint(key_size, sizeof(struct fivetuple)) ;
+//	__uint(value_size, sizeof(enum action_enum)) ;
+//	__uint(max_entries, k_hashmap_size) ;
+//} accept_map SEC(".maps");
+
+struct fivetuple {
+	__u32 saddr ; // Source address (network byte order)
+	__u32 daddr ; // Destination address (network byte order)
+	__u16 sport ; // Source port (network byte order) use 0 for ICMP
+	__u16 dport ; // Destination port (network byte order) use 0 for ICMP
+	__u8 protocol ; // Protocol
+};
+
+enum action_enum {
+	k_action_redirect ,
+	k_action_pass ,
+	k_action_drop
+}  ;
+
+const struct bpf_map_info map_expect = {
+	.key_size    = sizeof(struct fivetuple),
+	.value_size  = sizeof(enum action_enum),
+	.max_entries = k_hashmap_size,
+	.type = BPF_MAP_TYPE_HASH
+};
+struct bpf_map_info info = { 0 };
+
+const char *pin_basedir =  "/sys/fs/bpf";
 
 static inline __u32 xsk_ring_prod__free(struct xsk_ring_prod *r)
 {
@@ -394,19 +425,65 @@ static inline __sum16 csum16_sub(__sum16 csum, __be16 addend)
 ////	return (trans->udp_packet_count & 1) ? true : false ;
 //}
 
-static bool filter_pass_tcp(__u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
+static bool filter_pass_tcp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
+	struct fivetuple f ;
+	enum action_enum *a;
+	f.saddr=saddr;
+	f.daddr=daddr;
+	f.sport=sport;
+	f.dport=dport;
+	f.protocol=IPPROTO_TCP;
+	int ret = bpf_map_lookup_elem(&accept_map_fd, &a, &f);
+	if ( ret == 0 ) {
+		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
+		return a == k_action_pass;
+	}
+	a = k_action_pass;
+	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
+	ret = bpf_map_update_elem(&accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
 }
-static bool filter_pass_udp(__u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
+static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
+	struct fivetuple f ;
+	enum action_enum *a;
+	f.saddr=saddr;
+	f.daddr=daddr;
+	f.sport=sport;
+	f.dport=dport;
+	f.protocol=IPPROTO_UDP;
+	int ret = bpf_map_lookup_elem(&accept_map_fd, &a, &f);
+	if ( ret == 0 ) {
+		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
+		return a == k_action_pass;
+	}
+	a = k_action_pass;
+	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
+	ret = bpf_map_update_elem(&accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
 }
-static bool filter_pass_icmp(__u32 saddr, __u32 daddr, int type, int code ) {
+static bool filter_pass_icmp(int accept_map_fd, __u32 saddr, __u32 daddr, int type, int code ) {
+	struct fivetuple f ;
+	enum action_enum *a;
+	f.saddr=saddr;
+	f.daddr=daddr;
+	f.sport=0;
+	f.dport=0;
+	f.protocol=IPPROTO_ICMP;
+	int ret = bpf_map_lookup_elem(&accept_map_fd, &a, &f);
+	if ( ret == 0 ) {
+		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
+		return a == k_action_pass;
+	}
+	a = k_action_pass;
+	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
+	ret = bpf_map_update_elem(&accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
 }
 static bool process_packet(struct xsk_socket_info *xsk_src,
 			   uint64_t addr, uint32_t len,
 			   struct socket_stats *stats,
-			   int tun_fd)
+			   int tun_fd,
+			   int accept_map_fd)
 {
 	uint8_t *pkt = xsk_umem__get_data(xsk_src->umem.buffer, addr);
 	bool pass=false ;
@@ -432,19 +509,19 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 			struct tcphdr *tcp = (struct tcphdr *) (ip + 1);
 			__u32 sourceport=ntohs(tcp->source);
 			__u32 destport=ntohs(tcp->dest) ;
-			pass=filter_pass_tcp(saddr, daddr, sourceport, destport ) ;
+			pass=filter_pass_tcp(accept_map_fd, saddr, daddr, sourceport, destport ) ;
 		}
 		else if ( protocol == IPPROTO_UDP ) {
 			struct udphdr *tcp = (struct udphdr *) (ip + 1);
 			__u32 sourceport=ntohs(tcp->source);
 			__u32 destport=ntohs(tcp->dest) ;
-			pass = filter_pass_udp(saddr, daddr, sourceport, destport ) ;
+			pass = filter_pass_udp(accept_map_fd, saddr, daddr, sourceport, destport ) ;
 		}
 		else if ( protocol == IPPROTO_ICMP ) {
 			struct icmphdr *icmp = (struct icmphdr *) (ip + 1);
 			int type=icmp->type ;
 			int code=icmp->code ;
-			pass = filter_pass_icmp(saddr, daddr, type,code);
+			pass = filter_pass_icmp(accept_map_fd, saddr, daddr, type,code);
 		}
 		if (pass)
 		{
@@ -469,7 +546,8 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 static void handle_receive_packets(
 		struct xsk_socket_info *xsk_src,
 		struct socket_stats *stats,
-		int tun_fd)
+		int tun_fd,
+		int accept_map_fd)
 {
 	unsigned int rcvd, stock_frames, i;
 	uint32_t idx_rx = 0, idx_fq = 0;
@@ -505,7 +583,7 @@ static void handle_receive_packets(
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk_src->rx, idx_rx++)->len;
 
-		bool transmitted=process_packet(xsk_src, addr, len, stats, tun_fd) ;
+		bool transmitted=process_packet(xsk_src, addr, len, stats, tun_fd, accept_map_fd) ;
 
 		if(k_instrument) printf("addr=0x%lx len=%u transmitted=%u\n", addr, len, transmitted);
 		if (!transmitted)
@@ -523,7 +601,8 @@ static void handle_receive_packets(
 static void rx_and_process(struct config *cfg,
 			   struct all_socket_info *all_socket_info,
 			   struct socket_stats *stats,
-			   int tun_fd)
+			   int tun_fd,
+			   int accept_map_fd )
 {
 	struct pollfd fds[k_rx_queue_count];
 	int ret, nfds = k_rx_queue_count;
@@ -539,7 +618,7 @@ static void rx_and_process(struct config *cfg,
 		if (ret <= 0 || ret > k_rx_queue_count)
 			continue;
 		for(int q=0; q<k_rx_queue_count; q+=1) {
-			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], stats, tun_fd) ;
+			if ( fds[q].revents & POLLIN ) handle_receive_packets(all_socket_info->xsk_socket_info[q], stats, tun_fd, accept_map_fd ) ;
 		}
 	}
 }
@@ -700,6 +779,71 @@ int tun_alloc(char *dev)
       return fd;
   }
 
+static int open_bpf_map_file(const char *pin_dir,
+		      const char *mapname,
+		      struct bpf_map_info *info)
+{
+	char filename[PATH_MAX];
+	int err, len, fd;
+	__u32 info_len = sizeof(*info);
+
+	len = snprintf(filename, PATH_MAX, "%s/%s", pin_dir, mapname);
+	if (len < 0) {
+		fprintf(stderr, "ERR: constructing full mapname path\n");
+		return -1;
+	}
+
+	fd = bpf_obj_get(filename);
+	if (fd < 0) {
+		fprintf(stderr,
+			"WARN: Failed to open bpf map file:%s err(%d):%s\n",
+			filename, errno, strerror(errno));
+		return fd;
+	}
+
+	if (info) {
+		err = bpf_obj_get_info_by_fd(fd, info, &info_len);
+		if (err) {
+			fprintf(stderr, "ERR: %s() can't get info - %s\n",
+				__func__,  strerror(errno));
+			return EXIT_FAIL_BPF;
+		}
+	}
+
+	return fd;
+}
+
+static int check_map_fd_info(const struct bpf_map_info *info,
+		      const struct bpf_map_info *exp)
+{
+	if (exp->key_size && exp->key_size != info->key_size) {
+		fprintf(stderr, "ERR: %s() "
+			"Map key size(%d) mismatch expected size(%d)\n",
+			__func__, info->key_size, exp->key_size);
+		return EXIT_FAIL;
+	}
+	if (exp->value_size && exp->value_size != info->value_size) {
+		fprintf(stderr, "ERR: %s() "
+			"Map value size(%d) mismatch expected size(%d)\n",
+			__func__, info->value_size, exp->value_size);
+		return EXIT_FAIL;
+	}
+	if (exp->max_entries && exp->max_entries != info->max_entries) {
+		fprintf(stderr, "ERR: %s() "
+			"Map max_entries(%d) mismatch expected size(%d)\n",
+			__func__, info->max_entries, exp->max_entries);
+		return EXIT_FAIL;
+	}
+	if (exp->type && exp->type  != info->type) {
+		fprintf(stderr, "ERR: %s() "
+			"Map type(%d) mismatch expected type(%d)\n",
+			__func__, info->type, exp->type);
+		return EXIT_FAIL;
+	}
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	int ret;
@@ -720,6 +864,8 @@ int main(int argc, char **argv)
 	struct socket_stats stats;
 	int tun_fd ;
 	char tun_name[IFNAMSIZ] ;
+
+	int accept_map_fd ;
 
 	memset(&stats, 0, sizeof(stats));
 
@@ -807,8 +953,20 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	accept_map_fd = open_bpf_map_file(pin_basedir, "accept_map", &info);
+	if (accept_map_fd < 0) {
+		exit(EXIT_FAILURE);
+	}
+
+	/* check map info, e.g. datarec is expected size */
+	err = check_map_fd_info(&info, &map_expect);
+	if (err) {
+		fprintf(stderr, "ERR: map via FD not compatible\n");
+		close(accept_map_fd);
+		exit(EXIT_FAILURE);
+	}
 	/* Receive and count packets than drop them */
-	rx_and_process(&cfg, all_socket_info, &stats, tun_fd);
+	rx_and_process(&cfg, all_socket_info, &stats, tun_fd, accept_map_fd);
 
 	/* Cleanup */
 	close(tun_fd) ;
