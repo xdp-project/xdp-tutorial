@@ -120,11 +120,11 @@ struct fivetuple {
 	__u8 protocol ; // Protocol
 };
 
-enum action_enum {
-	k_action_redirect ,
-	k_action_pass ,
-	k_action_drop
-}  ;
+//enum action_enum {
+//	k_action_redirect ,
+//	k_action_pass ,
+//	k_action_drop
+//}  ;
 
 enum {
 	k_hashmap_size = 64
@@ -440,16 +440,16 @@ static bool filter_pass_tcp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 s
 	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
-		return a == k_action_pass;
+		return a == XDP_PASS;
 	}
-	a = k_action_pass;
+	a = XDP_PASS;
 	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
 	ret = bpf_map_update_elem(accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
 }
 static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
 	struct fivetuple f ;
-	enum action_enum *a;
+	enum xdp_action a;
 	f.saddr=saddr;
 	f.daddr=daddr;
 	f.sport=sport;
@@ -458,16 +458,16 @@ static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 s
 	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
-		return a == k_action_pass;
+		return a == XDP_PASS ;
 	}
-	a = k_action_pass;
+	a = XDP_PASS;
 	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
 	ret = bpf_map_update_elem(accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
 }
 static bool filter_pass_icmp(int accept_map_fd, __u32 saddr, __u32 daddr, int type, int code ) {
 	struct fivetuple f ;
-	enum action_enum a;
+	enum xdp_action a;
 	f.saddr=saddr;
 	f.daddr=daddr;
 	f.sport=0;
@@ -476,9 +476,9 @@ static bool filter_pass_icmp(int accept_map_fd, __u32 saddr, __u32 daddr, int ty
 	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
-		return a == k_action_pass;
+		return a == XDP_PASS;
 	}
-	a = k_action_pass;
+	a = XDP_PASS;
 	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
 	ret = bpf_map_update_elem(accept_map_fd,&f, &a, BPF_ANY) ;
 	return true ;
@@ -783,70 +783,70 @@ int tun_alloc(char *dev)
       return fd;
   }
 
-static int open_bpf_map_file(const char *pin_dir,
-		      const char *mapname,
-		      struct bpf_map_info *info)
-{
-	char filename[PATH_MAX];
-	int err, len, fd;
-	__u32 info_len = sizeof(*info);
+//static int open_bpf_map_file(const char *pin_dir,
+//		      const char *mapname,
+//		      struct bpf_map_info *info)
+//{
+//	char filename[PATH_MAX];
+//	int err, len, fd;
+//	__u32 info_len = sizeof(*info);
+//
+//	len = snprintf(filename, PATH_MAX, "%s/%s", pin_dir, mapname);
+//	if (len < 0) {
+//		fprintf(stderr, "ERR: constructing full mapname path\n");
+//		return -1;
+//	}
+//
+//	fd = bpf_obj_get(filename);
+//	if (fd < 0) {
+//		fprintf(stderr,
+//			"WARN: Failed to open bpf map file:%s err(%d):%s\n",
+//			filename, errno, strerror(errno));
+//		return fd;
+//	}
+//
+//	if (info) {
+//		err = bpf_obj_get_info_by_fd(fd, info, &info_len);
+//		if (err) {
+//			fprintf(stderr, "ERR: %s() can't get info - %s\n",
+//				__func__,  strerror(errno));
+//			return EXIT_FAIL_BPF;
+//		}
+//	}
+//
+//	return fd;
+//}
 
-	len = snprintf(filename, PATH_MAX, "%s/%s", pin_dir, mapname);
-	if (len < 0) {
-		fprintf(stderr, "ERR: constructing full mapname path\n");
-		return -1;
-	}
-
-	fd = bpf_obj_get(filename);
-	if (fd < 0) {
-		fprintf(stderr,
-			"WARN: Failed to open bpf map file:%s err(%d):%s\n",
-			filename, errno, strerror(errno));
-		return fd;
-	}
-
-	if (info) {
-		err = bpf_obj_get_info_by_fd(fd, info, &info_len);
-		if (err) {
-			fprintf(stderr, "ERR: %s() can't get info - %s\n",
-				__func__,  strerror(errno));
-			return EXIT_FAIL_BPF;
-		}
-	}
-
-	return fd;
-}
-
-static int check_map_fd_info(const struct bpf_map_info *info,
-		      const struct bpf_map_info *exp)
-{
-	if (exp->key_size && exp->key_size != info->key_size) {
-		fprintf(stderr, "ERR: %s() "
-			"Map key size(%d) mismatch expected size(%d)\n",
-			__func__, info->key_size, exp->key_size);
-		return EXIT_FAIL;
-	}
-	if (exp->value_size && exp->value_size != info->value_size) {
-		fprintf(stderr, "ERR: %s() "
-			"Map value size(%d) mismatch expected size(%d)\n",
-			__func__, info->value_size, exp->value_size);
-		return EXIT_FAIL;
-	}
-	if (exp->max_entries && exp->max_entries != info->max_entries) {
-		fprintf(stderr, "ERR: %s() "
-			"Map max_entries(%d) mismatch expected size(%d)\n",
-			__func__, info->max_entries, exp->max_entries);
-		return EXIT_FAIL;
-	}
-	if (exp->type && exp->type  != info->type) {
-		fprintf(stderr, "ERR: %s() "
-			"Map type(%d) mismatch expected type(%d)\n",
-			__func__, info->type, exp->type);
-		return EXIT_FAIL;
-	}
-
-	return 0;
-}
+//static int check_map_fd_info(const struct bpf_map_info *info,
+//		      const struct bpf_map_info *exp)
+//{
+//	if (exp->key_size && exp->key_size != info->key_size) {
+//		fprintf(stderr, "ERR: %s() "
+//			"Map key size(%d) mismatch expected size(%d)\n",
+//			__func__, info->key_size, exp->key_size);
+//		return EXIT_FAIL;
+//	}
+//	if (exp->value_size && exp->value_size != info->value_size) {
+//		fprintf(stderr, "ERR: %s() "
+//			"Map value size(%d) mismatch expected size(%d)\n",
+//			__func__, info->value_size, exp->value_size);
+//		return EXIT_FAIL;
+//	}
+//	if (exp->max_entries && exp->max_entries != info->max_entries) {
+//		fprintf(stderr, "ERR: %s() "
+//			"Map max_entries(%d) mismatch expected size(%d)\n",
+//			__func__, info->max_entries, exp->max_entries);
+//		return EXIT_FAIL;
+//	}
+//	if (exp->type && exp->type  != info->type) {
+//		fprintf(stderr, "ERR: %s() "
+//			"Map type(%d) mismatch expected type(%d)\n",
+//			__func__, info->type, exp->type);
+//		return EXIT_FAIL;
+//	}
+//
+//	return 0;
+//}
 
 int main(int argc, char **argv)
 {
