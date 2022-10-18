@@ -57,7 +57,7 @@ struct fivetuple {
 };
 
 struct {
-	__uint(type, BPF_MAP_TYPE_HASH) ;
+	__uint(type, BPF_MAP_TYPE_LRU_HASH) ;
 	__uint(key_size, sizeof(struct fivetuple)) ;
 	__uint(value_size, sizeof(enum xdp_action)) ;
 	__uint(max_entries, k_hashmap_size) ;
