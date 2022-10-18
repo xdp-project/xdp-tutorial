@@ -53,7 +53,8 @@ struct fivetuple {
 	__u32 daddr ; // Destination address (network byte order)
 	__u16 sport ; // Source port (network byte order) use 0 for ICMP
 	__u16 dport ; // Destination port (network byte order) use 0 for ICMP
-	__u8 protocol ; // Protocol
+	__u16 protocol ; // Protocol
+	__u16 padding ;
 };
 
 struct {
@@ -303,9 +304,10 @@ int xsk_def_prog(struct xdp_md *ctx)
 				int protocol=iphdr->protocol;
 				if( k_tracing ) bpf_printk("protocol=%d\n", protocol) ;
 
-				f.protocol = IPPROTO_UDP ;
+				f.protocol = protocol ;
 				f.saddr = iphdr->saddr ;
 				f.daddr = iphdr->daddr ;
+				f.padding = 0 ;
 				if ( protocol == IPPROTO_TCP ) {
 					struct tcphdr *t ;
 					rc = parse_tcp4hdr(&nh, data_end, &t);
