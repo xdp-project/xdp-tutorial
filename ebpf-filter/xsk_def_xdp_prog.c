@@ -265,6 +265,7 @@ SEC("xdp")
 int xsk_def_prog(struct xdp_md *ctx)
 {
 
+	struct fivetuple f ;
 	if(k_tracing_detail) display_all() ;
     int index = ctx->rx_queue_index;
 	/* A set entry here means that the correspnding queue_id
@@ -302,7 +303,6 @@ int xsk_def_prog(struct xdp_md *ctx)
 				int protocol=iphdr->protocol;
 				if( k_tracing ) bpf_printk("protocol=%d\n", protocol) ;
 
-				struct fivetuple f ;
 				f.protocol = IPPROTO_UDP ;
 				f.saddr = iphdr->saddr ;
 				f.daddr = iphdr->daddr ;
