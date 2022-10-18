@@ -59,7 +59,7 @@ struct fivetuple {
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH) ;
 	__uint(key_size, sizeof(struct fivetuple)) ;
-	__uint(value_size, sizeof(enum xdp_action)) ;
+	__uint(value_size, sizeof(int)) ;
 	__uint(max_entries, k_hashmap_size) ;
 } accept_map SEC(".maps");
 
@@ -314,7 +314,7 @@ int xsk_def_prog(struct xdp_md *ctx)
 					f.sport = t->source ;
 					f.dport = t->dest ;
 					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
-					action = *(enum xdp_action *) v_permit ;
+					action = *(int *) v_permit ;
 				} else if ( protocol == IPPROTO_UDP ) {
 					struct udphdr *u ;
 					rc = parse_udp4hdr(&nh, data_end, &u);
@@ -323,12 +323,12 @@ int xsk_def_prog(struct xdp_md *ctx)
 					f.sport = u->source ;
 					f.dport = u->dest ;
 					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
-					action = *(enum xdp_action *) v_permit ;
+					action = *(int *) v_permit ;
 				} else if ( protocol == IPPROTO_ICMP ) {
 					f.sport = 0 ;
 					f.dport = 0 ;
 					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
-					action = *(enum xdp_action *) v_permit ;
+					action = *(int *) v_permit ;
 				}
 			}
 
