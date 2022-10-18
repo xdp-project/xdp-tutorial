@@ -275,6 +275,7 @@ int xsk_def_prog(struct xdp_md *ctx)
 	if( k_tracing ) bpf_printk("xsks_map[%d]=%p\n", index, mapped) ;
 
     enum xdp_action action = XDP_PASS; /* Default action */
+	void * v_permit = NULL ;
     if (mapped)
     {
     	void *data_end = (void *)(long)ctx->data_end;
@@ -315,8 +316,7 @@ int xsk_def_prog(struct xdp_md *ctx)
 //					struct tcphdr *t= (struct tcphdr *)(iphdr+1) ;
 					f.sport = t->source ;
 					f.dport = t->dest ;
-					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
-					action = *(int *) v_permit ;
+					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
 				} else if ( protocol == IPPROTO_UDP ) {
 					struct udphdr *u ;
 					rc = parse_udp4hdr(&nh, data_end, &u);
@@ -324,16 +324,17 @@ int xsk_def_prog(struct xdp_md *ctx)
 //					struct udphdr *u = (struct udphdr *)(iphdr+1) ;
 					f.sport = u->source ;
 					f.dport = u->dest ;
-					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
-					action = *(int *) v_permit ;
+					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
 				} else if ( protocol == IPPROTO_ICMP ) {
 					f.sport = 0 ;
 					f.dport = 0 ;
-					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
-					action = *(int *) v_permit ;
+					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
 				}
 			}
 
+		if ( v_permit ) {
+			action = *(int *) v_permit ;
+		}
 		if ( action == XDP_REDIRECT) {
 			stats_record_action(ctx, XDP_REDIRECT);
 			if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
