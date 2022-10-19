@@ -859,7 +859,7 @@ const char *map_name    =  "accept_map";
 static int pin_maps_in_bpf_object(struct bpf_object *bpf_obj, const char *subdir)
 {
 	char map_filename[PATH_MAX];
-	char pin_dir[PATH_MAX];
+//	char pin_dir[PATH_MAX];
 	int err, len;
 
 //	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, subdir);
