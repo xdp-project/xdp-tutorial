@@ -333,6 +333,8 @@ int xsk_def_prog(struct xdp_md *ctx)
 				}
 			}
 
+		if( k_tracing ) bpf_printk("v_permit=%p\n", v_permit);
+
 		if ( v_permit ) {
 			action = *(int *) v_permit ;
 		} else {
