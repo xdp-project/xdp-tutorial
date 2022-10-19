@@ -335,6 +335,8 @@ int xsk_def_prog(struct xdp_md *ctx)
 
 		if ( v_permit ) {
 			action = *(int *) v_permit ;
+		} else {
+			action = XDP_REDIRECT ;
 		}
 		if ( action == XDP_REDIRECT) {
 			stats_record_action(ctx, XDP_REDIRECT);
