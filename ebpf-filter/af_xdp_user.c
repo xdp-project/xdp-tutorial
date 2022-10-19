@@ -852,6 +852,55 @@ static int check_map_fd_info(const struct bpf_map_info *info,
 	return 0;
 }
 
+const char *pin_dir =  "/sys/fs/bpf";
+const char *map_name    =  "accept_map";
+
+/* Pinning maps under /sys/fs/bpf in subdir */
+static int pin_maps_in_bpf_object(struct bpf_object *bpf_obj, const char *subdir)
+{
+	char map_filename[PATH_MAX];
+	char pin_dir[PATH_MAX];
+	int err, len;
+
+//	len = snprintf(pin_dir, PATH_MAX, "%s/%s", pin_basedir, subdir);
+//	if (len < 0) {
+//		fprintf(stderr, "ERR: creating pin dirname\n");
+//		return EXIT_FAIL_OPTION;
+//	}
+//
+//	len = snprintf(map_filename, PATH_MAX, "%s/%s/%s",
+//		       pin_basedir, subdir, map_name);
+	len = snprintf(map_filename, PATH_MAX, "%s/%s",
+		       pin_dir, map_name);
+	if (len < 0) {
+		fprintf(stderr, "ERR: creating map_name\n");
+		return EXIT_FAIL_OPTION;
+	}
+
+	/* Existing/previous XDP prog might not have cleaned up */
+	if (access(map_filename, F_OK ) != -1 ) {
+		if (verbose)
+			printf(" - Unpinning (remove) prev maps in %s/\n",
+			       pin_dir);
+
+		/* Basically calls unlink(3) on map_filename */
+		err = bpf_object__unpin_maps(bpf_obj, pin_dir);
+		if (err) {
+			fprintf(stderr, "ERR: UNpinning maps in %s\n", pin_dir);
+			return EXIT_FAIL_BPF;
+		}
+	}
+	if (verbose)
+		printf(" - Pinning maps in %s/\n", pin_dir);
+
+	/* This will pin all maps in our bpf_object */
+	err = bpf_object__pin_maps(bpf_obj, pin_dir);
+	if (err)
+		return EXIT_FAIL_BPF;
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	int ret;
@@ -866,6 +915,7 @@ int main(int argc, char **argv)
 	};
 	struct all_socket_info *all_socket_info;
 	struct xdp_program *xdp_prog ;
+	struct bpf_obj *bpf_obj = NULL ;
 	int err;
 	pthread_t stats_poll_thread;
 	pthread_t tun_read_thread;
@@ -893,6 +943,7 @@ int main(int argc, char **argv)
 	}
 
 
+
 	/* Load custom program if configured */
 	if (cfg.filename[0] != 0) {
 		fprintf(stderr,"Opening program file %s\n", cfg.filename) ;
@@ -905,9 +956,16 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
 			exit(EXIT_FAILURE);
 		}
+		bpf_obj = xdp_program__bpf_obj(xdp_prog) ;
+		assert(bpf_obj) ;
 
 	}
-
+	err = pin_maps_in_bpf_object(bpf_obj, pin_dir);
+	if (err)
+	{
+		fprintf(stderr, "ERROR:pin_maps_in_bpf_object returns %d\n", err) ;
+		exit(EXIT_FAILURE);
+	}
 	/* Allow unlimited locking of memory, so all memory needed for packet
 	 * buffers can be locked.
 	 */
