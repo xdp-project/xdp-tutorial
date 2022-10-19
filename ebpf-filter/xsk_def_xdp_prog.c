@@ -53,8 +53,7 @@ struct fivetuple {
 	__u32 daddr ; // Destination address (network byte order)
 	__u16 sport ; // Source port (network byte order) use 0 for ICMP
 	__u16 dport ; // Destination port (network byte order) use 0 for ICMP
-	__u16 protocol ; // Protocol
-	__u16 padding ;
+	__u8 protocol ; // Protocol
 };
 
 struct {
@@ -62,6 +61,7 @@ struct {
 	__uint(key_size, sizeof(struct fivetuple)) ;
 	__uint(value_size, sizeof(int)) ;
 	__uint(max_entries, k_hashmap_size) ;
+	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } accept_map SEC(".maps");
 
 
@@ -275,7 +275,6 @@ int xsk_def_prog(struct xdp_md *ctx)
 	if( k_tracing ) bpf_printk("xsks_map[%d]=%p\n", index, mapped) ;
 
     enum xdp_action action = XDP_PASS; /* Default action */
-	void * v_permit = NULL ;
     if (mapped)
     {
     	void *data_end = (void *)(long)ctx->data_end;
@@ -305,10 +304,9 @@ int xsk_def_prog(struct xdp_md *ctx)
 				int protocol=iphdr->protocol;
 				if( k_tracing ) bpf_printk("protocol=%d\n", protocol) ;
 
-				f.protocol = protocol ;
+				f.protocol = IPPROTO_UDP ;
 				f.saddr = iphdr->saddr ;
 				f.daddr = iphdr->daddr ;
-				f.padding = 0 ;
 				if ( protocol == IPPROTO_TCP ) {
 					struct tcphdr *t ;
 					rc = parse_tcp4hdr(&nh, data_end, &t);
@@ -316,7 +314,8 @@ int xsk_def_prog(struct xdp_md *ctx)
 //					struct tcphdr *t= (struct tcphdr *)(iphdr+1) ;
 					f.sport = t->source ;
 					f.dport = t->dest ;
-					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
+					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
+					action = *(int *) v_permit ;
 				} else if ( protocol == IPPROTO_UDP ) {
 					struct udphdr *u ;
 					rc = parse_udp4hdr(&nh, data_end, &u);
@@ -324,17 +323,16 @@ int xsk_def_prog(struct xdp_md *ctx)
 //					struct udphdr *u = (struct udphdr *)(iphdr+1) ;
 					f.sport = u->source ;
 					f.dport = u->dest ;
-					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
+					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
+					action = *(int *) v_permit ;
 				} else if ( protocol == IPPROTO_ICMP ) {
 					f.sport = 0 ;
 					f.dport = 0 ;
-					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
+					void * v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
+					action = *(int *) v_permit ;
 				}
 			}
 
-		if ( v_permit ) {
-			action = *(int *) v_permit ;
-		}
 		if ( action == XDP_REDIRECT) {
 			stats_record_action(ctx, XDP_REDIRECT);
 			if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
