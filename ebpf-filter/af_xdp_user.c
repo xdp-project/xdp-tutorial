@@ -915,7 +915,7 @@ int main(int argc, char **argv)
 	};
 	struct all_socket_info *all_socket_info;
 	struct xdp_program *xdp_prog ;
-	struct bpf_obj *bpf_object = NULL ;
+	struct bpf_object *bpf_object = NULL ;
 	int err;
 	pthread_t stats_poll_thread;
 	pthread_t tun_read_thread;
