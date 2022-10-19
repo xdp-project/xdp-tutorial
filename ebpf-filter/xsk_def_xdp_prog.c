@@ -28,7 +28,7 @@ struct datarec {
 #endif
 
 enum {
-	k_tracing = 0,
+	k_tracing = 1,
 	k_tracing_detail = 0
 };
 
