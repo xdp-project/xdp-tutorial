@@ -915,7 +915,7 @@ int main(int argc, char **argv)
 	};
 	struct all_socket_info *all_socket_info;
 	struct xdp_program *xdp_prog ;
-	struct bpf_object *bpf_object = NULL ;
+//	struct bpf_object *bpf_object = NULL ;
 	int err;
 	pthread_t stats_poll_thread;
 	pthread_t tun_read_thread;
@@ -956,16 +956,16 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
 			exit(EXIT_FAILURE);
 		}
-		bpf_object = xdp_program__bpf_obj(xdp_prog) ;
-		assert(bpf_object) ;
+//		bpf_object = xdp_program__bpf_obj(xdp_prog) ;
+//		assert(bpf_object) ;
 
 	}
-	err = pin_maps_in_bpf_object(bpf_object, pin_dir);
-	if (err)
-	{
-		fprintf(stderr, "ERROR:pin_maps_in_bpf_object returns %d\n", err) ;
-		exit(EXIT_FAILURE);
-	}
+//	err = pin_maps_in_bpf_object(bpf_object, pin_dir);
+//	if (err)
+//	{
+//		fprintf(stderr, "ERROR:pin_maps_in_bpf_object returns %d\n", err) ;
+//		exit(EXIT_FAILURE);
+//	}
 	/* Allow unlimited locking of memory, so all memory needed for packet
 	 * buffers can be locked.
 	 */
