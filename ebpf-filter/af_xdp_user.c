@@ -950,7 +950,7 @@ int main(int argc, char **argv)
 		xdp_prog=xdp_program__open_file(cfg.filename,NULL, NULL)  ;
 		fprintf(stderr,"xdp_prog=%p\n", xdp_prog) ;
 		err=xdp_program__attach_single(*xdp_prog,
-				cfg.ifindex, XDP_MODE_SKB, 0);
+				cfg.ifindex, XDP_MODE_SKB);
 		if (err)
 		{
 			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
