@@ -14,6 +14,8 @@
 
 #include "xsk_def_xdp_prog.h"
 
+#define XDP_DISPATCHER_VERSION 1
+
 #define DEFAULT_QUEUE_IDS 64
 
 /* This is the data record stored in the map */
