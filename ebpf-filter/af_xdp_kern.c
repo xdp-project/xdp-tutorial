@@ -353,3 +353,5 @@ out:
 
 char _license[] SEC("license") = "GPL";
 __uint(xsk_prog_version, XSK_PROG_VERSION) SEC(XDP_METADATA_SECTION);
+__uint(dispatcher_version, XDP_DISPATCHER_VERSION) SEC(XDP_METADATA_SECTION);
+
