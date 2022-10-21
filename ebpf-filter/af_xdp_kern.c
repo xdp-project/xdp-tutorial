@@ -48,7 +48,7 @@ struct {
 	__uint(key_size, sizeof(int));
 	__uint(value_size, sizeof(int));
 	__uint(max_entries, DEFAULT_QUEUE_IDS);
-} xsks_map SEC(".maps");
+} my_xsks_map SEC(".maps");
 
 struct fivetuple {
 	__u32 saddr ; // Source address (network byte order)
@@ -68,14 +68,14 @@ struct {
 } accept_map SEC(".maps");
 
 
-struct {
-	__uint(priority, 20);
-	__uint(XDP_PASS, 1);
-} XDP_RUN_CONFIG(xsk_def_prog);
+//struct {
+//	__uint(priority, 20);
+//	__uint(XDP_PASS, 1);
+//} XDP_RUN_CONFIG(xsk_def_prog);
 
 static __always_inline void display_one(int index) {
-	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-	bpf_printk("xsks_map[%d]=%p\n", index, mapped) ;
+	void * mapped=bpf_map_lookup_elem(&my_xsks_map, &index) ;
+	bpf_printk("my_xsks_map[%d]=%p\n", index, mapped) ;
 }
 
 static __always_inline void display_all(void) {
@@ -145,23 +145,23 @@ static __always_inline void display_all(void) {
 	display_one(63) ;
 }
 
-#if 0
-/* This is the supplied libxdp default program for post 5.3 kernels. */
-SEC("xdp")
-int xsk_def_prog(struct xdp_md *ctx)
-{
-	/* A set entry here means that the corresponding queue_id
-	 * has an active AF_XDP socket bound to it.
-	 */
-	if(k_tracing_detail) display_all() ;
-    int index = ctx->rx_queue_index;
-	/* A set entry here means that the correspnding queue_id
-	 * has an active AF_XDP socket bound to it. */
-	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-	if( k_tracing ) bpf_printk("xsks[%d]=%p\n", index, mapped) ;
-	return bpf_redirect_map(&xsks_map, ctx->rx_queue_index, XDP_PASS);
-}
-#endif
+//#if 0
+///* This is the supplied libxdp default program for post 5.3 kernels. */
+//SEC("xdp")
+//int xsk_def_prog(struct xdp_md *ctx)
+//{
+//	/* A set entry here means that the corresponding queue_id
+//	 * has an active AF_XDP socket bound to it.
+//	 */
+//	if(k_tracing_detail) display_all() ;
+//    int index = ctx->rx_queue_index;
+//	/* A set entry here means that the correspnding queue_id
+//	 * has an active AF_XDP socket bound to it. */
+//	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
+//	if( k_tracing ) bpf_printk("xsks[%d]=%p\n", index, mapped) ;
+//	return bpf_redirect_map(&xsks_map, ctx->rx_queue_index, XDP_PASS);
+//}
+//#endif
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -353,7 +353,7 @@ out:
 }
 
 
-__uint(dispatcher_version, XDP_DISPATCHER_VERSION) SEC(XDP_METADATA_SECTION);
+//__uint(dispatcher_version, XDP_DISPATCHER_VERSION) SEC(XDP_METADATA_SECTION);
 char _license[] SEC("license") = "GPL";
-__uint(xsk_prog_version, XSK_PROG_VERSION) SEC(XDP_METADATA_SECTION);
+//__uint(xsk_prog_version, XSK_PROG_VERSION) SEC(XDP_METADATA_SECTION);
 
