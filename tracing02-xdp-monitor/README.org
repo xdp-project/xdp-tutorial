@@ -1,60 +1,62 @@
 # -*- fill-column: 76; -*-
-#+TITLE: Tutorial: Tracing02 - monitor xdp raw tracepoints
+#+TITLE: Tutorial: Tracing02 - monitor xdp tracepoints
 #+OPTIONS: ^:nil
 
 In this lesson we will show how to attach to and monitor all
-xdp related raw tracepoints and some related info to user space
+xdp related tracepoints and some related info to user space
 stat application.
 
 * Table of Contents                                                     :TOC:
-- [[#raw-tracepoints][RAW tracepoints]]
+- [[#tracepoints][Tracepoints]]
 - [[#assignments][Assignments]]
   - [[#assignment-1-monitor-all-xdp-tracepoints][Assignment 1: Monitor all xdp tracepoints]]
 
-* RAW tracepoints
+* Tracepoints
 
-The RAW tracepoint is eBPF alternative to standard tracepoint,
-which allows attaching eBPF program to tracepoint without the
-perf layer being involved/executed.
+Tracepoints are useful for debugging XDP, expecially for XDP_REDIRECT.
 
-The bpf library expects the raw tracepoint eBPF program to be stored
+To gain performance XDP_REDIRECT does RX-bulking towards destinations, which
+unfortunately means that XDP-prog doesn't get errors directly returned
+through the BPF-helper call =bpf_redirect()= (or =bpf_redirect_map=).
+Instead these errors can be debugged via using the XDP tracepoint available
+in the kernel.
+
+The bpf library expects the tracepoint eBPF program to be stored
 in a section with following name:
 
 #+begin_example sh
-raw_tracepoint/<sys>/<tracepoint>
+tracepoint/<sys>/<tracepoint>
 #+end_example
 
 where =<sys>= is the tracepoint subsystem and =<tracepoint>= is
 the tracepoint name, which can be done with following construct:
 
 #+begin_example sh
-SEC("raw_tracepoint/xdp/xdp_exception")
+SEC("tracepoint/xdp/xdp_exception")
 int trace_xdp_exception(struct xdp_exception_ctx *ctx)
 #+end_example
 
-The libbpf library exports interface to load and attach raw tracepoint
-programs, following call will load every program in the =cfg->filename=
-object as raw tracepoint programs:
+Via the libbpf library =open= and =load= the bpf_object the usual way. E.g.
 
-#+begin_example sh
-err = bpf_prog_load(cfg->filename, BPF_PROG_TYPE_RAW_TRACEPOINT, &obj, &bpf_fd));
-#+end_example
+#+begin_src C
+	obj = bpf_object__open_file(cfg->filename, NULL)
+	bpf_object__load(obj);
+#+end_src
 
 You can then iterate through all the programs and attach
-every program to the raw tracepoint:
+every program to the tracepoint:
 
-#+begin_example sh
+#+begin_src C
 bpf_object__for_each_program(prog, obj) {
 	...
-	bpf_fd = bpf_program__fd(prog);
-	...
-	err = bpf_raw_tracepoint_open(tp, bpf_fd);
+	tp_link = bpf_program__attach_tracepoint(prog, "xdp", tp);
+	err = libbpf_get_error(tp_link);
 	...
 }
-#+end_example
+#+end_src
 
 for more details please check load_bpf_and_trace_attach function
-in trace_load_and_stats.c object.
+in [[file:trace_load_and_stats.c]] object.
 
 * Assignments
 
