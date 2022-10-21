@@ -274,8 +274,8 @@ int xsk_def_prog(struct xdp_md *ctx)
     int index = ctx->rx_queue_index;
 	/* A set entry here means that the correspnding queue_id
 	 * has an active AF_XDP socket bound to it. */
-	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
-	if( k_tracing ) bpf_printk("xsks_map[%d]=%p\n", index, mapped) ;
+	void * mapped=bpf_map_lookup_elem(&my_xsks_map, &index) ;
+	if( k_tracing ) bpf_printk("my_xsks_map[%d]=%p\n", index, mapped) ;
 
     enum xdp_action action = XDP_PASS; /* Default action */
 	void * v_permit = NULL ;
@@ -345,7 +345,7 @@ int xsk_def_prog(struct xdp_md *ctx)
 		if ( action == XDP_REDIRECT) {
 			stats_record_action(ctx, XDP_REDIRECT);
 			if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
-			return bpf_redirect_map(&xsks_map, index, 0);
+			return bpf_redirect_map(&my_xsks_map, index, 0);
 		}
     }
 out:
