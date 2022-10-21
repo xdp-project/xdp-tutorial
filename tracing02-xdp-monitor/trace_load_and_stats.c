@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-static const char *__doc__ = "XDP loader and stats program\n"
-	" - Allows selecting BPF section --progsec name to XDP-attach to --dev\n";
+static const char *__doc__ = "XDP monitor via tracepoints\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -788,11 +787,20 @@ static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
 {
 	struct bpf_object *obj;
 	struct bpf_program *prog;
-	int bpf_fd, err;
+	struct bpf_link *tp_link;
+	int err;
 
-	if (bpf_prog_load(cfg->filename, BPF_PROG_TYPE_RAW_TRACEPOINT, &obj, &bpf_fd)) {
-		fprintf(stderr, "ERR: failed to load program\n");
+	obj = bpf_object__open_file(cfg->filename, NULL);
+	if (libbpf_get_error(obj)) {
+		fprintf(stderr, "ERR: opening BPF object file %s failed\n",
+			cfg->filename);
 		return NULL;
+	}
+
+	if (bpf_object__load(obj)) {
+		fprintf(stderr, "ERR: loading BPF object file %s failed\n",
+			cfg->filename);
+		goto err;
 	}
 
 	bpf_object__for_each_program(prog, obj) {
@@ -811,9 +819,13 @@ static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
 		}
 
 		tp++;
-		bpf_fd = bpf_program__fd(prog);
 
-		err = bpf_raw_tracepoint_open(tp, bpf_fd);
+		if (verbose)
+			printf("Attach tracepoint %s \t(prog sec:%s)\n", tp, sec);
+
+		tp_link = bpf_program__attach_tracepoint(prog, "xdp", tp);
+
+		err = libbpf_get_error(tp_link);
 		if (err < 0) {
 			fprintf(stderr, "ERR: failed to open raw tracepoint for %s, (%d %s)\n",
 				tp, -errno, strerror(errno));
