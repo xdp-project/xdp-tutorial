@@ -220,13 +220,11 @@ BPF_ANNOTATE_KV_PAIR(devmap_xmit_cnt, int, struct datarec);
  * Code in:         kernel/include/trace/events/xdp.h
  */
 struct devmap_xmit_ctx {
-	int map_id;		//	offset: 0; size:4; signed:1;
+	int from_ifindex;	//	offset: 0; size:4; signed:1;
 	__u32 act;		//	offset: 4; size:4; signed:0;
-	__u32 map_index;	//	offset: 8; size:4; signed:0;
+	int to_ifindex;		//	offset: 8; size:4; signed:1;
 	int drops;		//	offset:12; size:4; signed:1;
 	int sent;		//	offset:16; size:4; signed:1;
-	int from_ifindex;	//	offset:20; size:4; signed:1;
-	int to_ifindex;	//	offset:24; size:4; signed:1;
 	int err;		//	offset:28; size:4; signed:1;
 };
 
