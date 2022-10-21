@@ -10,6 +10,9 @@ stat application.
 - [[#tracepoints][Tracepoints]]
 - [[#assignments][Assignments]]
   - [[#assignment-1-monitor-all-xdp-tracepoints][Assignment 1: Monitor all xdp tracepoints]]
+- [[#alternative-solutions][Alternative solutions]]
+  - [[#bpftrace][bpftrace]]
+  - [[#perf-record][perf record]]
 
 * Tracepoints
 
@@ -77,3 +80,43 @@ Exception       total   0            91           XDP_UNKNOWN
 cpumap-kthread  total   0            0            0          
 devmap-xmit     total   0            0            0.00        
 #+end_example
+
+* Alternative solutions
+
+** bpftrace
+
+The bpftrace tool is easy to construct an oneliner that can capture and
+e.g. count the events of a given tracepoint. E.g. attaching to all XDP
+tracepoints and counting them:
+
+#+begin_example sh
+sudo bpftrace -e 'tracepoint:xdp:* { @cnt[probe] = count(); }'
+Attaching 12 probes...
+^C
+
+@cnt[tracepoint:xdp:mem_connect]: 18
+@cnt[tracepoint:xdp:mem_disconnect]: 18
+@cnt[tracepoint:xdp:xdp_exception]: 19605
+@cnt[tracepoint:xdp:xdp_devmap_xmit]: 1393604
+@cnt[tracepoint:xdp:xdp_redirect]: 22292200
+#+end_example
+
+To extract the "ERRNO" being return as part of the =err= parameter, this
+bpftrace oneliner can be useful:
+
+#+begin_example sh
+ sudo bpftrace -e \
+  'tracepoint:xdp:xdp_redirect*_err {@redir_errno[-args->err] = count();}
+   tracepoint:xdp:xdp_devmap_xmit {@devmap_errno[-args->err] = count();}'
+#+end_example
+
+** perf record
+
+The perf tool also supports recording tracepoints of the the box:
+
+#+begin_src sh
+  perf record -a -e xdp:xdp_redirect_err \
+       -e xdp:xdp_redirect_map_err \
+       -e xdp:xdp_exception \
+       -e xdp:xdp_devmap_xmit
+#+end_src
