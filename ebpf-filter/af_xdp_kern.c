@@ -14,7 +14,7 @@
 
 #include "xsk_def_xdp_prog.h"
 
-#define XDP_DISPATCHER_VERSION 1
+//#define XDP_DISPATCHER_VERSION 1
 
 #define DEFAULT_QUEUE_IDS 64
 
@@ -43,12 +43,14 @@ enum {
 //	k_action_pass ,
 //	k_action_drop
 //}  ;
+//#define my_xsks_map xsks_map
+
 struct {
 	__uint(type, BPF_MAP_TYPE_XSKMAP);
 	__uint(key_size, sizeof(int));
 	__uint(value_size, sizeof(int));
 	__uint(max_entries, DEFAULT_QUEUE_IDS);
-} my_xsks_map SEC(".maps");
+} xsks_map SEC(".maps");
 
 struct fivetuple {
 	__u32 saddr ; // Source address (network byte order)
@@ -68,14 +70,14 @@ struct {
 } accept_map SEC(".maps");
 
 
-//struct {
-//	__uint(priority, 20);
+struct {
+	__uint(priority, 10);
 //	__uint(XDP_PASS, 1);
-//} XDP_RUN_CONFIG(xsk_def_prog);
+} XDP_RUN_CONFIG(xsk_my_prog);
 
 static __always_inline void display_one(int index) {
-	void * mapped=bpf_map_lookup_elem(&my_xsks_map, &index) ;
-	bpf_printk("my_xsks_map[%d]=%p\n", index, mapped) ;
+	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
+	bpf_printk("xsks_map[%d]=%p\n", index, mapped) ;
 }
 
 static __always_inline void display_all(void) {
@@ -105,7 +107,7 @@ static __always_inline void display_all(void) {
 	display_one(23) ;
 	display_one(24) ;
 	display_one(25) ;
-	display_one(16) ;
+	display_one(26) ;
 	display_one(27) ;
 	display_one(28) ;
 	display_one(29) ;
@@ -264,9 +266,17 @@ static __always_inline int parse_udp4hdr(struct hdr_cursor *nh,
 	return 0;
 }
 
+static void show_fivetuple(struct fivetuple *f) {
+	if(k_tracing) {
+		bpf_printk("fivetuple saddr=%08x daddr=%08x", f->saddr, f->daddr) ;
+		bpf_printk(" sport=%04x dport=%04x", f->sport, f->dport) ;
+		bpf_printk(" protocol=%04x padding=%u\n", f->protocol, f->padding) ;
+	}
+
+}
 
 SEC("xdp")
-int xsk_def_prog(struct xdp_md *ctx)
+int xsk_my_prog(struct xdp_md *ctx)
 {
 
 	struct fivetuple f ;
@@ -274,8 +284,8 @@ int xsk_def_prog(struct xdp_md *ctx)
     int index = ctx->rx_queue_index;
 	/* A set entry here means that the correspnding queue_id
 	 * has an active AF_XDP socket bound to it. */
-	void * mapped=bpf_map_lookup_elem(&my_xsks_map, &index) ;
-	if( k_tracing ) bpf_printk("my_xsks_map[%d]=%p\n", index, mapped) ;
+	void * mapped=bpf_map_lookup_elem(&xsks_map, &index) ;
+	if( k_tracing ) bpf_printk("xsks_map[%d]=%p\n", index, mapped) ;
 
     enum xdp_action action = XDP_PASS; /* Default action */
 	void * v_permit = NULL ;
@@ -319,6 +329,7 @@ int xsk_def_prog(struct xdp_md *ctx)
 //					struct tcphdr *t= (struct tcphdr *)(iphdr+1) ;
 					f.sport = t->source ;
 					f.dport = t->dest ;
+					show_fivetuple(&f) ;
 					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
 				} else if ( protocol == IPPROTO_UDP ) {
 					struct udphdr *u ;
@@ -327,10 +338,12 @@ int xsk_def_prog(struct xdp_md *ctx)
 //					struct udphdr *u = (struct udphdr *)(iphdr+1) ;
 					f.sport = u->source ;
 					f.dport = u->dest ;
+					show_fivetuple(&f) ;
 					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
 				} else if ( protocol == IPPROTO_ICMP ) {
 					f.sport = 0 ;
 					f.dport = 0 ;
+					show_fivetuple(&f) ;
 					v_permit=bpf_map_lookup_elem(&accept_map, &f) ;
 				}
 			}
@@ -344,8 +357,10 @@ int xsk_def_prog(struct xdp_md *ctx)
 		}
 		if ( action == XDP_REDIRECT) {
 			stats_record_action(ctx, XDP_REDIRECT);
-			if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
-			return bpf_redirect_map(&my_xsks_map, index, 0);
+//			if( k_tracing ) bpf_printk("returning through bpf_redirect_map\n");
+			return bpf_redirect_map(&xsks_map, index, XDP_PASS);
+//			if ( k_tracing ) bpf_printk("Substitute XDP_PASS for bpf_redirect_map\n");
+//			return XDP_PASS;
 		}
     }
 out:
@@ -356,4 +371,5 @@ out:
 //__uint(dispatcher_version, XDP_DISPATCHER_VERSION) SEC(XDP_METADATA_SECTION);
 char _license[] SEC("license") = "GPL";
 //__uint(xsk_prog_version, XSK_PROG_VERSION) SEC(XDP_METADATA_SECTION);
+__uint(xsk_prog_version, XSK_PROG_VERSION) SEC(XDP_METADATA_SECTION);
 

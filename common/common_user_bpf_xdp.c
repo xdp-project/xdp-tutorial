@@ -316,36 +316,36 @@ const char *action2str(__u32 action)
         return NULL;
 }
 
-int check_map_fd_info(const struct bpf_map_info *info,
-		      const struct bpf_map_info *exp)
-{
-	if (exp->key_size && exp->key_size != info->key_size) {
-		fprintf(stderr, "ERR: %s() "
-			"Map key size(%d) mismatch expected size(%d)\n",
-			__func__, info->key_size, exp->key_size);
-		return EXIT_FAIL;
-	}
-	if (exp->value_size && exp->value_size != info->value_size) {
-		fprintf(stderr, "ERR: %s() "
-			"Map value size(%d) mismatch expected size(%d)\n",
-			__func__, info->value_size, exp->value_size);
-		return EXIT_FAIL;
-	}
-	if (exp->max_entries && exp->max_entries != info->max_entries) {
-		fprintf(stderr, "ERR: %s() "
-			"Map max_entries(%d) mismatch expected size(%d)\n",
-			__func__, info->max_entries, exp->max_entries);
-		return EXIT_FAIL;
-	}
-	if (exp->type && exp->type  != info->type) {
-		fprintf(stderr, "ERR: %s() "
-			"Map type(%d) mismatch expected type(%d)\n",
-			__func__, info->type, exp->type);
-		return EXIT_FAIL;
-	}
-
-	return 0;
-}
+//int check_map_fd_info(const struct bpf_map_info *info,
+//		      const struct bpf_map_info *exp)
+//{
+//	if (exp->key_size && exp->key_size != info->key_size) {
+//		fprintf(stderr, "ERR: %s() "
+//			"Map key size(%d) mismatch expected size(%d)\n",
+//			__func__, info->key_size, exp->key_size);
+//		return EXIT_FAIL;
+//	}
+//	if (exp->value_size && exp->value_size != info->value_size) {
+//		fprintf(stderr, "ERR: %s() "
+//			"Map value size(%d) mismatch expected size(%d)\n",
+//			__func__, info->value_size, exp->value_size);
+//		return EXIT_FAIL;
+//	}
+//	if (exp->max_entries && exp->max_entries != info->max_entries) {
+//		fprintf(stderr, "ERR: %s() "
+//			"Map max_entries(%d) mismatch expected size(%d)\n",
+//			__func__, info->max_entries, exp->max_entries);
+//		return EXIT_FAIL;
+//	}
+//	if (exp->type && exp->type  != info->type) {
+//		fprintf(stderr, "ERR: %s() "
+//			"Map type(%d) mismatch expected type(%d)\n",
+//			__func__, info->type, exp->type);
+//		return EXIT_FAIL;
+//	}
+//
+//	return 0;
+//}
 
 //int open_bpf_map_file(const char *pin_dir,
 //		      const char *mapname,

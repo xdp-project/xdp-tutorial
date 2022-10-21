@@ -277,7 +277,8 @@ int main(int argc, char **argv)
 //	char pin_dir[PATH_MAX];
 	int stats_map_fd;
 	int interval = 2;
-	int len, err;
+//	int len;
+	int err;
 
 	struct config cfg = {
 		.ifindex   = -1,

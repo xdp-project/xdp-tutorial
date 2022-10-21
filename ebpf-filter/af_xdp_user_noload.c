@@ -55,9 +55,8 @@ enum {
 	k_instrument = 1 ,
 	k_instrument_detail = 0 ,
 	k_verify_umem = 0 ,
-	k_verbose = 1 ,
+	k_verbose = 0 ,
 	k_rx_queue_count = 16 ,
-//	k_rx_queue_count = 4 ,
 	k_skipping = false
 };
 
@@ -99,13 +98,6 @@ struct xsk_socket_info {
 //	uint32_t outstanding_tx;
 
 };
-struct xsk_socket {
-	struct xsk_ring_cons *rx;
-	struct xsk_ring_prod *tx;
-	struct xsk_ctx *ctx;
-	struct xsk_socket_config config;
-	int fd;
-};
 
 struct all_socket_info {
 	struct xsk_socket_info *xsk_socket_info[k_rx_queue_count] ;
@@ -130,8 +122,7 @@ struct fivetuple {
 	__u32 daddr ; // Destination address (network byte order)
 	__u16 sport ; // Source port (network byte order) use 0 for ICMP
 	__u16 dport ; // Destination port (network byte order) use 0 for ICMP
-	__u16 protocol ; // Protocol
-	__u16 padding ;
+	__u8 protocol ; // Protocol
 };
 
 //enum action_enum {
@@ -518,7 +509,6 @@ static uint64_t xsk_umem_free_frames(struct xsk_umem_info *umem)
 //}
 
 static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
-		                    int xsks_map_fd,
 							int if_queue)
 {
 	struct xsk_socket_config xsk_cfg;
@@ -560,7 +550,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 							 &(xsk_info->cq),
 							 &xsk_cfg);
 
-	printf("xsk_socket__create_shared_named_prog returns %d\n", ret) ;
+	printf("xsk_socket__create returns %d\n", ret) ;
 	if (ret)
 		goto error_exit;
 //	struct my_xsk_ctx ctx;
@@ -570,18 +560,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 //	socket.rx=xsk_info->xsk->rx;
 //	socket.tx=xsk_info->xsk->tx;
 //
-//	struct xsk_socket_info *socket_info=xsk_info->xsk;
-	if (xsks_map_fd != -1 ) {
-		struct xsk_socket * socket = xsk_info->xsk ;
-		int socket_fd=socket->fd ;
-//		int xsks_map_fd=bpf_map__fd(xsks_map);
-		printf("bpf_map_update_elem(%d,%p,%p,%u)\n",xsks_map_fd, &if_queue, &socket_fd, BPF_ANY) ;
-		ret = bpf_map_update_elem(xsks_map_fd, &if_queue, &socket_fd, BPF_ANY);
-		printf("bpf_map_update_elem returns %d\n", ret) ;
-		if (ret)
-			goto error_exit;
-	}
-
+//	struct my_xsk_socket *my_socket=xsk_info->xsk;
 //	struct my_xsk_ctx *my_ctx = my_socket->ctx;
 //
 ////	int my_xsks_map_fd = xsk_lookup_my_bpf_map(xdp_program__fd(ctx->xdp_prog));
@@ -625,13 +604,13 @@ error_exit:
 	return NULL;
 }
 
-static struct all_socket_info *xsk_configure_socket_all(struct config *cfg, int xsks_map_fd)
+static struct all_socket_info *xsk_configure_socket_all(struct config *cfg)
 {
 
 	struct all_socket_info *xsk_info_all = calloc(1, sizeof(*xsk_info_all));
 	for(int q=0; q<k_rx_queue_count; q+=1)
 	{
-		xsk_info_all->xsk_socket_info[q]=xsk_configure_socket(cfg, xsks_map_fd, q);
+		xsk_info_all->xsk_socket_info[q]=xsk_configure_socket(cfg, q);
 		if(xsk_info_all->xsk_socket_info[q] == NULL )
 		{
 			fprintf(stderr, "ERROR: Cannot set up socket %d\n", q) ;
@@ -699,25 +678,15 @@ static inline __sum16 csum16_sub(__sum16 csum, __be16 addend)
 ////	return (trans->udp_packet_count & 1) ? true : false ;
 //}
 
-static void show_fivetuple(struct fivetuple *f) {
-	if(k_verbose) {
-		fprintf(stdout,"fivetuple saddr=%08x daddr=%08x sport=%04x dport=%04x protocol=%04x padding=%u\n",
-				f->saddr, f->daddr, f->sport, f->dport, f->protocol, f->padding
-				) ;
-	}
-
-}
 static bool filter_pass_tcp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
 	struct fivetuple f ;
 	enum xdp_action a=0;
-	f.saddr=htonl(saddr);
-	f.daddr=htonl(daddr);
-	f.sport=htons(sport);
-	f.dport=htons(dport);
+	f.saddr=saddr;
+	f.daddr=daddr;
+	f.sport=sport;
+	f.dport=dport;
 	f.protocol=IPPROTO_TCP;
-	f.padding = 0;
-	show_fivetuple(&f) ;
-	int ret = bpf_map_lookup_elem(accept_map_fd, &f, &a);
+	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
 		return a == XDP_PASS;
@@ -730,14 +699,12 @@ static bool filter_pass_tcp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 s
 static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 sport, __u16 dport) {
 	struct fivetuple f ;
 	enum xdp_action a=0;
-	f.saddr=htonl(saddr);
-	f.daddr=htonl(daddr);
-	f.sport=htons(sport);
-	f.dport=htons(dport);
+	f.saddr=saddr;
+	f.daddr=daddr;
+	f.sport=sport;
+	f.dport=dport;
 	f.protocol=IPPROTO_UDP;
-	f.padding=0;
-	show_fivetuple(&f) ;
-	int ret = bpf_map_lookup_elem(accept_map_fd, &f, &a);
+	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
 		return a == XDP_PASS ;
@@ -750,14 +717,12 @@ static bool filter_pass_udp(int accept_map_fd, __u32 saddr, __u32 daddr, __u16 s
 static bool filter_pass_icmp(int accept_map_fd, __u32 saddr, __u32 daddr, int type, int code ) {
 	struct fivetuple f ;
 	enum xdp_action a=0;
-	f.saddr=htonl(saddr);
-	f.daddr=htonl(daddr);
+	f.saddr=saddr;
+	f.daddr=daddr;
 	f.sport=0;
 	f.dport=0;
 	f.protocol=IPPROTO_ICMP;
-	f.padding = 0 ;
-	show_fivetuple(&f) ;
-	int ret = bpf_map_lookup_elem(accept_map_fd, &f, &a);
+	int ret = bpf_map_lookup_elem(accept_map_fd, &a, &f);
 	if ( ret == 0 ) {
 		if(k_verbose) fprintf(stdout, "Value %d found in map\n", a) ;
 		return a == XDP_PASS;
@@ -765,7 +730,6 @@ static bool filter_pass_icmp(int accept_map_fd, __u32 saddr, __u32 daddr, int ty
 	a = XDP_PASS;
 	if(k_verbose) fprintf(stdout, "No value in map, setting to %d\n", a) ;
 	ret = bpf_map_update_elem(accept_map_fd,&f, &a, BPF_ANY) ;
-	if(k_verbose) fprintf(stdout, "bpf_map_update_elem returns %d\n", ret) ;
 	return true ;
 }
 static bool process_packet(struct xsk_socket_info *xsk_src,
@@ -788,7 +752,7 @@ static bool process_packet(struct xsk_socket_info *xsk_src,
 		hexdump(stdout, ip, (len < 32) ? len : 32) ;
 		if ( k_instrument ) fprintf(stdout, "iphdr ihl=0x%01x version=0x%01x tos=0x%02x "
 				"tot_len=0x%04x id=0x%04x flags=0x%02x frag_off=0x%04x ttl=0x%02x "
-				"protocol=0x%02x check=0x%04x saddr=0x%08x daddr=0x%08x\n",
+				"protocol=0x%02x check=0x%04x saddr=0x%08x daddr=0x%08x",
 				ip->ihl, ip->version, ip->tos, ntohs(ip->tot_len),
 				ntohs(ip->id),ntohs(ip->frag_off) >> 13,
 				ntohs(ip->frag_off) & 0x1fff, ip->ttl,ip->protocol,
@@ -1102,36 +1066,36 @@ static int open_bpf_map_file(const char *pin_dir,
 	return fd;
 }
 
-//static int check_map_fd_info(const struct bpf_map_info *info,
-//		      const struct bpf_map_info *exp)
-//{
-//	if (exp->key_size && exp->key_size != info->key_size) {
-//		fprintf(stderr, "ERR: %s() "
-//			"Map key size(%d) mismatch expected size(%d)\n",
-//			__func__, info->key_size, exp->key_size);
-//		return EXIT_FAIL;
-//	}
-//	if (exp->value_size && exp->value_size != info->value_size) {
-//		fprintf(stderr, "ERR: %s() "
-//			"Map value size(%d) mismatch expected size(%d)\n",
-//			__func__, info->value_size, exp->value_size);
-//		return EXIT_FAIL;
-//	}
-//	if (exp->max_entries && exp->max_entries != info->max_entries) {
-//		fprintf(stderr, "ERR: %s() "
-//			"Map max_entries(%d) mismatch expected size(%d)\n",
-//			__func__, info->max_entries, exp->max_entries);
-//		return EXIT_FAIL;
-//	}
-//	if (exp->type && exp->type  != info->type) {
-//		fprintf(stderr, "ERR: %s() "
-//			"Map type(%d) mismatch expected type(%d)\n",
-//			__func__, info->type, exp->type);
-//		return EXIT_FAIL;
-//	}
-//
-//	return 0;
-//}
+static int check_map_fd_info(const struct bpf_map_info *info,
+		      const struct bpf_map_info *exp)
+{
+	if (exp->key_size && exp->key_size != info->key_size) {
+		fprintf(stderr, "ERR: %s() "
+			"Map key size(%d) mismatch expected size(%d)\n",
+			__func__, info->key_size, exp->key_size);
+		return EXIT_FAIL;
+	}
+	if (exp->value_size && exp->value_size != info->value_size) {
+		fprintf(stderr, "ERR: %s() "
+			"Map value size(%d) mismatch expected size(%d)\n",
+			__func__, info->value_size, exp->value_size);
+		return EXIT_FAIL;
+	}
+	if (exp->max_entries && exp->max_entries != info->max_entries) {
+		fprintf(stderr, "ERR: %s() "
+			"Map max_entries(%d) mismatch expected size(%d)\n",
+			__func__, info->max_entries, exp->max_entries);
+		return EXIT_FAIL;
+	}
+	if (exp->type && exp->type  != info->type) {
+		fprintf(stderr, "ERR: %s() "
+			"Map type(%d) mismatch expected type(%d)\n",
+			__func__, info->type, exp->type);
+		return EXIT_FAIL;
+	}
+
+	return 0;
+}
 
 const char *pin_dir =  "/sys/fs/bpf";
 const char *map_name    =  "accept_map";
@@ -1196,14 +1160,13 @@ int main(int argc, char **argv)
 	};
 	struct all_socket_info *all_socket_info;
 	struct xdp_program *xdp_prog ;
-	struct bpf_object *bpf_object = NULL ;
+//	struct bpf_object *bpf_object = NULL ;
 	int err;
 	pthread_t stats_poll_thread;
 	pthread_t tun_read_thread;
 	struct socket_stats stats;
 	int tun_fd ;
 	char tun_name[IFNAMSIZ] ;
-	int xsks_map_fd ;
 
 	int accept_map_fd ;
 
@@ -1225,56 +1188,25 @@ int main(int argc, char **argv)
 	}
 
 
-	struct bpf_map * xsks_map ;
+
 	/* Load custom program if configured */
-	fprintf(stderr, "main cfg.filename=%s\n", cfg.filename);
-	if ( cfg.filename[0] == 0 ) {
-		fprintf(stderr,"main No program file\n") ;
-		exit(EXIT_FAILURE);
-	}
-
-//	if (cfg.filename[0] != 0) {
-	fprintf(stderr,"main Opening program file %s\n", cfg.filename) ;
-	xdp_prog=xdp_program__open_file(cfg.filename,NULL, NULL)  ;
-	fprintf(stderr,"main xdp_prog=%p\n", xdp_prog) ;
-	if ( xdp_prog == NULL ) {
-		fprintf(stderr, "ERROR:xdp_program__open_file returns NULL\n") ;
-		exit(EXIT_FAILURE);
-	}
-	bpf_object = xdp_program__bpf_obj(xdp_prog) ;
-	fprintf(stderr,"main bpf_object=%p\n", bpf_object) ;
-	if ( bpf_object == NULL ) {
-		fprintf(stderr, "ERROR:xdp_program__bpf_obj returns NULL\n") ;
-		exit(EXIT_FAILURE);
-	}
+	if (cfg.filename[0] != 0) {
+		fprintf(stderr,"Opening program file %s\n", cfg.filename) ;
+		xdp_prog=xdp_program__open_file(cfg.filename,NULL, NULL)  ;
+		fprintf(stderr,"xdp_prog=%p\n", xdp_prog) ;
+//		err=xdp_program__attach_single(xdp_prog,
+//				cfg.ifindex, XDP_MODE_SKB);
+		err=xdp_program__attach(xdp_prog,
+				cfg.ifindex, XDP_MODE_SKB, 0);
+		if (err)
+		{
+			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
+			exit(EXIT_FAILURE);
+		}
+//		bpf_object = xdp_program__bpf_obj(xdp_prog) ;
 //		assert(bpf_object) ;
-	xsks_map = bpf_object__find_map_by_name(bpf_object, "xsks_map") ;
-	if ( xsks_map == NULL ) {
-		fprintf(stderr, "ERROR:bpf_object__find_map_by_name returns NULL\n") ;
-		exit(EXIT_FAILURE);
-	}
-	err = bpf_map__set_max_entries(xsks_map, k_rx_queue_count);
-	if ( err != 0) {
-		fprintf(stderr, "ERROR:bpf_map__set_max_entries returns %d %s\n", err, strerror(err)) ;
-		exit(EXIT_FAILURE);
-	}
-//		xsks_map_fd = my_fetch_xsks_map_fd(cfg.ifname, xdp_prog);
-//		if ( xsks_map_fd < 0) {
-//			fprintf(stderr, "ERROR:my_fetch_xsks_map_fd returns %d %s\n", xsks_map_fd, strerror(-xsks_map_fd)) ;
-//			exit(EXIT_FAILURE);
-//		}
-//		err=xdp_program__attach(xdp_prog,
-//				cfg.ifindex, XDP_MODE_SKB, 0);
-//		if (err)
-//		{
-//			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
-//			exit(EXIT_FAILURE);
-//		}
-//		xsks_map = bpf_object__find_map_by_name(bpf_object, "xsks_map");
-//		fprintf(stderr,"xsks_map=%p\n", xsks_map) ;
 
-
-//	}
+	}
 //	err = pin_maps_in_bpf_object(bpf_object, pin_dir);
 //	if (err)
 //	{
@@ -1290,30 +1222,13 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	err=xdp_program__attach(xdp_prog,
-			cfg.ifindex, XDP_MODE_SKB, 0);
-	if (err)
-	{
-		fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
-		exit(EXIT_FAILURE);
-	}
 	/* Open and configure the AF_XDP (xsk) socket */
-	xsks_map_fd=bpf_map__fd(xsks_map);
-	if (xsks_map_fd < 0)
-	{
-		fprintf(stderr, "ERROR:bpf_map__fd returns %d %s\n", xsks_map_fd, strerror(-xsks_map_fd)) ;
-		exit(EXIT_FAILURE);
-	}
-	all_socket_info = xsk_configure_socket_all(&cfg, xsks_map_fd);
+	all_socket_info = xsk_configure_socket_all(&cfg);
 	if (all_socket_info == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP sockets \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-
-//	if (cfg.filename[0] != 0) {
-
-//	}
 
 //	// Set up xsks map
 //	err=xsk_setup_xdp_prog(cfg.ifindex, NULL);
