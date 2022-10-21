@@ -144,6 +144,128 @@ struct bpf_map_info info = { 0 };
 
 const char *pin_basedir =  "/sys/fs/bpf";
 
+static int xsk_size_map(struct xdp_program *xdp_prog, char *ifname)
+{
+	struct bpf_object *bpf_obj = xdp_program__bpf_obj(xdp_prog);
+	struct bpf_map *map;
+	int max_queues;
+	int err;
+
+	max_queues = xsk_get_max_queues(ifname);
+	if (max_queues < 0)
+		return max_queues;
+
+	map = bpf_object__find_map_by_name(bpf_obj, "my_xsks_map");
+	if (!map)
+		return -ENOENT;
+
+	err = bpf_map__set_max_entries(map, max_queues);
+	if (err)
+		return err;
+
+	return 0;
+}
+
+static void xsk_delete_map_entry(int xsks_map_fd, __u32 queue_id)
+{
+	bpf_map_delete_elem(xsks_map_fd, &queue_id);
+	close(xsks_map_fd);
+}
+
+static int xsk_lookup_bpf_map(int prog_fd)
+{
+	__u32 i, *map_ids, num_maps, prog_len = sizeof(struct bpf_prog_info);
+	__u32 map_len = sizeof(struct bpf_map_info);
+	struct bpf_prog_info prog_info = {};
+	int fd, err, xsks_map_fd = -ENOENT;
+	struct bpf_map_info map_info;
+
+	err = bpf_obj_get_info_by_fd(prog_fd, &prog_info, &prog_len);
+	if (err)
+		return err;
+
+	num_maps = prog_info.nr_map_ids;
+
+	map_ids = calloc(prog_info.nr_map_ids, sizeof(*map_ids));
+	if (!map_ids)
+		return -ENOMEM;
+
+	memset(&prog_info, 0, prog_len);
+	prog_info.nr_map_ids = num_maps;
+	prog_info.map_ids = (__u64)(unsigned long)map_ids;
+
+	err = bpf_obj_get_info_by_fd(prog_fd, &prog_info, &prog_len);
+	if (err) {
+		free(map_ids);
+		return err;
+	}
+
+	for (i = 0; i < prog_info.nr_map_ids; i++) {
+		fd = bpf_map_get_fd_by_id(map_ids[i]);
+		if (fd < 0)
+			continue;
+
+		memset(&map_info, 0, map_len);
+		err = bpf_obj_get_info_by_fd(fd, &map_info, &map_len);
+		if (err) {
+			close(fd);
+			continue;
+		}
+
+		if (!strncmp(map_info.name, "xsks_map", sizeof(map_info.name)) &&
+		    map_info.key_size == 4 && map_info.value_size == 4) {
+			xsks_map_fd = fd;
+			break;
+		}
+
+		close(fd);
+	}
+
+	free(map_ids);
+	pr_warn("xsk_lookup_bpf_map returns %d\n", xsks_map_fd);
+	return xsks_map_fd;
+}
+
+static bool xsk_check_redirect_flags(void)
+{
+	char data_in = 0, data_out;
+	DECLARE_LIBBPF_OPTS(bpf_test_run_opts, opts,
+			    .data_in = &data_in,
+			    .data_out = &data_out,
+			    .data_size_in = 1);
+	struct bpf_insn insns[] = {
+		BPF_LD_MAP_FD(BPF_REG_1, 0),
+		BPF_MOV64_IMM(BPF_REG_2, 0),
+		BPF_MOV64_IMM(BPF_REG_3, XDP_PASS),
+		BPF_EMIT_CALL(BPF_FUNC_redirect_map),
+		BPF_EXIT_INSN(),
+	};
+	int prog_fd, map_fd, ret;
+	bool detected = false;
+
+	map_fd = bpf_map_create(BPF_MAP_TYPE_XSKMAP, "xskmap",
+				sizeof(int), sizeof(int), 1, NULL);
+	if (map_fd < 0)
+		return detected;
+
+	insns[0].imm = map_fd;
+
+	prog_fd = xsk_check_create_prog(insns, ARRAY_SIZE(insns));
+	if (prog_fd < 0) {
+		close(map_fd);
+		return detected;
+	}
+
+	ret = bpf_prog_test_run_opts(prog_fd, &opts);
+	if (!ret && opts.retval == XDP_PASS)
+		detected = true;
+	close(prog_fd);
+	close(map_fd);
+	return detected;
+}
+
+
+
 static inline __u32 xsk_ring_prod__free(struct xsk_ring_prod *r)
 {
 	r->cached_cons = *r->consumer + r->size;
@@ -949,8 +1071,10 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Opening program file %s\n", cfg.filename) ;
 		xdp_prog=xdp_program__open_file(cfg.filename,NULL, NULL)  ;
 		fprintf(stderr,"xdp_prog=%p\n", xdp_prog) ;
-		err=xdp_program__attach_single(xdp_prog,
-				cfg.ifindex, XDP_MODE_SKB);
+//		err=xdp_program__attach_single(xdp_prog,
+//				cfg.ifindex, XDP_MODE_SKB);
+		err=xdp_program__attach(xdp_prog,
+				cfg.ifindex, XDP_MODE_SKB, 0);
 		if (err)
 		{
 			fprintf(stderr, "ERROR:xdp_program__attach returns %d\n", err) ;
