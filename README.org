@@ -82,7 +82,7 @@ eBPF program loader that you will need in subsequent lessons.
 ** Packet processing lessons
 Once you have the basics figured out and know how to load programs into the
 kernel, you are ready to start processing some packets. The lessons in the
-packet progressing category will teach you about the different steps needed
+packet processing category will teach you about the different steps needed
 to process data packets, including parsing, rewriting, instructing the
 kernel about what to do with the packet after processing, and how to use
 helpers to access existing kernel functionality.
