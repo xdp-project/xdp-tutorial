@@ -2,7 +2,7 @@
 #+TITLE: Setup dependencies
 #+OPTIONS: ^:nil
 
-Before you can start completing the steps in this XDP-tutorial, go though
+Before you can start completing the steps in this XDP-tutorial, go through
 this document and install the needed software packages.
 
 * Table of Contents                                                     :TOC:
