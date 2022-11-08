@@ -1,0 +1,22 @@
+#
+# NOTE: This script requeres the reload pluging, install it as follows:
+#         vagrant plugin install vagrant-reload
+#
+
+Vagrant.configure("2") do |config|
+
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.cpus = 8
+    libvirt.memory = 4096
+    libvirt.storage :file, :size => '50G', :bus => 'scsi'
+    # libvirt.storage_pool_path = '/home/user/.local/share/libvirt/images'
+  end
+
+  config.vm.box = "generic/fedora29"
+  config.vm.hostname = "xdp-tutorial"
+
+  config.vm.provision :shell, path: "bootstrap.sh"
+  config.vm.provision :reload
+  config.vm.provision :shell, privileged: false, path: "bootstrap_post_kernel.sh"
+
+end

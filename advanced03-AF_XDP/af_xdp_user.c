@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include <sys/resource.h>
+#include <sys/utsname.h>
 
 #include <bpf/bpf.h>
 #include <bpf/xsk.h>
@@ -30,6 +31,9 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
+#ifdef XDP_USE_NEED_WAKEUP
+#define HAS_XDP_NEED_WAKEUP 1
+#endif
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -186,6 +190,9 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	xsk_cfg.libbpf_flags = 0;
 	xsk_cfg.xdp_flags = cfg->xdp_flags;
 	xsk_cfg.bind_flags = cfg->xsk_bind_flags;
+#ifdef HAS_XDP_NEED_WAKEUP
+	xsk_cfg.bind_flags |= XDP_USE_NEED_WAKEUP;
+#endif
 	ret = xsk_socket__create(&xsk_info->xsk, cfg->ifname,
 				 cfg->xsk_if_queue, umem->umem, &xsk_info->rx,
 				 &xsk_info->tx, &xsk_cfg);
@@ -234,7 +241,11 @@ static void complete_tx(struct xsk_socket_info *xsk)
 	if (!xsk->outstanding_tx)
 		return;
 
-	sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+#ifdef HAVE_XDP_NEED_WAKEUP
+	if (xsk_ring_prod__needs_wakeup(&xsk->tx))
+#endif
+		sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT,
+		       NULL, 0);
 
 
 	/* Collect/free completed TX buffers */
@@ -345,8 +356,19 @@ static void handle_receive_packets(struct xsk_socket_info *xsk)
 	int ret;
 
 	rcvd = xsk_ring_cons__peek(&xsk->rx, RX_BATCH_SIZE, &idx_rx);
-	if (!rcvd)
+	if (!rcvd) {
+#ifdef HAS_XDP_NEED_WAKEUP
+		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq)) {
+			struct pollfd fds[2];
+
+			memset(fds, 0, sizeof(fds));
+			fds[0].fd = xsk_socket__fd(xsk->xsk);
+			fds[0].events = POLLIN;
+			poll(fds, 1, 0);
+		}
+#endif
 		return;
+	}
 
 	/* Stuff the ring with as much frames as possible */
 	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
@@ -515,6 +537,29 @@ int main(int argc, char **argv)
 	struct xsk_socket_info *xsk_socket;
 	struct bpf_object *bpf_obj = NULL;
 	pthread_t stats_poll_thread;
+	struct utsname uname_info;
+	unsigned int major, minor, revision;
+
+	/* Some basic version checking for AF_XDP */
+	if (uname(&uname_info) == -1) {
+		fprintf(stderr, "ERROR: failed calling uname(): %s\n",
+				strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	if (sscanf(uname_info.release, "%u.%u.%u-",
+		   &major, &minor, &revision) != 3) {
+		fprintf(stderr, "ERROR: failed to extract Kernel version\n");
+		exit(EXIT_FAILURE);
+	}
+	if (major < 5 || (major == 5 && minor < 2)) {
+		printf("WARNING: For AF_XDP you need at least an upstream "
+		       "kernel of 5.2!\n");
+	}
+	if (major == 5 && minor == 2) {
+		printf("WARNING: Although AF_XDP is supported in upstream "
+		       "kernel 5.2, due to known libbpf issues it's "
+		       "recommended to use at least version 5.3!\n");
+	}
 
 	/* Global shutdown handler */
 	signal(SIGINT, exit_application);
@@ -583,7 +628,8 @@ int main(int argc, char **argv)
 	/* Open and configure the AF_XDP (xsk) socket */
 	xsk_socket = xsk_configure_socket(&cfg, umem);
 	if (xsk_socket == NULL) {
-		fprintf(stderr, "ERROR: Can't setup AF_XDP socket \"%s\"\n",
+		fprintf(stderr, "ERROR: Can't setup AF_XDP socket \"%s\"\n"
+			"Make sure Kernel is build with CONFIG_XDP_SOCKETS=y\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
