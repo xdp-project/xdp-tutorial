@@ -14,13 +14,13 @@
  * C-function names (below the SEC define).
  */
 
-SEC("xdp_pass")
+SEC("xdp")
 int  xdp_pass_func(struct xdp_md *ctx)
 {
 	return XDP_PASS;
 }
 
-SEC("xdp_drop")
+SEC("xdp")
 int  xdp_drop_func(struct xdp_md *ctx)
 {
 	return XDP_DROP;
