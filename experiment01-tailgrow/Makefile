@@ -9,7 +9,6 @@ XDP_TARGETS  += xdp_prog_fail3
 
 # USER_TARGETS :=
 
-LIBBPF_DIR = ../libbpf/src/
 COMMON_DIR = ../common
 
 COPY_LOADER := xdp_loader
