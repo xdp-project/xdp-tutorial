@@ -1,23 +1,15 @@
 # SPDX-License-Identifier: (GPL-2.0)
-CC := gcc
+LIB_DIR = ../lib
+include $(LIB_DIR)/defines.mk
 
-all: common_params.o common_user_bpf_xdp.o common_libbpf.o
+all: common_params.o
 
-CFLAGS := -g -Wall
-
-CFLAGS += -I$(LIBBPF_DIR)/build/usr/include/  -I../headers
-# TODO: Do we need to make libbpf from this make file too?
+CFLAGS += -I$(LIB_DIR)/install/include
 
 common_params.o: common_params.c common_params.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-common_user_bpf_xdp.o: common_user_bpf_xdp.c common_user_bpf_xdp.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-common_libbpf.o: common_libbpf.c common_libbpf.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(QUIET_CC)$(CC) $(CFLAGS) -c -o $@ $<
 
 .PHONY: clean
 
 clean:
-	rm -f *.o
+	$(Q)rm -f *.o

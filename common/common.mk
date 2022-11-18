@@ -20,16 +20,11 @@ USER_C := ${USER_TARGETS:=.c}
 USER_OBJ := ${USER_C:.c=.o}
 
 # Expect this is defined by including Makefile, but define if not
-COMMON_DIR ?= ../common/
-LIBBPF_DIR ?= ../libbpf/src/
+COMMON_DIR ?= ../common
+LIB_DIR ?= ../lib
 
-COPY_LOADER ?=
-LOADER_DIR ?= $(COMMON_DIR)/../basic-solutions
-
-OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
-
-# Extend if including Makefile already added some
-COMMON_OBJS += $(COMMON_DIR)/common_params.o $(COMMON_DIR)/common_user_bpf_xdp.o
+COMMON_OBJS += $(COMMON_DIR)/common_params.o
+include $(LIB_DIR)/defines.mk
 
 # Create expansions for dependencies
 COMMON_H := ${COMMON_OBJS:.o=.h}
@@ -39,25 +34,18 @@ EXTRA_DEPS +=
 # BPF-prog kern and userspace shares struct via header file:
 KERN_USER_H ?= $(wildcard common_kern_user.h)
 
-CFLAGS ?= -I$(LIBBPF_DIR)/build/usr/include/ -g
-CFLAGS += -I../headers/
-LDFLAGS ?= -L$(LIBBPF_DIR)
+CFLAGS += -I$(INCLUDE_DIR) -I$(HEADER_DIR) -I$(LIB_DIR)/util -I$(LIB_DIR)/install/include $(EXTRA_CFLAGS)
+BPF_CFLAGS += -I$(INCLUDE_DIR) -I$(HEADER_DIR) -I$(LIB_DIR)/install/include $(EXTRA_CFLAGS)
+LDFLAGS += -L$(LIB_DIR)/install/lib
 
-BPF_CFLAGS ?= -I$(LIBBPF_DIR)/build/usr/include/ -I../headers/
-
-LIBS = -l:libbpf.a -lelf $(USER_LIBS)
+BPF_HEADERS := $(wildcard $(HEADER_DIR)/*/*.h) $(wildcard $(INCLUDE_DIR)/*/*.h)
 
 all: llvm-check $(USER_TARGETS) $(XDP_OBJ) $(COPY_LOADER) $(COPY_STATS)
 
 .PHONY: clean $(CLANG) $(LLC)
 
 clean:
-	rm -rf $(LIBBPF_DIR)/build
-	$(MAKE) -C $(LIBBPF_DIR) clean
-	$(MAKE) -C $(COMMON_DIR) clean
-	rm -f $(USER_TARGETS) $(XDP_OBJ) $(USER_OBJ) $(COPY_LOADER) $(COPY_STATS)
-	rm -f *.ll
-	rm -f *~
+	$(Q)rm -f $(USER_TARGETS) $(BPF_OBJ) $(USER_OBJ) $(USER_GEN) $(USER_TARGETS_OBJS) *.ll
 
 ifdef COPY_LOADER
 $(COPY_LOADER): $(LOADER_DIR)/${COPY_LOADER:=.c} $(COMMON_H)
@@ -86,12 +74,21 @@ llvm-check: $(CLANG) $(LLC)
 
 $(OBJECT_LIBBPF):
 	@if [ ! -d $(LIBBPF_DIR) ]; then \
-		echo "Error: Need libbpf submodule"; \
+		echo "Error: Need libbpf submodule" $(LIBBPF_DIR); \
 		echo "May need to run git submodule update --init"; \
 		exit 1; \
 	else \
 		cd $(LIBBPF_DIR) && $(MAKE) all OBJDIR=.; \
 		mkdir -p build; $(MAKE) install_headers DESTDIR=build OBJDIR=.; \
+	fi
+
+$(OBJECT_LIBXDP):
+	@if [ ! -d $(LIBXDP_DIR) ]; then \
+		echo "Error: Need libxdp submodule" $(LIBXDP_DIR); \
+		echo "May need to run git submodule update --init"; \
+		exit 1; \
+	else \
+		cd $(LIBXDP_DIR) && $(MAKE) all OBJDIR=.; \
 	fi
 
 # Create dependency: detect if C-file change and touch H-file, to trigger
@@ -100,15 +97,15 @@ $(COMMON_H): %.h: %.c
 	touch $@
 
 # Detect if any of common obj changed and create dependency on .h-files
-$(COMMON_OBJS): %.o: %.h
-	make -C $(COMMON_DIR)
+$(COMMON_OBJS):	%.o: %.h
+	$(Q)$(MAKE) -C $(COMMON_DIR)
 
-$(USER_TARGETS): %: %.c  $(OBJECT_LIBBPF) Makefile $(COMMON_MK) $(COMMON_OBJS) $(KERN_USER_H) $(EXTRA_DEPS)
-	$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) \
-	 $< $(LIBS)
+$(USER_TARGETS): %: %.c  $(OBJECT_LIBBPF) $(OBJECT_LIBXDP) Makefile $(COMMON_MK) $(COMMON_OBJS) $(KERN_USER_H) $(EXTRA_DEPS)
+	$(QUIET_CC)$(CC) -Wall $(CFLAGS) $(LDFLAGS) -o $@ $(COMMON_OBJS) $(LIB_OBJS) \
+	 $< $(LDLIBS)
 
 $(XDP_OBJ): %.o: %.c  Makefile $(COMMON_MK) $(KERN_USER_H) $(EXTRA_DEPS) $(OBJECT_LIBBPF)
-	$(CLANG) -S \
+	$(QUIET_CLANG)$(CLANG) -S \
 	    -target bpf \
 	    -D __BPF_TRACING__ \
 	    $(BPF_CFLAGS) \
@@ -118,4 +115,4 @@ $(XDP_OBJ): %.o: %.c  Makefile $(COMMON_MK) $(KERN_USER_H) $(EXTRA_DEPS) $(OBJEC
 	    -Wno-compare-distinct-pointer-types \
 	    -Werror \
 	    -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
-	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
+	$(QUIET_LLC)$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}

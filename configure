@@ -1,0 +1,266 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+# This is not an autoconf generated configure
+#
+
+# Output file which is input to Makefile
+CONFIG_FINAL=config.mk
+CONFIG=".${CONFIG}.tmp"
+
+# Make a temp directory in build tree.
+TMPDIR=$(mktemp -d config.XXXXXX)
+trap 'status=$?; rm -rf $TMPDIR; rm -f $CONFIG; exit $status' EXIT HUP INT QUIT TERM
+
+SUBMODULE_LIBBPF=0
+
+check_toolchain()
+{
+    local clang_version
+
+    : ${PKG_CONFIG:=pkg-config}
+    : ${CC=gcc}
+    : ${CLANG=clang}
+    : ${LLC=llc}
+    : ${BPFTOOL=bpftool}
+
+    for TOOL in $PKG_CONFIG $CC $CLANG $LLC; do
+        if [ ! $(command -v ${TOOL} 2>/dev/null) ]; then
+            echo "*** ERROR: Cannot find tool ${TOOL}" ;
+            exit 1;
+        fi;
+    done
+
+    clang_version=$($CLANG --version | sed -n '/clang version/ s/^.*clang version // p')
+    clang_major_version=$(echo "$clang_version" | sed 's/\..*$//')
+    if [ "$clang_major_version" -lt "11" ]; then
+        echo "ERROR: Need clang version >= 11, found $clang_major_version ($clang_version)"
+        exit 1
+    fi
+    echo "clang: $clang_version"
+
+    echo "PKG_CONFIG:=${PKG_CONFIG}" >>$CONFIG
+    echo "CC:=${CC}" >>$CONFIG
+    echo "CLANG:=${CLANG}" >>$CONFIG
+    echo "LLC:=${LLC}" >>$CONFIG
+    echo "BPFTOOL:=${BPFTOOL}" >>$CONFIG
+}
+
+check_elf()
+{
+    if ${PKG_CONFIG} libelf --exists; then
+        echo "HAVE_ELF:=y" >>$CONFIG
+        echo "yes"
+
+        echo 'CFLAGS += -DHAVE_ELF' `${PKG_CONFIG} libelf --cflags` >> $CONFIG
+        echo 'LDLIBS += ' `${PKG_CONFIG} libelf --libs` >>$CONFIG
+    else
+        echo "missing - this is required"
+        return 1
+    fi
+}
+
+check_zlib()
+{
+    if ${PKG_CONFIG} zlib --exists; then
+        echo "HAVE_ZLIB:=y" >>$CONFIG
+        echo "yes"
+
+        echo 'CFLAGS += -DHAVE_ZLIB' `${PKG_CONFIG} zlib --cflags` >> $CONFIG
+        echo 'LDLIBS += ' `${PKG_CONFIG} zlib --libs` >>$CONFIG
+    else
+        echo "missing - this is required"
+        return 1
+    fi
+}
+
+check_libbpf()
+{
+    local libbpf_err
+
+    if [ "${FORCE_SUBMODULE_LIBBPF:-0}" -ne "1" ] && ${PKG_CONFIG} libbpf --exists || [ -n "$LIBBPF_DIR" ]; then
+
+        if [ -n "$LIBBPF_DIR" ]; then
+            LIBBPF_CFLAGS="-I${LIBBPF_DIR}/include -L${LIBBPF_DIR}/lib"
+            LIBBPF_LDLIBS="-lbpf"
+        else
+            LIBBPF_CFLAGS=$(${PKG_CONFIG} libbpf --cflags)
+            LIBBPF_LDLIBS=$(${PKG_CONFIG} libbpf --libs)
+        fi
+
+        cat >$TMPDIR/libbpftest.c <<EOF
+#include <bpf/libbpf.h>
+int main(int argc, char **argv) {
+    void *ptr;
+    DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts, .pin_root_path = "/path");
+    DECLARE_LIBBPF_OPTS(bpf_xdp_set_link_opts, lopts, .old_fd = -1);
+    (void) bpf_object__open_file("file", &opts);
+    (void) bpf_program__name(ptr);
+    (void) bpf_map__set_initial_value(ptr, ptr, 0);
+    (void) bpf_set_link_xdp_fd_opts(0, 0, 0, &lopts);
+    (void) bpf_tc_attach(ptr, ptr);
+    (void) bpf_object__next_program(ptr, ptr);
+    return 0;
+}
+EOF
+
+        libbpf_err=$($CC -o $TMPDIR/libbpftest $TMPDIR/libbpftest.c  $LIBBPF_CFLAGS -lbpf 2>&1)
+        if [ "$?" -eq "0" ]; then
+            echo "SYSTEM_LIBBPF:=y" >>$CONFIG
+            echo 'CFLAGS += ' $LIBBPF_CFLAGS >> $CONFIG
+            echo 'LDLIBS += ' $LIBBPF_LDLIBS >>$CONFIG
+            echo 'OBJECT_LIBBPF = ' >>$CONFIG
+            echo system
+
+            return 0
+        fi
+    else
+        libbpf_err="${PKG_CONFIG} couldn't find libbpf"
+    fi
+
+    if [ "${FORCE_SYSTEM_LIBBPF:-0}" -eq "1" ]; then
+        echo "FORCE_SYSTEM_LIBBPF is set, but no usable libbpf found on system"
+        echo "error: $libbpf_err"
+        rm -f "$CONFIG"
+        exit 1
+    fi
+
+    echo submodule
+    SUBMODULE_LIBBPF=1
+    echo "SYSTEM_LIBBPF:=n" >> $CONFIG
+    echo 'LDLIBS += -l:libbpf.a' >>$CONFIG
+    echo 'OBJECT_LIBBPF = $(LIB_DIR)/install/lib/libbpf.a' >>$CONFIG
+    if ! [ -d "lib/libbpf/src" ] && [ -f ".gitmodules" ] && [ -e ".git" ]; then
+        git submodule init && git submodule update
+    fi
+
+    echo -n "ELF support: "
+    check_elf || exit 1
+
+    echo -n "zlib support: "
+    check_zlib || exit 1
+
+    # For the build submodule library we know it does support this API, so we
+    # hard code it. Also due to the fact it's hard to build a test app as
+    # libbpf.a has not been build at configure time.
+    echo "HAVE_LIBBPF_PERF_BUFFER__CONSUME:=y" >>"$CONFIG"
+}
+
+check_bpf_use_errno()
+{
+    local compile_err
+
+    # Clang BPF-progs when compiled with proper -target bpf cause
+    # build dependencies to include <gnu/stubs-32.h> file.
+    #
+    cat >$TMPDIR/bpf_use_errno_test.c <<EOF
+#include <errno.h>
+int dummy(void *ctx) { return 0; }
+EOF
+
+    compile_err=$($CLANG -target bpf -c $TMPDIR/bpf_use_errno_test.c 2>&1)
+    if [ "$?" -ne "0" ]; then
+        echo "*** ERROR - Clang BPF-prog cannot include <errno.h>"
+        echo "          - Install missing userspace header file"
+        echo ""
+        echo "Compile error: $compile_err"
+        echo ""
+        echo " On Fedora install:"
+        echo "   dnf install glibc-devel.i686"
+        echo " On Debian install:"
+        echo "   apt install libc6-dev-i386"
+        echo ""
+        exit 1
+    fi
+}
+
+check_libxdp()
+{
+    if [ "${FORCE_SUBMODULE_LIBXDP:-0}" -ne "1" ] && ${PKG_CONFIG} libxdp --exists; then
+
+        LIBXDP_CFLAGS=$(${PKG_CONFIG} libxdp --cflags)
+        LIBXDP_LDLIBS=$(${PKG_CONFIG} libxdp --libs)
+        echo "SYSTEM_LIBXDP:=y" >>$CONFIG
+        echo 'CFLAGS += ' $LIBXDP_CFLAGS >> $CONFIG
+        echo 'LDLIBS += ' $LIBXDP_LDLIBS >>$CONFIG
+        echo 'OBJECT_LIBXDP = ' >>$CONFIG
+        echo system
+
+        return 0
+    fi
+
+    echo submodule
+    echo "SYSTEM_LIBXDP:=n" >> $CONFIG
+    if [ "$SUBMODULE_LIBBPF" -eq "1" ]; then
+        echo "Configuring libxdp to use our libbpf submodule"
+        (export LIBBPF_DIR="$(readlink -m lib/libbpf)" \
+                LIBBPF_INCLUDE_DIR="$(readlink -m lib/install/include)" \
+                LIBBPF_UNBUILT=1;
+         cd lib/xdp-tools; ./configure)
+
+        # libxdp.a has to come before libbpf.a so the former can pick up symbols
+        # from the latter
+        sed -i 's/-l:libbpf.a/-l:libxdp.a -l:libbpf.a/' $CONFIG
+    else
+        echo "Configuring libxdp without our libbpf"
+        (cd lib/xdp-tools; ./configure)
+
+        echo 'LDLIBS += -l:libxdp.a' >>$CONFIG
+    fi
+
+    echo 'LDFLAGS += -L$(LIB_DIR)/install/lib' >>$CONFIG
+    echo 'OBJECT_LIBXDP = $(LIB_DIR)/install/lib/libxdp.a' >>$CONFIG
+    if ! [ -d "lib/xdp-tools/lib" ] && [ -f ".gitmodules" ] && [ -e ".git" ]; then
+        git submodule init && git submodule update
+    fi
+}
+
+quiet_config()
+{
+    cat <<EOF
+# user can control verbosity similar to kernel builds (e.g., V=1)
+ifeq ("\$(origin V)", "command line")
+  VERBOSE = \$(V)
+endif
+ifndef VERBOSE
+  VERBOSE = 0
+endif
+ifeq (\$(VERBOSE),1)
+  Q =
+else
+  Q = @
+endif
+ifeq (\$(VERBOSE),0)
+MAKEFLAGS += --no-print-directory
+endif
+
+
+ifeq (\$(VERBOSE), 0)
+    QUIET_CC       = @echo '    CC       '\$@;
+    QUIET_CLANG    = @echo '    CLANG    '\$@;
+    QUIET_LLC      = @echo '    LLC      '\$@;
+    QUIET_LINK     = @echo '    LINK     '\$@;
+    QUIET_INSTALL  = @echo '    INSTALL  '\$@;
+    QUIET_GEN      = @echo '    GEN      '\$@;
+endif
+EOF
+}
+
+echo "# Generated config" >$CONFIG
+quiet_config >> $CONFIG
+
+check_toolchain
+
+echo -n "libbpf support: "
+check_libbpf
+echo -n "libxdp support: "
+check_libxdp
+
+check_bpf_use_errno
+
+if [ -n "$KERNEL_HEADERS" ]; then
+    echo "kernel headers: $KERNEL_HEADERS"
+    echo "CFLAGS += -I$KERNEL_HEADERS" >>$CONFIG
+    echo "BPF_CFLAGS += -I$KERNEL_HEADERS" >>$CONFIG
+fi
+
+mv $CONFIG $CONFIG_FINAL
