@@ -84,6 +84,7 @@
   dnf:
     name:
       - elfutils-libelf-devel
+      - zlib-devel
     state: installed
 
 - name: Packages - pahole/dwarves build dependencies
