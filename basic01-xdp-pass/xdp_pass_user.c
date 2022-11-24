@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts);
 	DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts, 0);
 	char filename[] = "xdp_pass_kern.o";
-	char progname[] = "xdp_pass_simple";
+	char progname[] = "xdp_prog_simple";
 	char errmsg[1024];
 	int err = EXIT_SUCCESS;
 	struct xdp_program *p;
