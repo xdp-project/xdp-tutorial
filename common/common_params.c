@@ -92,7 +92,7 @@ void parse_cmdline_args(int argc, char **argv,
 	}
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFUMQ:czpq",
+	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFU:MQ:czpq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
@@ -150,6 +150,7 @@ void parse_cmdline_args(int argc, char **argv,
 			break;
 		case 'U':
 			cfg->do_unload = true;
+			cfg->prog_id = atoi(optarg);
 			break;
 		case 'p':
 			cfg->xsk_poll_mode = true;

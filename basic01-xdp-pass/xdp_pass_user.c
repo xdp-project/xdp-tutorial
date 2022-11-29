@@ -36,11 +36,17 @@ static const struct option_wrapper long_options[] = {
 	{{"force",       no_argument,		NULL, 'F' },
 	 "Force install, replacing existing program on interface"},
 
-	{{"unload",      no_argument,		NULL, 'U' },
-	 "Unload XDP program instead of loading"},
+	{{"unload",      required_argument,		NULL, 'U' },
+	 "Unload XDP program <id> instead of loading", "<id>"},
 
 	{{0, 0, NULL,  0 }, NULL, false}
 };
+
+
+enum xdp_attach_mode get_attach_mode()
+{
+	return XDP_MODE_SKB;
+}
 
 
 int main(int argc, char **argv)
@@ -66,23 +72,28 @@ int main(int argc, char **argv)
 		usage(argv[0], __doc__, long_options, (argc == 1));
 		return EXIT_FAIL_OPTION;
 	}
-	/* if (cfg.do_unload) */
-	/* 	return xdp_link_detach(cfg.ifindex, cfg.xdp_flags); */
 
-	xdp_opts.open_filename = filename;
-	xdp_opts.prog_name = progname;
-	xdp_opts.opts = &opts;
+	if (cfg.do_unload) {
+		xdp_opts.id = cfg.prog_id;
+	} else {
+		xdp_opts.open_filename = filename;
+		xdp_opts.prog_name = progname;
+		xdp_opts.opts = &opts;
+	}
 
 	p = xdp_program__create(&xdp_opts);
 	err = libxdp_get_error(p);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
-		fprintf(stderr, "Couldn't create XDP program %s: %s\n",
+		fprintf(stderr, "Couldn't get XDP program %s: %s\n",
 			progname, errmsg);
 		return err;
 	}
 
-	err = xdp_program__attach(p, cfg.ifindex, XDP_MODE_SKB, 0);
+	if (cfg.do_unload)
+		return xdp_program__detach(p, cfg.ifindex, get_attach_mode(), 0);
+
+	err = xdp_program__attach(p, cfg.ifindex, get_attach_mode(), 0);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
 		fprintf(stderr, "Couldn't attach XDP program on iface '%s' : %s (%d)\n",

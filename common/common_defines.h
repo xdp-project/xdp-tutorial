@@ -14,6 +14,7 @@ struct config {
 	char *redirect_ifname;
 	char redirect_ifname_buf[IF_NAMESIZE];
 	bool do_unload;
+	__u32 prog_id;
 	bool reuse_maps;
 	char pin_dir[512];
 	char filename[512];
