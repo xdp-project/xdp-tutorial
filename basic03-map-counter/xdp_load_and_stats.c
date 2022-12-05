@@ -14,6 +14,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
+#include <xdp/libxdp.h>
 
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
@@ -21,10 +22,9 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "common_kern_user.h"
-#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 static const char *default_filename = "xdp_prog_kern.o";
-static const char *default_progsec = "xdp_stats1";
+static const char *default_progname = "xdp_stats1_func";
 
 static const struct option_wrapper long_options[] = {
 	{{"help",        no_argument,		NULL, 'h' },
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
 {
 	struct bpf_map_info map_expect = { 0 };
 	struct bpf_map_info info = { 0 };
-	struct bpf_object *bpf_obj;
+	struct xdp_program *program;
 	int stats_map_fd;
 	int interval = 2;
 	int err;
@@ -283,8 +283,8 @@ int main(int argc, char **argv)
 	};
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
-	strncpy(cfg.progsec,  default_progsec,  sizeof(cfg.progsec));
-	/* Cmdline options can change progsec */
+	strncpy(cfg.progsec,  default_progname,  sizeof(cfg.progsec));
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	/* Required option */
@@ -293,11 +293,11 @@ int main(int argc, char **argv)
 		usage(argv[0], __doc__, long_options, (argc == 1));
 		return EXIT_FAIL_OPTION;
 	}
-	if (cfg.do_unload)
-		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+	/* if (cfg.do_unload) */
+	/* 	return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0); */
 
-	bpf_obj = load_bpf_and_xdp_attach(&cfg);
-	if (!bpf_obj)
+	program = load_bpf_and_xdp_attach(&cfg);
+	if (!program)
 		return EXIT_FAIL_BPF;
 
 	if (verbose) {
@@ -308,9 +308,9 @@ int main(int argc, char **argv)
 	}
 
 	/* Lesson#3: Locate map file descriptor */
-	stats_map_fd = find_map_fd(bpf_obj, "xdp_stats_map");
+	stats_map_fd = find_map_fd(xdp_program__bpf_obj(program), "xdp_stats_map");
 	if (stats_map_fd < 0) {
-		xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+		/* xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0); */
 		return EXIT_FAIL_BPF;
 	}
 

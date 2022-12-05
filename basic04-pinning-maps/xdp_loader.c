@@ -14,6 +14,7 @@ static const char *__doc__ = "XDP loader\n"
 
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
+#include <xdp/libxdp.h>
 
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
@@ -113,7 +114,7 @@ int pin_maps_in_bpf_object(struct bpf_object *bpf_obj, const char *subdir)
 
 int main(int argc, char **argv)
 {
-	struct bpf_object *bpf_obj;
+	struct xdp_program *program;
 	int err;
 
 	struct config cfg = {
@@ -134,11 +135,11 @@ int main(int argc, char **argv)
 	}
 	if (cfg.do_unload) {
 		/* TODO: Miss unpin of maps on unload */
-		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+		/* return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0); */
 	}
 
-	bpf_obj = load_bpf_and_xdp_attach(&cfg);
-	if (!bpf_obj)
+	program = load_bpf_and_xdp_attach(&cfg);
+	if (!program)
 		return EXIT_FAIL_BPF;
 
 	if (verbose) {
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Use the --dev name as subdir for exporting/pinning maps */
-	err = pin_maps_in_bpf_object(bpf_obj, cfg.ifname);
+	err = pin_maps_in_bpf_object(xdp_program__bpf_obj(program), cfg.ifname);
 	if (err) {
 		fprintf(stderr, "ERR: pinning maps\n");
 		return err;

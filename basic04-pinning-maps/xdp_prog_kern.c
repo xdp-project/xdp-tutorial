@@ -8,12 +8,12 @@
  * - Here an array with XDP_ACTION_MAX (max_)entries are created.
  * - The idea is to keep stats per (enum) xdp_action
  */
-struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size    = sizeof(__u32),
-	.value_size  = sizeof(struct datarec),
-	.max_entries = XDP_ACTION_MAX,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__type(key, __u32);
+	__type(value, struct datarec);
+	__uint(max_entries, XDP_ACTION_MAX);
+} xdp_stats_map SEC(".maps");
 
 /* LLVM maps __sync_fetch_and_add() as a built-in function to the BPF atomic add
  * instruction (that is BPF_STX | BPF_XADD | BPF_W for word sizes)
@@ -49,7 +49,7 @@ __u32 xdp_stats_record_action(struct xdp_md *ctx, __u32 action)
 	return action;
 }
 
-SEC("xdp_pass")
+SEC("xdp")
 int  xdp_pass_func(struct xdp_md *ctx)
 {
 	__u32 action = XDP_PASS; /* XDP_PASS = 2 */
@@ -57,7 +57,7 @@ int  xdp_pass_func(struct xdp_md *ctx)
 	return xdp_stats_record_action(ctx, action);
 }
 
-SEC("xdp_drop")
+SEC("xdp")
 int  xdp_drop_func(struct xdp_md *ctx)
 {
 	__u32 action = XDP_DROP;
@@ -65,7 +65,7 @@ int  xdp_drop_func(struct xdp_md *ctx)
 	return xdp_stats_record_action(ctx, action);
 }
 
-SEC("xdp_abort")
+SEC("xdp")
 int  xdp_abort_func(struct xdp_md *ctx)
 {
 	__u32 action = XDP_ABORTED;
