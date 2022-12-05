@@ -2,12 +2,12 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
-struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_PERCPU_HASH,
-	.key_size    = sizeof(__s32),
-	.value_size  = sizeof(__u64),
-	.max_entries = 10,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_HASH);
+	__type(key, __s32);
+	__type(value, __u64);
+	__uint(max_entries, 10);
+} xdp_stats_map SEC(".maps");
 
 struct xdp_exception_ctx {
 	__u64 __pad;      // First 8 bytes are not accessible by bpf code

@@ -22,12 +22,9 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
-#include <linux/err.h>
-
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
-#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 #include <linux/perf_event.h>
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
@@ -74,7 +71,7 @@ int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
 static void stats_print(int map_fd)
 {
 	/* For percpu maps, userspace gets a value per possible CPU */
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	__u64 values[nr_cpus];
 	__s32 key;
 	void *keyp = &key, *prev_keyp = NULL;

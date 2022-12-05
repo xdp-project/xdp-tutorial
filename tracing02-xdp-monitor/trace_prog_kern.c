@@ -3,7 +3,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
-#include "bpf_legacy.h"
+//#include "bpf_legacy.h"
 //#include "bpf_tracing_macros.h"
 
 struct bpf_map_def SEC("maps") redirect_err_cnt = {

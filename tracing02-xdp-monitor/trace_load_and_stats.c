@@ -21,12 +21,9 @@ static const char *__doc__ = "XDP monitor via tracepoints\n";
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
-#include <linux/err.h>
-
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
-#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 #include <linux/perf_event.h>
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
@@ -281,7 +278,7 @@ static __u64 gettime(void)
 static bool map_collect_record(int fd, __u32 key, struct record *rec)
 {
 	/* For percpu maps, userspace gets a value per possible CPU */
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	struct datarec values[nr_cpus];
 	__u64 sum_processed = 0;
 	__u64 sum_dropped = 0;
@@ -318,7 +315,7 @@ static bool map_collect_record(int fd, __u32 key, struct record *rec)
 static bool map_collect_record_u64(int fd, __u32 key, struct record_u64 *rec)
 {
 	/* For percpu maps, userspace gets a value per possible CPU */
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	struct u64rec values[nr_cpus];
 	__u64 sum_total = 0;
 	int i;
@@ -428,7 +425,7 @@ static void stats_print(struct stats_record *stats_rec,
 			struct stats_record *stats_prev,
 			bool err_only)
 {
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	int rec_i = 0, i, to_cpu;
 	double t = 0, pps = 0;
 
@@ -656,7 +653,7 @@ static bool stats_collect(struct bpf_object *obj, struct stats_record *rec)
 
 static void *alloc_rec_per_cpu(int record_size)
 {
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	void *array;
 	size_t size;
 
