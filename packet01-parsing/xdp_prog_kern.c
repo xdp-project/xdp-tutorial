@@ -59,7 +59,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 {
 }*/
 
-SEC("xdp_packet_parser")
+SEC("xdp")
 int  xdp_parser_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;

@@ -16,19 +16,20 @@
 #define memcpy(dest, src, n) __builtin_memcpy((dest), (src), (n))
 #endif
 
-struct bpf_map_def SEC("maps") tx_port = {
-	.type = BPF_MAP_TYPE_DEVMAP,
-	.key_size = sizeof(int),
-	.value_size = sizeof(int),
-	.max_entries = 256,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_DEVMAP);
+	__type(key, int);
+	__type(value, int);
+	__uint(max_entries, 256);
+} tx_port SEC(".maps");
 
-struct bpf_map_def SEC("maps") redirect_params = {
-	.type = BPF_MAP_TYPE_HASH,
-	.key_size = ETH_ALEN,
-	.value_size = ETH_ALEN,
-	.max_entries = 1,
-};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key,  unsigned char[ETH_ALEN]);
+	__type(value, unsigned char[ETH_ALEN]);
+	__uint(max_entries, 1);
+} redirect_params SEC(".maps");
 
 static __always_inline __u16 csum_fold_helper(__u32 csum)
 {

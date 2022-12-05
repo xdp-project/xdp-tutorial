@@ -54,7 +54,7 @@ static __always_inline int vlan_tag_push(struct xdp_md *ctx,
 }
 
 /* Implement assignment 1 in this section */
-SEC("xdp_port_rewrite")
+SEC("xdp")
 int xdp_port_rewrite_func(struct xdp_md *ctx)
 {
 	return XDP_PASS;
@@ -63,7 +63,7 @@ int xdp_port_rewrite_func(struct xdp_md *ctx)
 /* VLAN swapper; will pop outermost VLAN tag if it exists, otherwise push a new
  * one with ID 1. Use this for assignments 2 and 3.
  */
-SEC("xdp_vlan_swap")
+SEC("xdp")
 int xdp_vlan_swap_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
@@ -91,7 +91,7 @@ int xdp_vlan_swap_func(struct xdp_md *ctx)
 /* Solution to the parsing exercise in lesson packet01. Handles VLANs and legacy
  * IP (via the helpers in parsing_helpers.h).
  */
-SEC("xdp_packet_parser")
+SEC("xdp")
 int  xdp_parser_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;

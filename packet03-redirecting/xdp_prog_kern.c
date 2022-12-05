@@ -15,19 +15,21 @@
 #define memcpy(dest, src, n) __builtin_memcpy((dest), (src), (n))
 #endif
 
-struct bpf_map_def SEC("maps") tx_port = {
-	.type = BPF_MAP_TYPE_DEVMAP,
-	.key_size = sizeof(int),
-	.value_size = sizeof(int),
-	.max_entries = 256,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_DEVMAP);
+	__type(key, int);
+	__type(value, int);
+	__uint(max_entries, 256);
+} tx_port SEC(".maps");
 
-struct bpf_map_def SEC("maps") redirect_params = {
-	.type = BPF_MAP_TYPE_HASH,
-	.key_size = ETH_ALEN,
-	.value_size = ETH_ALEN,
-	.max_entries = 1,
-};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key,  unsigned char[ETH_ALEN]);
+	__type(value, unsigned char[ETH_ALEN]);
+	__uint(max_entries, 1);
+} redirect_params SEC(".maps");
+
 static __always_inline void swap_src_dst_mac(struct ethhdr *eth)
 {
 	/* Assignment 1: swap source and destination addresses in the eth.
@@ -45,7 +47,7 @@ static __always_inline void swap_src_dst_ipv4(struct iphdr *iphdr)
 }
 
 /* Implement packet03/assignment-1 in this section */
-SEC("xdp_icmp_echo")
+SEC("xdp")
 int xdp_icmp_echo_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
@@ -104,6 +106,8 @@ int xdp_icmp_echo_func(struct xdp_md *ctx)
 	/* Assignment 1: patch the packet and update the checksum. You can use
 	 * the echo_reply variable defined above to fix the ICMP Type field. */
 
+	bpf_printk("echo_reply: %d", echo_reply);
+
 	action = XDP_TX;
 
 out:
@@ -111,7 +115,7 @@ out:
 }
 
 /* Assignment 2 */
-SEC("xdp_redirect")
+SEC("xdp")
 int xdp_redirect_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
@@ -139,7 +143,7 @@ out:
 }
 
 /* Assignment 3: nothing to do here, patch the xdp_prog_user.c program */
-SEC("xdp_redirect_map")
+SEC("xdp")
 int xdp_redirect_map_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
@@ -179,7 +183,7 @@ static __always_inline int ip_decrease_ttl(struct iphdr *iph)
 }
 
 /* Assignment 4: Complete this router program */
-SEC("xdp_router")
+SEC("xdp")
 int xdp_router_func(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
@@ -265,7 +269,7 @@ out:
 	return xdp_stats_record_action(ctx, action);
 }
 
-SEC("xdp_pass")
+SEC("xdp")
 int xdp_pass_func(struct xdp_md *ctx)
 {
 	return XDP_PASS;
