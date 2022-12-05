@@ -11,4 +11,5 @@ COPY_LOADER := xdp_loader
 COPY_STATS  := xdp_stats
 EXTRA_DEPS  += $(COMMON_DIR)/parsing_helpers.h
 
+COMMON_OBJS += $(COMMON_DIR)/common_user_bpf_xdp.o
 include $(COMMON_DIR)/common.mk
