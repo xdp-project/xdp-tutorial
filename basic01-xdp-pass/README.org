@@ -38,8 +38,8 @@ Then return here, and see if the next step compiles.
 
 If you completed the setup dependencies guide, then you should be able to
 simply run the =make= command, in this directory. (The [[file:Makefile][Makefile]] and
-[[file:../common/common.mk][common.mk]] will try to be nice and detect if you didn't complete the setup
-steps).
+[[file:configure][configure]] script will try to be nice and detect if you didn't complete the
+setup steps).
 
 ** Simple XDP code
 
@@ -88,14 +88,14 @@ is our C-function name.
 As you should understand by now, the BPF byte code is stored in an ELF file.
 To load this into the kernel, userspace needs an ELF loader to read the file
 and pass it into the kernel in the right format. The *libbpf* library
-provides both an ELF loader and several XDP helper functions. In this
+provides both an ELF loader and several BPF helper functions. In this
 tutorial you will learn how to write C code using this library, which is
 where our libelf-devel dependency comes from.
 
 The C code in [[file:xdp_pass_user.c]] (which gets compiled to the program
 =xdp_pass_user=) shows how to write a BPF loader specifically for our
-=xdp_pass_kern.o= ELF file. This loader attached the program in the ELF file
-as an XDP hook on a network device.
+=xdp_pass_kern.o= ELF file. This loader attaches the program in the ELF file
+to an XDP hook on a network device.
 
 ** Loading via iproute2 ip
 

@@ -63,7 +63,7 @@ static const struct option_wrapper long_options[] = {
 
 /* Lesson#2: This is a central piece of this lesson:
  * - Notice how BPF-ELF obj can have several programs
- * - Find by sec name via: bpf_object__find_program_by_title()
+ * - Find by program name via: xdp_program__create
  */
 struct xdp_program *__load_bpf_and_xdp_attach(struct config *cfg)
 {

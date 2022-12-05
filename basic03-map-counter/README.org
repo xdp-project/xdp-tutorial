@@ -26,20 +26,20 @@ In this lesson we will only cover two simple maps types:
 
 ** Defining a map
 
-Creating a BPF map is done by defining a global struct =bpf_map_def= (in
-[[file:xdp_prog_kern.c]]), with a special =SEC("maps")= as below:
+Creating a BPF map is done by defining a global struct (in
+[[file:xdp_prog_kern.c]]), with a special =SEC(".maps")= as below:
 
 #+begin_src C
-struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_ARRAY,
-	.key_size    = sizeof(__u32),
-	.value_size  = sizeof(struct datarec),
-	.max_entries = XDP_ACTION_MAX,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__type(key, __u32);
+	__type(value, struct datarec);
+	__uint(max_entries, XDP_ACTION_MAX);
+} xdp_stats_map SEC(".maps");
 #+end_src
 
-BPF maps are generic *key/value* stores (hence the =key_size= and
-=value_size= parameters), with a given =type=, and maximum allowed entries
+BPF maps are generic *key/value* stores (hence the =key= and
+=valuee= type parameters), with a given =type=, and maximum allowed entries
 =max_entries=. Here we focus on the simple =BPF_MAP_TYPE_ARRAY=, which means
 =max_entries= array elements get allocated when the map is first created.
 
@@ -55,7 +55,7 @@ a BPF map?
 
 This happens by first loading all the BPF maps, and storing their
 corresponding file descriptors (FDs). Then the ELF relocation table is used
-to identify each reference  the BPF program makes to a given map; each such
+to identify each reference the BPF program makes to a given map; each such
 reference is then rewritten, so the BPF byte code instructions use the right
 map FD for each map.
 
