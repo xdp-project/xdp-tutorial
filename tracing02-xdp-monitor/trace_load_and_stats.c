@@ -10,6 +10,8 @@ static const char *__doc__ = "XDP monitor via tracepoints\n";
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <net/if.h>
+#include <linux/perf_event.h>
+#include <sys/syscall.h>
 
 #include <locale.h>
 #include <unistd.h>
@@ -768,14 +770,6 @@ int filename__read_int(const char *filename, int *value)
 
 	close(fd);
 	return err;
-}
-
-static inline int
-sys_perf_event_open(struct perf_event_attr *attr,
-		    pid_t pid, int cpu, int group_fd,
-		    unsigned long flags)
-{
-	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
 
 static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
