@@ -6,5 +6,8 @@ USER_TARGETS := trace_load_and_stats
 
 COMMON_DIR = ../common/
 
+# Extend with another COMMON_OBJS
+COMMON_OBJS += $(COMMON_DIR)/common_user_bpf_xdp.o
+
 include $(COMMON_DIR)/common.mk
 
