@@ -2,11 +2,7 @@
 
 XDP_TARGETS := xdp_sample_pkts_kern
 USER_TARGETS := xdp_sample_pkts_user
-USER_LIBS=-lpcap
-
-LLC ?= llc
-CLANG ?= clang
-CC := gcc
+LDLIBS+=-lpcap
 
 COMMON_DIR = ../common/
 

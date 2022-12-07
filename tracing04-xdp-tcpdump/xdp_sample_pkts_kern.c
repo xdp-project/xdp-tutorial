@@ -24,12 +24,11 @@ struct {
 	__uint(max_entries, MAX_CPUS);
 } my_map SEC(".maps");
 
-SEC("xdp_sample")
+SEC("xdp")
 int xdp_sample_prog(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
-
 	if (data < data_end) {
 		/* The XDP perf_event_output handler will use the upper 32 bits
 		 * of the flags argument as a number of bytes to include of the
