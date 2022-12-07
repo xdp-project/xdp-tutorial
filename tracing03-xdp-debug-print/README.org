@@ -24,26 +24,48 @@ into the tracefs buffer.
 The bpf_trace_printk interface is:
 
 #+begin_example sh
+#define __bpf_printk(fmt, ...)					\
+({												\
+	BPF_PRINTK_FMT_MOD char ____fmt[] = fmt;	\
+	bpf_trace_printk(____fmt, sizeof(____fmt),	\
+			 ##__VA_ARGS__);					\
+})
+
 /*
- * Only limited trace_printk() conversion specifiers allowed:
- * %d %i %u %x %ld %li %lu %lx %lld %lli %llu %llx %p %s
+ * __bpf_vprintk wraps the bpf_trace_vprintk helper with variadic arguments
+ * instead of an array of u64.
  */
-BPF_CALL_5(bpf_trace_printk, char *, fmt, u32, fmt_size, u64, arg1,
-           u64, arg2, u64, arg3)
+#define __bpf_vprintk(fmt, args...)						\
+({														\
+	static const char ___fmt[] = fmt;					\
+	unsigned long long ___param[___bpf_narg(args)];		\
+														\
+	_Pragma("GCC diagnostic push")						\
+	_Pragma("GCC diagnostic ignored \"-Wint-conversion\"")	\
+	___bpf_fill(___param, args);						\
+	_Pragma("GCC diagnostic pop")						\
+														\
+	bpf_trace_vprintk(___fmt, sizeof(___fmt),			\
+			  ___param, sizeof(___param));				\
+})
+
+/* Use __bpf_printk when bpf_printk call has 3 or fewer fmt args
+ * Otherwise use __bpf_vprintk
+ */
+#define ___bpf_pick_printk(...) \
+	___bpf_nth(_, ##__VA_ARGS__, __bpf_vprintk, __bpf_vprintk, __bpf_vprintk,	\
+		   __bpf_vprintk, __bpf_vprintk, __bpf_vprintk, __bpf_vprintk,		\
+		   __bpf_vprintk, __bpf_vprintk, __bpf_printk /*3*/, __bpf_printk /*2*/,\
+		   __bpf_printk /*1*/, __bpf_printk /*0*/)
+
+/* Helper macro to print out debug messages */
+#define bpf_printk(fmt, args...) ___bpf_pick_printk(args)(fmt, ##args)
 #+end_example
 
 Because the above interface requires to put the size of the format
-string it's more convenient to use following macro, which allows
-alone string argument to be passed:
+string it's more convenient to use =bpf_printk(fmt, args...)= helper:
 
 #+begin_example sh
-#define bpf_printk(fmt, ...)                                    \
-({                                                              \
-        char ____fmt[] = fmt;                                   \
-        bpf_trace_printk(____fmt, sizeof(____fmt),              \
-                         ##__VA_ARGS__);                        \
-})
-
 SEC("xdp")
 int xdp_prog_simple(struct xdp_md *ctx)
 {
@@ -87,17 +109,17 @@ $ sudo ../testenv/testenv.sh setup --name veth-basic02
 #+end_example
 
 Load XDP program from xdp_prog_kern.o that will print
-ethertnet header on every incoming packet:
+ethernet header on every incoming packet:
 
 #+begin_example sh
-$ sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp
+$ sudo sudo xdp-loader load veth-basic02 xdp_prog_kern.o -s xdp
 #+end_example
 
-and make some packets:
+and generate some packets:
 
 #+begin_example sh
 $ sudo ../testenv/testenv.sh enter --name veth-basic02
-# ping  fc00:dead:cafe:1::1
+# ping fc00:dead:cafe:1::1
 PING fc00:dead:cafe:1::1(fc00:dead:cafe:1::1) 56 data bytes
 #+end_example
 
