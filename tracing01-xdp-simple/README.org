@@ -87,21 +87,22 @@ This struct is exported in tracepoint format file:
 ** Tracepoint attaching
 
 To load a tracepoint program for this example we use following bpf
-library helper function:
+library helper functions:
 
 #+begin_src sh
-bpf_prog_load(cfg->filename, BPF_PROG_TYPE_TRACEPOINT, &obj, &bpf_fd))
+bpf_object__open_file(cfg->filename, NULL);
 #+end_src
 
-It loads all the programs from the object together with maps and
-returns file descriptor of the first one.
+#+begin_src sh
+bpf_object__load(obj);
+#+end_src
 
 To attach the program to the tracepoint we need to create a tracepoint
-perf event and attach the eBPF program to it, using its file descriptor
-via PERF_EVENT_IOC_SET_BPF ioctl call:
+perf event and attach the eBPF program to it, using its file descriptor.
+Under the hood this function sets up the PERF_EVENT_IOC_SET_BPF ioctl call:
 
 #+begin_src sh
-err = ioctl(fd, PERF_EVENT_IOC_SET_BPF, bpf_fd);
+bpf_program__attach_tracepoint(prog, "xdp", "xdp_exception");
 #+end_src
 
 Please check trace_load_and_stats.c load_bpf_and_trace_attach function
@@ -112,12 +113,12 @@ for all the details.
 This example is using PERCPU HASH map, that stores number of aborted
 packets for interface
 #+begin_src C
-struct bpf_map_def SEC("maps") xdp_stats_map = {
-        .type        = BPF_MAP_TYPE_PERCPU_HASH,
-        .key_size    = sizeof(__s32),
-        .value_size  = sizeof(__u64),
-        .max_entries = 10,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_HASH);
+	__type(key, __s32);
+	__type(value, __u64);
+	__uint(max_entries, 10);
+} xdp_stats_map SEC(".maps");
 #+end_src
 
 The interface is similar to the ARRAY map except that we need to specifically
@@ -158,7 +159,7 @@ int xdp_drop_func(struct xdp_md *ctx)
 }
 #+end_src
 
-with xdp_loader from previous lessson:
+with xdp-loader:
 Assignment 2: Add xdp_abort program [[https://github.com/xdp-project/xdp-tutorial/tree/master/basic02-prog-by-name#assignment-2-add-xdp_abort-program]]
 
 Setup the environment:
@@ -167,13 +168,13 @@ Setup the environment:
 $ sudo ../testenv/testenv.sh setup --name veth-basic02
 #+end_src
 
-Load the XDP program, tak produces aborted packets:
+Load the XDP program, that produces aborted packets:
 
 #+begin_src sh
-$ sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_abort
+$ sudo xdp-loader load veth-basic02 xdp_prog_kern.o -n xdp_drop_func
 #+end_src
 
-and make some packets:
+and generate some packets:
 
 #+begin_src sh
 $ sudo ../testenv/testenv.sh enter --name veth-basic02

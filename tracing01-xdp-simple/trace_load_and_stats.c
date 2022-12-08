@@ -23,11 +23,9 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
 #include "../common/common_params.h"
-#include "../common/common_user_bpf_xdp.h"
-#include "../common/common_libbpf.h"
 
 #include <linux/perf_event.h>
-#define _GNU_SOURCE         /* See feature_test_macros(7) */
+#define _GNU_SOURCE		 /* See feature_test_macros(7) */
 #include <unistd.h>
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
 #include <sys/ioctl.h>
@@ -39,13 +37,13 @@ static const char *__doc__ = "XDP loader and stats program\n"
 static const char *default_filename = "trace_prog_kern.o";
 
 static const struct option_wrapper long_options[] = {
-	{{"help",        no_argument,		NULL, 'h' },
+	{{"help",		no_argument,		NULL, 'h' },
 	 "Show help", false},
 
-	{{"quiet",       no_argument,		NULL, 'q' },
+	{{"quiet",	   no_argument,		NULL, 'q' },
 	 "Quiet mode (no output)"},
 
-	{{"filename",    required_argument,	NULL,  1  },
+	{{"filename",	required_argument,	NULL,  1  },
 	 "Load program from <file>", "<file>"},
 
 	{{0, 0, NULL,  0 }}
@@ -122,7 +120,7 @@ static void stats_poll(int map_fd, __u32 map_type, int interval)
  * values.
  */
 static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
-			       struct bpf_map_info *exp)
+				   struct bpf_map_info *exp)
 {
 	__u32 info_len = sizeof(*info);
 	int err;
@@ -130,7 +128,7 @@ static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
 	if (map_fd < 0)
 		return EXIT_FAIL;
 
-        /* BPF-info via bpf-syscall */
+		/* BPF-info via bpf-syscall */
 	err = bpf_obj_get_info_by_fd(map_fd, info, &info_len);
 	if (err) {
 		fprintf(stderr, "ERR: %s() can't get info - %s\n",
@@ -183,71 +181,37 @@ int filename__read_int(const char *filename, int *value)
 	return err;
 }
 
-#define TP "/sys/kernel/debug/tracing/events/"
-
-static int read_tp_id(const char *name, int *id)
-{
-	char path[PATH_MAX];
-
-	snprintf(path, PATH_MAX, TP "%s/id", name);
-	return filename__read_int(path, id);
-}
-
-static inline int
-sys_perf_event_open(struct perf_event_attr *attr,
-		    pid_t pid, int cpu, int group_fd,
-		    unsigned long flags)
-{
-	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
-}
-
 static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
 {
-	struct perf_event_attr attr;
 	struct bpf_object *obj;
-	int err, bpf_fd;
-	int id, fd;
+	int err;
+	struct bpf_program *prog;
+	struct bpf_link *link;
 
-	if (bpf_prog_load(cfg->filename, BPF_PROG_TYPE_TRACEPOINT, &obj, &bpf_fd)) {
-		fprintf(stderr, "ERR: failed to load program\n");
-		goto err;
-	}
+	obj = bpf_object__open_file(cfg->filename, NULL);
+	err = libbpf_get_error(obj);
+	if (err)
+			return NULL;
 
-	if (read_tp_id("xdp/xdp_exception", &id)) {
-		fprintf(stderr, "ERR: can't get program section\n");
-		goto err;
-	}
-
-	/* Setup tracepoint perf event */
-	memset(&attr, 0, sizeof(attr));
-	attr.type = PERF_TYPE_TRACEPOINT;
-	attr.config = id;
-	attr.sample_period = 1;
-
-	/* .. and open it */
-	fd = sys_perf_event_open(&attr, -1, 0, -1, 0);
-	if (fd <= 0) {
-		fprintf(stderr, "ERR: failed to open perf event %s\n",
-			strerror(errno));
-		goto err;
-	}
-
-	/* Assign the program to the tracepoint perf event */
-	err = ioctl(fd, PERF_EVENT_IOC_SET_BPF, bpf_fd);
+	err = bpf_object__load(obj);
 	if (err) {
-		fprintf(stderr, "ERR: failed to connect perf event with eBPF prog %s\n",
-			strerror(errno));
-		goto err;
+			fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
+					cfg->filename, err, strerror(-err));
+			goto err;
 	}
 
-	/* ... and finally enable the event. */
-	err = ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
-	if (err) {
-		fprintf(stderr, "ERR: failed to enable perf event %s\n",
-			strerror(errno));
-		goto err;
+	prog = bpf_object__next_program(obj, NULL);
+	if (!prog) {
+			fprintf(stderr, "ERR: Failed to retrieve program from BPF-OBJ file(%s) (%d): %s\n",
+					cfg->filename, err, strerror(-err));
+			goto err;
 	}
 
+	link = bpf_program__attach_tracepoint(prog, "xdp", "xdp_exception");
+	if (libbpf_get_error(link)) {
+		printf("bpf_program__attach_tracepoint failed\n");
+		goto err;
+	}
 	/*
 	 * As far as this program is concerned, we don't care about
 	 * the perf event file descriptor, it will get closed when
@@ -289,7 +253,7 @@ int main(int argc, char **argv)
 	if (stats_map_fd < 0)
 		return EXIT_FAIL_BPF;
 
-	map_expect.key_size    = sizeof(__s32);
+	map_expect.key_size	= sizeof(__s32);
 	map_expect.value_size  = sizeof(__u64);
 
 	err = __check_map_fd_info(stats_map_fd, &info, &map_expect);
@@ -300,10 +264,10 @@ int main(int argc, char **argv)
 	if (verbose) {
 		printf("\nCollecting stats from BPF map\n");
 		printf(" - BPF map (bpf_map_type:%d) id:%d name:%s"
-		       " key_size:%d value_size:%d max_entries:%d\n",
-		       info.type, info.id, info.name,
-		       info.key_size, info.value_size, info.max_entries
-		       );
+			   " key_size:%d value_size:%d max_entries:%d\n",
+			   info.type, info.id, info.name,
+			   info.key_size, info.value_size, info.max_entries
+			   );
 	}
 
 	stats_poll(stats_map_fd, info.type, interval);
