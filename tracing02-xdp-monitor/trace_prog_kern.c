@@ -3,9 +3,6 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
-//#include "bpf_legacy.h"
-//#include "bpf_tracing_macros.h"
-
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__type(key, __u32);

@@ -41,13 +41,12 @@ int xdp_sample_prog(struct xdp_md *ctx)
 		 * will be indexed by the CPU number in the event map.
 		 */
 		__u64 flags = BPF_F_CURRENT_CPU;
-		__u16 sample_size;
+		__u16 sample_size = (__u16)(data_end - data);
 		int ret;
 		struct S metadata;
 
 		metadata.cookie = 0xdead;
-		metadata.pkt_len = (__u16)(data_end - data);
-		sample_size = min(metadata.pkt_len, SAMPLE_SIZE);
+		metadata.pkt_len = min(sample_size, SAMPLE_SIZE);
 
 		flags |= (__u64)sample_size << 32;
 

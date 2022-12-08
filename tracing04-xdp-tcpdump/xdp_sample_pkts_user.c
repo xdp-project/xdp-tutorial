@@ -67,7 +67,7 @@ static void print_bpf_output(void *ctx, int cpu, void *data, __u32 size)
 		__u8  pkt_data[SAMPLE_SIZE];
 	} __packed *e = data;
 	struct pcap_pkthdr h = {
-		.caplen	= SAMPLE_SIZE,
+		.caplen	= e->pkt_len,
 		.len	= e->pkt_len,
 	};
 	struct timespec ts;
