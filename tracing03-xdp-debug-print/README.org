@@ -112,7 +112,7 @@ Load XDP program from xdp_prog_kern.o that will print
 ethernet header on every incoming packet:
 
 #+begin_example sh
-$ sudo sudo xdp-loader load veth-basic02 xdp_prog_kern.o -s xdp
+$ sudo xdp-loader load veth-basic02 xdp_prog_kern.o -s xdp
 #+end_example
 
 and generate some packets:

@@ -52,7 +52,7 @@ int xdp_sample_prog(struct xdp_md *ctx)
 	...
 
         __u64 flags = BPF_F_CURRENT_CPU;
-		__u16 sample_size = (__u16)(data_end - data);
+        __u16 sample_size = (__u16)(data_end - data);
         struct S metadata;
 
         metadata.cookie = 0xdead;

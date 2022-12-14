@@ -46,6 +46,8 @@ static const struct option_wrapper long_options[] = {
 enum xdp_attach_mode get_attach_mode(int ifindex)
 {
 	struct xdp_multiprog *mp = xdp_multiprog__get_from_ifindex(ifindex);
+	if(!mp)
+	   return XDP_MODE_UNSPEC;
 
 	return xdp_multiprog__attach_mode(mp);
 }

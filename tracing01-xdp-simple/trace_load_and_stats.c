@@ -25,7 +25,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include "../common/common_params.h"
 
 #include <linux/perf_event.h>
-#define _GNU_SOURCE		 /* See feature_test_macros(7) */
+#define _GNU_SOURCE         /* See feature_test_macros(7) */
 #include <unistd.h>
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
 #include <sys/ioctl.h>
@@ -37,13 +37,13 @@ static const char *__doc__ = "XDP loader and stats program\n"
 static const char *default_filename = "trace_prog_kern.o";
 
 static const struct option_wrapper long_options[] = {
-	{{"help",		no_argument,		NULL, 'h' },
+	{{"help",        no_argument,		NULL, 'h' },
 	 "Show help", false},
 
-	{{"quiet",	   no_argument,		NULL, 'q' },
+	{{"quiet",       no_argument,		NULL, 'q' },
 	 "Quiet mode (no output)"},
 
-	{{"filename",	required_argument,	NULL,  1  },
+	{{"filename",    required_argument,	NULL,  1  },
 	 "Load program from <file>", "<file>"},
 
 	{{0, 0, NULL,  0 }}
@@ -120,7 +120,7 @@ static void stats_poll(int map_fd, __u32 map_type, int interval)
  * values.
  */
 static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
-				   struct bpf_map_info *exp)
+			       struct bpf_map_info *exp)
 {
 	__u32 info_len = sizeof(*info);
 	int err;
@@ -128,7 +128,7 @@ static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
 	if (map_fd < 0)
 		return EXIT_FAIL;
 
-		/* BPF-info via bpf-syscall */
+        /* BPF-info via bpf-syscall */
 	err = bpf_obj_get_info_by_fd(map_fd, info, &info_len);
 	if (err) {
 		fprintf(stderr, "ERR: %s() can't get info - %s\n",
@@ -191,7 +191,7 @@ static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
 	obj = bpf_object__open_file(cfg->filename, NULL);
 	err = libbpf_get_error(obj);
 	if (err)
-			return NULL;
+		return NULL;
 
 	err = bpf_object__load(obj);
 	if (err) {
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 	if (stats_map_fd < 0)
 		return EXIT_FAIL_BPF;
 
-	map_expect.key_size	= sizeof(__s32);
+	map_expect.key_size    = sizeof(__s32);
 	map_expect.value_size  = sizeof(__u64);
 
 	err = __check_map_fd_info(stats_map_fd, &info, &map_expect);
@@ -264,10 +264,10 @@ int main(int argc, char **argv)
 	if (verbose) {
 		printf("\nCollecting stats from BPF map\n");
 		printf(" - BPF map (bpf_map_type:%d) id:%d name:%s"
-			   " key_size:%d value_size:%d max_entries:%d\n",
-			   info.type, info.id, info.name,
-			   info.key_size, info.value_size, info.max_entries
-			   );
+		       " key_size:%d value_size:%d max_entries:%d\n",
+		       info.type, info.id, info.name,
+		       info.key_size, info.value_size, info.max_entries
+		       );
 	}
 
 	stats_poll(stats_map_fd, info.type, interval);

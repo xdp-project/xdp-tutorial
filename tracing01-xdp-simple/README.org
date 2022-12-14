@@ -114,10 +114,10 @@ This example is using PERCPU HASH map, that stores number of aborted
 packets for interface
 #+begin_src C
 struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_HASH);
-	__type(key, __s32);
-	__type(value, __u64);
-	__uint(max_entries, 10);
+    __uint(type, BPF_MAP_TYPE_PERCPU_HASH);
+    __type(key, __s32);
+    __type(value, __u64);
+    __uint(max_entries, 10);
 } xdp_stats_map SEC(".maps");
 #+end_src
 
