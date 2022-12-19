@@ -92,7 +92,7 @@ struct xdp_program *load_bpf_and_xdp_attach(struct config *cfg)
 	DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts, 0);
 
 	xdp_opts.open_filename = cfg->filename;
-	xdp_opts.prog_name = cfg->progsec;
+	xdp_opts.prog_name = cfg->progname;
 	xdp_opts.opts = &opts;
 
 	/* If flags indicate hardware offload, supply ifindex */

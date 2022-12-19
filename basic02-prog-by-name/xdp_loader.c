@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 static const char *__doc__ = "XDP loader\n"
 	" - Specify BPF-object --filename to load \n"
-	" - and select BPF section --progsec name to XDP-attach to --dev\n";
+	" - and select BPF section --progname name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +19,7 @@ static const char *__doc__ = "XDP loader\n"
 #include "../common/common_params.h"
 
 static const char *default_filename = "xdp_prog_kern.o";
-static const char *default_progsec = "xdp_pass_func";
+static const char *default_progname = "xdp_pass_func";
 
 static const struct option_wrapper long_options[] = {
 	{{"help",        no_argument,		NULL, 'h' },
@@ -52,8 +52,8 @@ static const struct option_wrapper long_options[] = {
 	{{"filename",    required_argument,	NULL,  1  },
 	 "Load program from <file>", "<file>"},
 
-	{{"progsec",    required_argument,	NULL,  2  },
-	 "Load program in <section> of the ELF file", "<section>"},
+	{{"progname",    required_argument,	NULL,  2  },
+	 "Load program from function <name> in the ELF file", "<name>"},
 
 	{{0, 0, NULL,  0 }, NULL, false}
 };
@@ -75,7 +75,7 @@ struct xdp_program *__load_bpf_and_xdp_attach(struct config *cfg)
 	DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts, 0);
 
 	xdp_opts.open_filename = cfg->filename;
-	xdp_opts.prog_name = cfg->progsec;
+	xdp_opts.prog_name = cfg->progname;
 	xdp_opts.opts = &opts;
 
 	/* If flags indicate hardware offload, supply ifindex */
@@ -122,6 +122,8 @@ static void list_avail_progs(struct bpf_object *obj)
 	       bpf_object__name(obj));
 
 	bpf_object__for_each_program(pos, obj) {
+		printf("*** %s\n", bpf_program__name(pos));
+		printf("*** %d\n", bpf_program__type(pos));
 		if (bpf_program__type(pos) == BPF_PROG_TYPE_XDP)
 			printf(" %s\n", bpf_program__name(pos));
 	}
@@ -136,7 +138,7 @@ int main(int argc, char **argv)
 	};
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
-	strncpy(cfg.progsec,  default_progsec,  sizeof(cfg.progsec));
+	strncpy(cfg.progname,  default_progname,  sizeof(cfg.progname));
 	/* Cmdline options can change these */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
@@ -158,7 +160,7 @@ int main(int argc, char **argv)
 
 	if (verbose) {
 		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
-		       cfg.filename, cfg.progsec);
+		       cfg.filename, cfg.progname);
 		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
 		       cfg.ifname, cfg.ifindex);
 	}

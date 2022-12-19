@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 static const char *__doc__ = "XDP loader\n"
-	" - Allows selecting BPF section --progsec name to XDP-attach to --dev\n";
+	" - Allows selecting BPF section --progname name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,8 +55,8 @@ static const struct option_wrapper long_options[] = {
 	{{"filename",    required_argument,	NULL,  1  },
 	 "Load program from <file>", "<file>"},
 
-	{{"progsec",    required_argument,	NULL,  2  },
-	 "Load program in <section> of the ELF file", "<section>"},
+	{{"progname",    required_argument,	NULL,  2  },
+	 "Load program from function <name> in the ELF file", "<name>"},
 
 	{{0, 0, NULL,  0 }, NULL, false}
 };
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 	};
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	/* Required option */
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 
 	if (verbose) {
 		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
-		       cfg.filename, cfg.progsec);
+		       cfg.filename, cfg.progname);
 		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
 		       cfg.ifname, cfg.ifindex);
 	}

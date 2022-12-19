@@ -249,7 +249,7 @@ int main(int argc, char **argv)
 		.do_unload = false,
 	};
 
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	/* Required option */

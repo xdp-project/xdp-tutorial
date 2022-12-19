@@ -838,7 +838,7 @@ int main(int argc, char **argv)
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
 
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	bpf_obj = load_bpf_and_trace_attach(&cfg);

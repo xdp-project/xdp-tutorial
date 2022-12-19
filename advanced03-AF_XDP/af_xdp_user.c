@@ -117,8 +117,8 @@ static const struct option_wrapper long_options[] = {
 	{{"filename",    required_argument,	NULL,  1  },
 	 "Load program from <file>", "<file>"},
 
-	{{"progsec",	 required_argument,	NULL,  2  },
-	 "Load program in <section> of the ELF file", "<section>"},
+	{{"progname",	 required_argument,	NULL,  2  },
+	 "Load program from function <name> in the ELF file", "<name>"},
 
 	{{0, 0, NULL,  0 }, NULL, false}
 };
@@ -529,7 +529,7 @@ int main(int argc, char **argv)
 	/* Global shutdown handler */
 	signal(SIGINT, exit_application);
 
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	/* Required option */
@@ -545,12 +545,12 @@ int main(int argc, char **argv)
 
 		custom_xsk = true;
 		xdp_opts.open_filename = cfg.filename;
-		xdp_opts.prog_name = cfg.progsec;
+		xdp_opts.prog_name = cfg.progname;
 		xdp_opts.opts = &opts;
 
-		if (cfg.progsec[0] != 0) {
+		if (cfg.progname[0] != 0) {
 			xdp_opts.open_filename = cfg.filename;
-			xdp_opts.prog_name = cfg.progsec;
+			xdp_opts.prog_name = cfg.progname;
 			xdp_opts.opts = &opts;
 
 			prog = xdp_program__create(&xdp_opts);

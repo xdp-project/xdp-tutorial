@@ -90,15 +90,15 @@ IPv6 address =fc00:dead:cafe:1::2= (as seen in the script output).
 The *assignment* is to manually load the compiled xdp program in the ELF OBJ
 file =xdp_prog_kern.o=, using the =xdp_loader= program in this directory.
 Observe the available options you can give the xdp_loader via =--help=. Try
-to select the program section named =xdp_drop= via =--progsec=, and observe
+to select the program section named =xdp_drop= via =--progname=, and observe
 via ping that packets gets dropped.
 
 Here are some example commands:
 #+begin_example sh
 sudo ./xdp_loader --help
 sudo ./xdp_loader --dev veth-basic02
-sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_drop
-sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_pass
+sudo ./xdp_loader --dev veth-basic02 --force --progname xdp_drop
+sudo ./xdp_loader --dev veth-basic02 --force --progname xdp_pass
 #+end_example
 
 The testenv script also has a helper command for "load" which will use the
@@ -106,8 +106,8 @@ The testenv script also has a helper command for "load" which will use the
 #+begin_example
 sudo ../testenv/testenv.sh load --name veth-basic02
 sudo ../testenv/testenv.sh load --name veth-basic02 -- --force
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progsec xdp_drop
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progsec xdp_pass
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progname xdp_drop
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progname xdp_pass
 #+end_example
 
 *** A note about: The test environment and veth packets directions
@@ -177,7 +177,7 @@ Add a new program section "xdp_abort" in [[file:xdp_prog_kern.c]] that uses
 new program, e.g. similar to above:
 
 #+begin_example sh
-sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_abort
+sudo ./xdp_loader --dev veth-basic02 --force --progname xdp_abort
 #+end_example
 
 *Lesson*: XDP_ABORTED is different from XDP_DROP, because it triggers the

@@ -20,7 +20,7 @@ struct config {
 	bool reuse_maps;
 	char pin_dir[512];
 	char filename[512];
-	char progsec[32];
+	char progname[32];
 	char src_mac[18];
 	char dest_mac[18];
 	__u16 xsk_bind_flags;

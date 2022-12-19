@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 static const char *__doc__ = "XDP loader and stats program\n"
-	" - Allows selecting BPF section --progsec name to XDP-attach to --dev\n";
+	" - Allows selecting BPF section --progname name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
 
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	bpf_obj = load_bpf_and_trace_attach(&cfg);

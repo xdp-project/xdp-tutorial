@@ -162,9 +162,9 @@ void parse_cmdline_args(int argc, char **argv,
 			dest  = (char *)&cfg->filename;
 			strncpy(dest, optarg, sizeof(cfg->filename));
 			break;
-		case 2: /* --progsec */
-			dest  = (char *)&cfg->progsec;
-			strncpy(dest, optarg, sizeof(cfg->progsec));
+		case 2: /* --progname */
+			dest  = (char *)&cfg->progname;
+			strncpy(dest, optarg, sizeof(cfg->progname));
 			break;
 		case 'L': /* --src-mac */
 			dest  = (char *)&cfg->src_mac;
