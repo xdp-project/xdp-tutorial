@@ -114,18 +114,18 @@ struct xdp_program *__load_bpf_and_xdp_attach(struct config *cfg)
 	return prog;
 }
 
-/* static void list_avail_progs(struct bpf_object *obj) */
-/* { */
-	/* struct bpf_program *pos; */
+static void list_avail_progs(struct bpf_object *obj)
+{
+	struct bpf_program *pos;
 
-	/* printf("BPF object (%s) listing avail --progsec names\n", */
-	/*        bpf_object__name(obj)); */
+	printf("BPF object (%s) listing available XDP functions\n",
+	       bpf_object__name(obj));
 
-	/* bpf_object__for_each_program(pos, obj) { */
-	/* 	if (bpf_program__is_xdp(pos)) */
-	/* 		printf(" %s\n", bpf_program__title(pos, false)); */
-	/* } */
-/* } */
+	bpf_object__for_each_program(pos, obj) {
+		if (bpf_program__type(pos) == BPF_PROG_TYPE_XDP)
+			printf(" %s\n", bpf_program__name(pos));
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -153,8 +153,8 @@ int main(int argc, char **argv)
 	if (!prog)
 		return EXIT_FAIL_BPF;
 
-	/* if (verbose) */
-	/* 	list_avail_progs(bpf_obj); */
+	if (verbose)
+		list_avail_progs(xdp_program__bpf_obj(prog));
 
 	if (verbose) {
 		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
