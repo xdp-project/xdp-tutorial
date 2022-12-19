@@ -129,8 +129,8 @@ void parse_cmdline_args(int argc, char **argv,
 			cfg->attach_mode = XDP_MODE_UNSPEC;
 			break;
 		case 'S':
-			cfg->xsk_bind_flags &= XDP_ZEROCOPY;
 			cfg->attach_mode = XDP_MODE_SKB;
+			cfg->xsk_bind_flags &= ~XDP_ZEROCOPY;
 			cfg->xsk_bind_flags |= XDP_COPY;
 			break;
 		case 'N':
@@ -175,11 +175,11 @@ void parse_cmdline_args(int argc, char **argv,
 			strncpy(dest, optarg, sizeof(cfg->dest_mac));
 			break;
 		case 'c':
-			cfg->xsk_bind_flags &= XDP_ZEROCOPY;
+			cfg->xsk_bind_flags &= ~XDP_ZEROCOPY;
 			cfg->xsk_bind_flags |= XDP_COPY;
 			break;
 		case 'z':
-			cfg->xsk_bind_flags &= XDP_COPY;
+			cfg->xsk_bind_flags &= ~XDP_COPY;
 			cfg->xsk_bind_flags |= XDP_ZEROCOPY;
 			break;
 		case 'h':
