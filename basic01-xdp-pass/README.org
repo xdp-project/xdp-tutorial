@@ -86,8 +86,8 @@ is our C-function name.
 * Loading and the XDP hook
 
 As you should understand by now, the BPF byte code is stored in an ELF file.
-To load this into the kernel, userspace needs an ELF loader to read the file
-and pass it into the kernel in the right format. The *libbpf* library
+To load this into the kernel, user space needs an ELF loader to read the
+file and pass it into the kernel in the right format. The *libbpf* library
 provides both an ELF loader and several BPF helper functions. In this
 tutorial you will learn how to write C code using this library, which is
 where our libelf-devel dependency comes from.

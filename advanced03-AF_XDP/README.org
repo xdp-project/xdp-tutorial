@@ -1,12 +1,12 @@
 # -*- fill-column: 76; -*-
-#+TITLE: Advanced: XDP userspace delivery via AF_XDP
+#+TITLE: Advanced: XDP user space delivery via AF_XDP
 #+OPTIONS: ^:nil
 
 It is important to understand that XDP in-itself is not a kernel bypass
 facility. XDP is an *in-kernel* fast-path, that operates on raw-frames
 "inline" before they reach the normal Linux Kernel network stack.
 
-To support fast delivery of /raw-frames into userspace/, XDP can *bypass*
+To support fast delivery of /raw-frames into user space/, XDP can *bypass*
 the Linux Kernel network stack via XDP_REDIRECT'ing into a special BPF-map
 containing AF_XDP sockets. The AF_XDP socket is an new Address Family type.
 ([[https://www.kernel.org/doc/html/latest/networking/af_xdp.html][The kernel documentation for AF_XDP]]).
@@ -54,7 +54,7 @@ contain descriptors that point into UMEM area. The UMEM area has two rings:
 the kernel a packet area to *RX* fill. In the *COMPLETION* ring, the kernel
 tells the application that *TX is done* for a packet area (which then can be
 reused). This scheme is for transferring ownership of UMEM packet areas
-between the kernel and the userspace application.
+between the kernel and the user space application.
 
 ** Gotcha by RX-queue id binding
 
@@ -62,7 +62,7 @@ The most common mistake: Why am I not seeing any traffic on the AF_XDP
 socket?
 
 As you just learned from above, the AF_XDP socket bound to a *single
-RX-queue id* (for performance reasons). Thus, your userspace program is only
+RX-queue id* (for performance reasons). Thus, your user space program is only
 receiving raw-frames from a specific RX-queue id number. NICs will by
 default spread flows with RSS-hashing over all available RX-queues. Thus,
 traffic likely not hitting queue you expect.
@@ -87,7 +87,7 @@ It documents all available header values that can be used as part of the
 matching criteria.
 
 Alternative work-arounds:
-1. Create as many AF_XDP sockets as RXQs, and have userspace poll()/select
+1. Create as many AF_XDP sockets as RXQs, and have user space poll()/select
    on all sockets.
 2. For testing purposes reduce RXQ number to 1,
    e.g. via command =ethtool -L <interface> combined 1=
@@ -98,7 +98,7 @@ As hinted in the intro (driver level) support for AF_XDP depend on drivers
 implementing the XDP_REDIRECT action. For all driver implementing the basic
 XDP_REDIRECT action, AF_XDP in "copy-mode" is supported. The "copy-mode" is
 surprisingly fast, and does a single-copy of the frame (including any XDP
-placed meta-data) into the UMEM area. The userspace API remains the same.
+placed meta-data) into the UMEM area. The user space API remains the same.
 
 For AF_XDP "zero-copy" support the driver need to implement and expose the
 API for registering and using the UMEM area directly in the NIC RX-ring
@@ -113,7 +113,7 @@ allocating memory and copying over the frame.
 
 * Assignments
 The end goal of this lesson is to build an AF_XDP program that will send
-packets to userspace and if they are IPv6 ping packets reply.
+packets to user space and if they are IPv6 ping packets reply.
 
 We will do this using the automatically installed XDP program, but one of the
 later assignments is to implement this manually. The default XDP program is a
@@ -191,7 +191,7 @@ AF_XDP RX:             2 pkts (         0 pps)           0 Kbytes (     0 Mbits/
 Note that the full solution is included in the af_xdp_kern.c file.
 
 ** Assignment 3: Write a user space program to reply to IPv6 ping packets
-For the final exercise, you need to write some userspace code that will
+For the final exercise, you need to write some user space code that will
 reply to the ping packets. This needs be done inside the process_packet()
 function.
 
