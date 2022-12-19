@@ -497,30 +497,17 @@ static void *stats_poll(void *arg)
 	return NULL;
 }
 
-enum xdp_attach_mode get_attach_mode(int ifindex)
-{
-	struct xdp_multiprog *mp = xdp_multiprog__get_from_ifindex(ifindex);
-
-	if(!mp)
-	   return XDP_MODE_UNSPEC;
-
-	return xdp_multiprog__attach_mode(mp);
-}
-
 static void exit_application(int signal)
 {
 	int err;
-	char errmsg[1024];
-	enum xdp_attach_mode mode = get_attach_mode(cfg.ifindex);
 
-	if (mode != XDP_MODE_UNSPEC) {
-		err = xdp_program__detach(prog, cfg.ifindex, mode, 0);
-		if (err) {
-			libxdp_strerror(err, errmsg, sizeof(errmsg));
-			fprintf(stderr, "Couldn't detach XDP program on iface '%s' : %s (%d)\n",
-				cfg.ifname, errmsg, err);
-		}
+	cfg.unload_all = true;
+	err = do_unload(&cfg);
+	if (err) {
+		fprintf(stderr, "Couldn't detach XDP program on iface '%s' : (%d)\n",
+			cfg.ifname, err);
 	}
+
 	signal = signal;
 	global_exit = true;
 }

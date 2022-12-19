@@ -3,7 +3,7 @@
 #include <net/if.h>     /* IF_NAMESIZE */
 #include <stdlib.h>     /* exit(3) */
 #include <errno.h>
-
+#include <errno.h>
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 #include <xdp/libxdp.h>
@@ -216,4 +216,70 @@ int open_bpf_map_file(const char *pin_dir,
 	}
 
 	return fd;
+}
+
+int do_unload(struct config *cfg)
+{
+	struct xdp_multiprog *mp = NULL;
+	enum xdp_attach_mode mode;
+	int err = EXIT_FAILURE;
+	DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts);
+
+	mp = xdp_multiprog__get_from_ifindex(cfg->ifindex);
+	if (!mp) {
+		fprintf(stderr, "No XDP program loaded on %s\n", cfg->ifname);
+		mp = NULL;
+		goto out;
+	}
+
+	if (cfg->unload_all) {
+		err = xdp_multiprog__detach(mp);
+		if (err) {
+			fprintf(stderr, "Unable to detach XDP program: %s\n",
+				strerror(-err));
+			goto out;
+		}
+	} else {
+		struct xdp_program *prog = NULL;
+
+		while ((prog = xdp_multiprog__next_prog(prog, mp))) {
+			if (xdp_program__id(prog) == cfg->prog_id) {
+				mode = xdp_multiprog__attach_mode(mp);
+				goto found;
+			}
+		}
+
+		if (xdp_multiprog__is_legacy(mp)) {
+			prog = xdp_multiprog__main_prog(mp);
+			if (xdp_program__id(prog) == cfg->prog_id) {
+				mode = xdp_multiprog__attach_mode(mp);
+				goto found;
+			}
+		}
+
+		prog = xdp_multiprog__hw_prog(mp);
+		if (xdp_program__id(prog) == cfg->prog_id) {
+			mode = XDP_MODE_HW;
+			goto found;
+		}
+
+		printf("Program with ID %u not loaded on %s\n",
+			cfg->prog_id, cfg->ifname);
+		err = -ENOENT;
+		goto out;
+
+found:
+		printf("Detaching XDP program with ID %u from %s\n",
+			 xdp_program__id(prog), cfg->ifname);
+		err = xdp_program__detach(prog, cfg->ifindex, mode, 0);
+		if (err) {
+			fprintf(stderr, "Unable to detach XDP program: %s\n",
+				strerror(-err));
+			goto out;
+		}
+	}
+
+out:
+	xdp_multiprog__close(mp);
+	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 }
