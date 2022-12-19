@@ -4,8 +4,10 @@
 #include <net/if.h>
 #include <linux/types.h>
 #include <stdbool.h>
+#include <xdp/libxdp.h>
 
 struct config {
+	enum xdp_attach_mode attach_mode;
 	__u32 xdp_flags;
 	int ifindex;
 	char *ifname;

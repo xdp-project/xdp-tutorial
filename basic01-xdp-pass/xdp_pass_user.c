@@ -43,16 +43,6 @@ static const struct option_wrapper long_options[] = {
 };
 
 
-enum xdp_attach_mode get_attach_mode(int ifindex)
-{
-	struct xdp_multiprog *mp = xdp_multiprog__get_from_ifindex(ifindex);
-	if(!mp)
-	   return XDP_MODE_UNSPEC;
-
-	return xdp_multiprog__attach_mode(mp);
-}
-
-
 int main(int argc, char **argv)
 {
 	DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts);
@@ -95,9 +85,9 @@ int main(int argc, char **argv)
 	}
 
 	if (cfg.do_unload)
-		return xdp_program__detach(p, cfg.ifindex, get_attach_mode(cfg.ifindex), 0);
+		return xdp_program__detach(p, cfg.ifindex, cfg.attach_mode, 0);
 
-	err = xdp_program__attach(p, cfg.ifindex, get_attach_mode(cfg.ifindex), 0);
+	err = xdp_program__attach(p, cfg.ifindex, cfg.attach_mode, 0);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
 		fprintf(stderr, "Couldn't attach XDP program on iface '%s' : %s (%d)\n",

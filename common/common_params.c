@@ -126,21 +126,18 @@ void parse_cmdline_args(int argc, char **argv,
 			}
 			break;
 		case 'A':
-			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
+			cfg->attach_mode = XDP_MODE_UNSPEC;
 			break;
 		case 'S':
-			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
-			cfg->xdp_flags |= XDP_FLAGS_SKB_MODE;  /* Set   flag */
 			cfg->xsk_bind_flags &= XDP_ZEROCOPY;
+			cfg->attach_mode = XDP_MODE_SKB;
 			cfg->xsk_bind_flags |= XDP_COPY;
 			break;
 		case 'N':
-			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
-			cfg->xdp_flags |= XDP_FLAGS_DRV_MODE;  /* Set   flag */
+			cfg->attach_mode = XDP_MODE_NATIVE;
 			break;
 		case 3: /* --offload-mode */
-			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
-			cfg->xdp_flags |= XDP_FLAGS_HW_MODE;   /* Set   flag */
+			cfg->attach_mode = XDP_MODE_HW;
 			break;
 		case 'F':
 			cfg->xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
