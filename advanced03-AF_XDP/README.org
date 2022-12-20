@@ -190,6 +190,14 @@ AF_XDP RX:             2 pkts (         0 pps)           0 Kbytes (     0 Mbits/
 
 Note that the full solution is included in the af_xdp_kern.c file.
 
+It's important to note that the AF_XDP socket creation in the case of loading
+a custom redirection program involves the use of the
+*XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD* flag. This flag prevents the default
+kernel program from being loaded as part of the *xsk_socket__create()*
+function call. This creates an AF_XDP socket that isn't entered in any
+*XSK_MAP*. Therefore, it's important to call *xsk_socket__update_xskmap()*
+to enter the AF_XDP socket into the custom program map.
+
 ** Assignment 3: Write a user space program to reply to IPv6 ping packets
 For the final exercise, you need to write some user space code that will
 reply to the ping packets. This needs be done inside the process_packet()
