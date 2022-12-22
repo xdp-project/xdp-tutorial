@@ -226,7 +226,11 @@ int do_unload(struct config *cfg)
 	DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts);
 
 	mp = xdp_multiprog__get_from_ifindex(cfg->ifindex);
-	if (!mp) {
+	if (libxdp_get_error(mp)) {
+		fprintf(stderr, "Unable to get xdp_dispatcher program: %s\n",
+			strerror(errno));
+		goto out;
+	} else if (!mp) {
 		fprintf(stderr, "No XDP program loaded on %s\n", cfg->ifname);
 		mp = NULL;
 		goto out;
