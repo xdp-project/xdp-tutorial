@@ -16,6 +16,7 @@ static const char *__doc__ = "Simple XDP prog doing XDP_PASS\n";
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
 #include "../common/common_params.h"
+#include "../common/common_user_bpf_xdp.h"
 
 static const struct option_wrapper long_options[] = {
 	{{"help",        no_argument,		NULL, 'h' },
@@ -33,11 +34,11 @@ static const struct option_wrapper long_options[] = {
 	{{"auto-mode",   no_argument,		NULL, 'A' },
 	 "Auto-detect SKB or native mode"},
 
-	{{"force",       no_argument,		NULL, 'F' },
-	 "Force install, replacing existing program on interface"},
-
-	{{"unload",      required_argument,		NULL, 'U' },
+	{{"unload",      required_argument,	NULL, 'U' },
 	 "Unload XDP program <id> instead of loading", "<id>"},
+
+	{{"unload-all",  no_argument,           NULL,  4  },
+	 "Unload all XDP programs on device"},
 
 	{{0, 0, NULL,  0 }, NULL, false}
 };
@@ -45,19 +46,25 @@ static const struct option_wrapper long_options[] = {
 
 int main(int argc, char **argv)
 {
-	DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts);
-	DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts, 0);
+	struct bpf_prog_info info = {};
+	__u32 info_len = sizeof(info);
 	char filename[] = "xdp_pass_kern.o";
 	char progname[] = "xdp_prog_simple";
+	struct xdp_program *prog;
 	char errmsg[1024];
-	int err = EXIT_SUCCESS;
-	struct xdp_program *p;
+	int prog_fd, err; // = EXIT_SUCCESS;
 
 	struct config cfg = {
-		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
+		.attach_mode = XDP_MODE_UNSPEC,
 		.ifindex   = -1,
 		.do_unload = false,
 	};
+
+	DECLARE_LIBBPF_OPTS(bpf_object_open_opts, bpf_opts);
+	DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts,
+                            .open_filename = filename,
+                            .prog_name = progname,
+                            .opts = &bpf_opts);
 
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 	/* Required option */
@@ -67,16 +74,25 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
-	if (cfg.do_unload) {
-		xdp_opts.id = cfg.prog_id;
-	} else {
-		xdp_opts.open_filename = filename;
-		xdp_opts.prog_name = progname;
-		xdp_opts.opts = &opts;
+        /* Unload a program by prog_id, or
+         * unload all programs on net device
+         */
+	if (cfg.do_unload || cfg.unload_all) {
+		err = do_unload(&cfg);
+		if (err) {
+			libxdp_strerror(err, errmsg, sizeof(errmsg));
+			fprintf(stderr, "Couldn't unload XDP program %s: %s\n",
+				progname, errmsg);
+			return err;
+		}
+
+		printf("Success: Unloading XDP prog name: %s\n", progname);
+		return EXIT_OK;
 	}
 
-	p = xdp_program__create(&xdp_opts);
-	err = libxdp_get_error(p);
+        /* Create an xdp_program froma a BPF ELF object file */
+	prog = xdp_program__create(&xdp_opts);
+	err = libxdp_get_error(prog);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
 		fprintf(stderr, "Couldn't get XDP program %s: %s\n",
@@ -84,10 +100,8 @@ int main(int argc, char **argv)
 		return err;
 	}
 
-	if (cfg.do_unload)
-		return xdp_program__detach(p, cfg.ifindex, cfg.attach_mode, 0);
-
-	err = xdp_program__attach(p, cfg.ifindex, cfg.attach_mode, 0);
+        /* Attach the xdp_program to the net device XDP hook */
+	err = xdp_program__attach(prog, cfg.ifindex, cfg.attach_mode, 0);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
 		fprintf(stderr, "Couldn't attach XDP program on iface '%s' : %s (%d)\n",
@@ -95,11 +109,8 @@ int main(int argc, char **argv)
 		return err;
 	}
 
-	struct bpf_prog_info info = {};
-	__u32 info_len = sizeof(info);
-	int prog_fd = xdp_program__fd(p);
-
         /* This step is not really needed , BPF-info via bpf-syscall */
+	prog_fd = xdp_program__fd(prog);
 	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
 	if (err) {
 		fprintf(stderr, "ERR: can't get prog info - %s\n",

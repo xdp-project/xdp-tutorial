@@ -182,6 +182,9 @@ void parse_cmdline_args(int argc, char **argv,
 			cfg->xsk_bind_flags &= ~XDP_COPY;
 			cfg->xsk_bind_flags |= XDP_ZEROCOPY;
 			break;
+		case 4: /* --unload-all */
+			cfg->unload_all = true;
+			break;
 		case 'h':
 			full_help = true;
 			/* fall-through */
