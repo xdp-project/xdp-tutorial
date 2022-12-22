@@ -7,6 +7,6 @@ LLC ?= llc
 CLANG ?= clang
 CC := gcc
 
-COMMON_DIR = ../common/
+COMMON_DIR = ../common
 
 include $(COMMON_DIR)/common.mk

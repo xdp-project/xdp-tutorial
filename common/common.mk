@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
 #
 # This file should be included from your Makefile like:
-#  COMMON_DIR = ../common/
+#  COMMON_DIR = ../common
 #  include $(COMMON_DIR)/common.mk
 #
 # It is expected that you define the variables:
