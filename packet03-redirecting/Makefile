@@ -5,7 +5,7 @@ USER_TARGETS := xdp_prog_user
 
 COMMON_DIR = ../common
 
-COPY_LOADER := xdp_loader
+COPY_LOADER := xdp-loader
 COPY_STATS  := xdp_stats
 EXTRA_DEPS := $(COMMON_DIR)/parsing_helpers.h
 

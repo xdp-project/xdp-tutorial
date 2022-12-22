@@ -54,6 +54,7 @@ Mkfile.old
 dkms.conf
 
 # Userspace programs
+xdp-loader
 xdp_loader
 xdp_stats
 xdp_pass_user

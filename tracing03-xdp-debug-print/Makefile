@@ -3,7 +3,7 @@
 XDP_TARGETS := xdp_prog_kern
 USER_TARGETS := trace_read
 
-COPY_LOADER = xdp_loader
+COPY_LOADER = xdp-loader
 
 LLC ?= llc
 CLANG ?= clang

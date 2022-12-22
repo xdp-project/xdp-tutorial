@@ -24,7 +24,8 @@ COMMON_DIR ?= ../common
 LIB_DIR ?= ../lib
 
 COPY_LOADER ?=
-LOADER_DIR ?= $(COMMON_DIR)/../basic-solutions
+LOADER_DIR ?= $(LIB_DIR)/xdp-tools/xdp-loader
+STATS_DIR ?= $(COMMON_DIR)/../basic-solutions
 
 COMMON_OBJS += $(COMMON_DIR)/common_params.o
 include $(LIB_DIR)/defines.mk
@@ -48,18 +49,22 @@ all: llvm-check $(USER_TARGETS) $(XDP_OBJ) $(COPY_LOADER) $(COPY_STATS)
 .PHONY: clean $(CLANG) $(LLC)
 
 clean:
-	$(Q)rm -f $(USER_TARGETS) $(BPF_OBJ) $(USER_OBJ) $(USER_GEN) $(USER_TARGETS_OBJS) *.ll
+	$(Q)rm -f $(USER_TARGETS) $(XDP_OBJ) $(USER_OBJ) $(COPY_LOADER) $(COPY_STATS) *.ll
 
 ifdef COPY_LOADER
-$(COPY_LOADER): $(LOADER_DIR)/${COPY_LOADER:=.c} $(COMMON_H)
-	make -C $(LOADER_DIR) $(COPY_LOADER)
-	cp $(LOADER_DIR)/$(COPY_LOADER) $(COPY_LOADER)
+$(LOADER_DIR)/$(COPY_LOADER):
+	$(Q)make -C $(LOADER_DIR)
+
+$(COPY_LOADER): $(LOADER_DIR)/$(COPY_LOADER)
+	$(QUIET_COPY)cp $(LOADER_DIR)/$(COPY_LOADER) $(COPY_LOADER)
 endif
 
 ifdef COPY_STATS
-$(COPY_STATS): $(LOADER_DIR)/${COPY_STATS:=.c} $(COMMON_H)
-	make -C $(LOADER_DIR) $(COPY_STATS)
-	cp $(LOADER_DIR)/$(COPY_STATS) $(COPY_STATS)
+$(STATS_DIR)/$(COPY_STATS):	$(STATS_DIR)/${COPY_STATS:=.c} $(COMMON_H)
+	$(Q)make -C $(STATS_DIR) $(COPY_STATS)
+
+$(COPY_STATS):	$(STATS_DIR)/$(COPY_STATS)
+	$(QUIET_COPY)cp $(STATS_DIR)/$(COPY_STATS) $(COPY_STATS)
 # Needing xdp_stats imply depending on header files:
 EXTRA_DEPS += $(COMMON_DIR)/xdp_stats_kern.h $(COMMON_DIR)/xdp_stats_kern_user.h
 endif

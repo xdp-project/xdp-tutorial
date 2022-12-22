@@ -5,7 +5,7 @@ USER_TARGETS :=
 
 COMMON_DIR = ../common
 
-COPY_LOADER := xdp_loader
+COPY_LOADER := xdp-loader
 COPY_STATS  := xdp_stats
 
 include $(COMMON_DIR)/common.mk
