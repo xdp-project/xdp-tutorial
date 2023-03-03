@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 static const char *__doc__ = "XDP loader\n"
-	" - Allows selecting BPF section --progname name to XDP-attach to --dev\n";
+	" - Allows selecting BPF program --progname name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -118,9 +118,9 @@ int main(int argc, char **argv)
 	int err;
 
 	struct config cfg = {
-		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
-		.ifindex   = -1,
-		.do_unload = false,
+		.attach_mode = XDP_MODE_NATIVE,
+		.ifindex     = -1,
+		.do_unload   = false,
 	};
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_BPF;
 
 	if (verbose) {
-		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
+		printf("Success: Loaded BPF-object(%s) and used program(%s)\n",
 		       cfg.filename, cfg.progname);
 		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
 		       cfg.ifname, cfg.ifindex);

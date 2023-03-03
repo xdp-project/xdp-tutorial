@@ -41,7 +41,6 @@ static pcap_t* pd;
 static pcap_dumper_t* pdumper;
 static unsigned int pcap_pkts;
 static struct config cfg = {
-	.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
 	.ifindex   = -1,
 };
 static struct xdp_program *prog;
@@ -169,7 +168,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "ERR: loading program: %s\n", errmsg);
 		return err;
 	}
-	err = xdp_program__attach(prog, cfg.ifindex, cfg.xdp_flags, 0);
+	err = xdp_program__attach(prog, cfg.ifindex, cfg.attach_mode, 0);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
 		fprintf(stderr, "Couldn't attach XDP program on iface '%s' : %s (%d)\n",
@@ -215,6 +214,6 @@ int main(int argc, char **argv)
 
 	return 0;
 out:
-	xdp_program__detach(prog, cfg.ifindex, cfg.xdp_flags, 0);
+	xdp_program__detach(prog, cfg.ifindex, cfg.attach_mode, 0);
 	return -1;
 }

@@ -118,7 +118,7 @@ struct xdp_program *load_bpf_and_xdp_attach(struct config *cfg)
 	 * is our select file-descriptor handle. Next step is attaching this FD
 	 * to a kernel hook point, in this case XDP net_device link-level hook.
 	 */
-	err = xdp_program__attach(prog, cfg->ifindex, XDP_MODE_SKB, 0);
+	err = xdp_program__attach(prog, cfg->ifindex, cfg->attach_mode, 0);
 	if (err)
 		exit(err);
 

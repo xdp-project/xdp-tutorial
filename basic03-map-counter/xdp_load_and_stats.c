@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 static const char *__doc__ = "XDP loader and stats program\n"
-	" - Allows selecting BPF section --progname name to XDP-attach to --dev\n";
+	" - Allows selecting BPF --progname name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,11 +42,11 @@ static const struct option_wrapper long_options[] = {
 	{{"auto-mode",   no_argument,		NULL, 'A' },
 	 "Auto-detect SKB or native mode"},
 
-	{{"force",       no_argument,		NULL, 'F' },
-	 "Force install, replacing existing program on interface"},
+	{{"unload",      required_argument,	NULL, 'U' },
+	 "Unload XDP program <id> instead of loading", "<id>"},
 
-	{{"unload",      no_argument,		NULL, 'U' },
-	 "Unload XDP program instead of loading"},
+	{{"unload-all",  no_argument,           NULL,  4  },
+	 "Unload all XDP programs on device"},
 
 	{{"quiet",       no_argument,		NULL, 'q' },
 	 "Quiet mode (no output)"},
@@ -274,10 +274,10 @@ int main(int argc, char **argv)
 	struct xdp_program *program;
 	int stats_map_fd;
 	int interval = 2;
+	char errmsg[1024];
 	int err;
 
 	struct config cfg = {
-		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
 		.ifindex   = -1,
 		.do_unload = false,
 	};
@@ -293,8 +293,22 @@ int main(int argc, char **argv)
 		usage(argv[0], __doc__, long_options, (argc == 1));
 		return EXIT_FAIL_OPTION;
 	}
-	/* if (cfg.do_unload) */
-	/* 	return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0); */
+
+        /* Unload a program by prog_id, or
+         * unload all programs on net device
+         */
+	if (cfg.do_unload || cfg.unload_all) {
+		err = do_unload(&cfg);
+		if (err) {
+			libxdp_strerror(err, errmsg, sizeof(errmsg));
+			fprintf(stderr, "Couldn't unload XDP program %d: %s\n",
+				cfg.prog_id, errmsg);
+			return err;
+		}
+
+		printf("Success: Unloading XDP prog name: %s\n", cfg.progname);
+		return EXIT_OK;
+	}
 
 	program = load_bpf_and_xdp_attach(&cfg);
 	if (!program)
@@ -303,8 +317,8 @@ int main(int argc, char **argv)
 	if (verbose) {
 		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
 		       cfg.filename, cfg.progname);
-		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
-		       cfg.ifname, cfg.ifindex);
+		printf(" - XDP prog id:%d attached on device:%s(ifindex:%d)\n",
+		       xdp_program__id(program), cfg.ifname, cfg.ifindex);
 	}
 
 	/* Lesson#3: Locate map file descriptor */

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 static const char *__doc__ = "XDP loader\n"
-	" - Allows selecting BPF section --progname name to XDP-attach to --dev\n";
+	" - Allows selecting BPF program --progname name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,7 +77,7 @@ int pin_maps_in_bpf_object(struct bpf_object *bpf_obj, struct config *cfg)
 	int err, len;
 
 	len = snprintf(map_filename, PATH_MAX, "%s/%s/%s",
-		       pin_basedir, cfg->ifname, map_name);
+		       cfg->pin_dir, cfg->ifname, map_name);
 	if (len < 0) {
 		fprintf(stderr, "ERR: creating map_name\n");
 		return EXIT_FAIL_OPTION;
@@ -101,8 +101,10 @@ int pin_maps_in_bpf_object(struct bpf_object *bpf_obj, struct config *cfg)
 
 	/* This will pin all maps in our bpf_object */
 	err = bpf_object__pin_maps(bpf_obj, cfg->pin_dir);
-	if (err)
+	if (err) {
+		fprintf(stderr, "ERR: Pinning maps in %s\n", cfg->pin_dir);
 		return EXIT_FAIL_BPF;
+	}
 
 	return 0;
 }
@@ -113,9 +115,9 @@ int main(int argc, char **argv)
 	int err, len;
 
 	struct config cfg = {
-		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
-		.ifindex   = -1,
-		.do_unload = false,
+		.attach_mode = XDP_MODE_NATIVE,
+		.ifindex     = -1,
+		.do_unload   = false,
 	};
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
@@ -135,7 +137,8 @@ int main(int argc, char **argv)
 		/* return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0); */
 	}
 
-	len = snprintf(cfg.pin_dir, PATH_MAX, "%s/%s", pin_basedir, cfg.ifname);
+	/* Initialize the pin_dir configuration */
+	len = snprintf(cfg.pin_dir, 512, "%s/%s", pin_basedir, cfg.ifname);
 	if (len < 0) {
 		fprintf(stderr, "ERR: creating pin dirname\n");
 		return EXIT_FAIL_OPTION;
@@ -147,7 +150,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_BPF;
 
 	if (verbose) {
-		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
+		printf("Success: Loaded BPF-object(%s) and used program(%s)\n",
 		       cfg.filename, cfg.progname);
 		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
 		       cfg.ifname, cfg.ifindex);

@@ -139,9 +139,6 @@ void parse_cmdline_args(int argc, char **argv,
 		case 3: /* --offload-mode */
 			cfg->attach_mode = XDP_MODE_HW;
 			break;
-		case 'F':
-			cfg->xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
-			break;
 		case 'M':
 			cfg->reuse_maps = true;
 			break;

@@ -39,7 +39,6 @@ static struct xdp_program *prog;
 int xsk_map_fd;
 bool custom_xsk = false;
 struct config cfg = {
-	.xdp_flags = XDP_FLAGS_DRV_MODE,
 	.ifindex   = -1,
 };
 
@@ -565,7 +564,7 @@ int main(int argc, char **argv)
 			return err;
 		}
 
-		err = xdp_program__attach(prog, cfg.ifindex, cfg.xdp_flags, 0);
+		err = xdp_program__attach(prog, cfg.ifindex, cfg.attach_mode, 0);
 		if (err) {
 			libxdp_strerror(err, errmsg, sizeof(errmsg));
 			fprintf(stderr, "Couldn't attach XDP program on iface '%s' : %s (%d)\n",
