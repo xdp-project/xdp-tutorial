@@ -58,8 +58,9 @@ git submodule add https://github.com/libbpf/libbpf/ libbpf
 The main dependencies are =libxdp=, =libbpf=, =llvm=, =clang= and
 =libelf=. LLVM+clang compiles our restricted-C programs into BPF-byte-code,
 which is stored in an ELF object file (=libelf=), that is loaded by =libbpf=
-into the kernel via the =bpf= syscall. Some of the lessons also use the
-=perf= utility to track the kernel behaviour through tracepoints.
+into the kernel via the =bpf= syscall. XDP programs are managed by =libxdp=
+which implements the XDP multi-dispatch protocol. Some of the lessons also
+use the =perf= utility to track the kernel behaviour through tracepoints.
 
 The Makefiles in this repo will try to detect if you are missing some
 dependencies, and give you some pointers.

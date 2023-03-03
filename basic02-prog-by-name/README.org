@@ -4,11 +4,11 @@
 
 In this lesson you will see that a BPF ELF file produced by LLVM can contain
 more than one XDP program, and how you can select which one to load using
-the *libbpf API*. Complete each of the assignments below to complete the
+the *libxdp API*. Complete each of the assignments below to complete the
 lesson.
 
 * Table of Contents                                                     :TOC:
-- [[#using-libbpf][Using libbpf]]
+- [[#using-libbpf][Using libxdp]]
   - [[#basic-bpf_object-usage][Basic bpf_object usage]]
   - [[#converting-a-bpf_object-to-bpf_program][Converting a bpf_object to bpf_program]]
   - [[#hardware-offloading][Hardware offloading]]
@@ -16,11 +16,11 @@ lesson.
   - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
   - [[#assignment-2-add-xdp_abort-program][Assignment 2: Add xdp_abort program]]
 
-* Using libbpf
+* Using libxdp and libbpf
 
 The libbpf API not only provides the basic system call wrappers (which are
-defined in libbpf [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]]). The API also provides "[[https://github.com/libbpf/libbpf/blob/master/src/README.rst#objects][objects]]" and functions to
-work with them (defined in include [[https://github.com/libbpf/libbpf/blob/master/src/libbpf.h][libbpf.h]]).
+defined in libbpf [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf/bpf.h]]). The API also provides "[[https://libbpf.readthedocs.io/en/latest/libbpf_naming_convention.html#objects][objects]]" and functions to
+work with them (defined in include [[https://github.com/libbpf/libbpf/blob/master/src/libbpf.h][bpf/libbpf.h]]).
 
 The C structs corresponding to the libbpf objects are:
  - struct =bpf_object=
@@ -28,9 +28,47 @@ The C structs corresponding to the libbpf objects are:
  - struct =bpf_map=
 
 These structs are for libbpf internal use, and you must use the API
-functions to interact with the objects. Functions that work with an object
-are named after the struct, followed by a double underscore, and a
+functions to interact with the opaque objects. Functions that work with an
+object are named after the struct, followed by a double underscore, and a
 descriptive name.
+
+The libxdp API provides objects and functions for working with XDP programs
+as well as objects and functions for working with AF_XDP sockets, defined in
+[[https://github.com/xdp-project/xdp-tools/blob/master/headers/xdp/libxdp.h][xdp/libxdp.h]].
+
+The C structs corresponding to the libxdp objects are:
+ - struct =xdp_program=
+ - struct =xdp_multiprog=
+ - struct =xsk_umem=
+ - struct =xsk_socket=
+
+Let's look at practical usage of libxdp and libbpf.
+
+** Creating an XDP Program
+
+In file:xdp_loader.c the function =xdp_program__create()= is used to create
+an =xdp_program= object, in this case by loading the program from an ELF
+file. The struct =xdp_program= represents a single XDP program that can be
+configured and attached to an XDP hook.
+
+We use the =filename= and =prog_name= to identify the XDP program that we
+want to create from the ELF file, by using struct =xdp_program_opts=:
+
+#+begin_example C
+DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts);
+DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts,
+        .open_filename = cfg->filename,
+        .prog_name = cfg->progname,
+        .opts = &opts);
+#+end_example
+
+When a struct =xdp_program= is created from an ELF file, it keeps a
+reference to the underlying =bpf_object= which can be used to access all the
+BPF programs and maps from the ELF file. We can use the function
+=xdp_program__bpf_obj(prog)= for getting the =bpf_object= from the
+=xdp_program=.
+
+
 
 Lets look at a practical usage of =bpf_object= and =bpf_program=.
 
