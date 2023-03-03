@@ -38,8 +38,8 @@ struct {
 } xdp_stats_map SEC(".maps");
 #+end_src
 
-BPF maps are generic *key/value* stores (hence the =key= and
-=valuee= type parameters), with a given =type=, and maximum allowed entries
+BPF maps are generic *key/value* stores (hence the =key= and =value= type
+parameters), with a given map =type=, and maximum allowed entries
 =max_entries=. Here we focus on the simple =BPF_MAP_TYPE_ARRAY=, which means
 =max_entries= array elements get allocated when the map is first created.
 
@@ -68,8 +68,7 @@ performing the loads.
 
 As you learned in [[file:../basic02-prog-by-name/][basic02]] the libbpf API have "objects" and functions
 working on/with these objects. The struct =bpf_object= represents the ELF
-object itself (which is returned from our =load_bpf_and_xdp_attach()=
-function).
+object itself.
 
 Similarly to what we did for BPF functions, our load has a function called
 =find_map_fd()= (in [[file:xdp_load_and_stats.c]]), which uses the library
@@ -230,4 +229,3 @@ void map_get_value_percpu_array(int fd, __u32 key, struct datarec *value)
 	value->rx_bytes   = sum_bytes;
 }
 #+end_src
-

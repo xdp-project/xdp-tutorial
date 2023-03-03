@@ -51,7 +51,7 @@ an =xdp_program= object, in this case by loading the program from an ELF
 file. The struct =xdp_program= represents a single XDP program that can be
 configured and attached to an XDP hook.
 
-We use the =filename= and =prog_name= to identify the XDP program that we
+We use the =filename= and =progname= to identify the XDP program that we
 want to create from the ELF file, by using struct =xdp_program_opts=:
 
 #+begin_example C
@@ -67,27 +67,6 @@ reference to the underlying =bpf_object= which can be used to access all the
 BPF programs and maps from the ELF file. We can use the function
 =xdp_program__bpf_obj(prog)= for getting the =bpf_object= from the
 =xdp_program=.
-
-
-
-Lets look at a practical usage of =bpf_object= and =bpf_program=.
-
-** Basic bpf_object usage
-
-In [[file:xdp_loader.c]] the function =__load_bpf_object_file()= now returns a
-libbpf struct =bpf_object= pointer (while in the basic01 lesson we just
-returned the file descriptor to the first BPF prog).
-
-The struct =bpf_object= represents an ELF object, which can be of various
-types.
-
-** Converting a bpf_object to bpf_program
-
-In [[file:xdp_loader.c]] the function =__load_bpf_and_xdp_attach()= uses
-=bpf_object__find_program_by_title()= on the bpf_object, which finds a
-program by the "SEC" name (not the C-function name). The return type is a
-struct =bpf_program= object, and we can use the function =bpf_program__fd()=
-for getting the file descriptor that we want to attach to the XDP hook.
 
 ** Hardware offloading
 
@@ -128,24 +107,25 @@ IPv6 address =fc00:dead:cafe:1::2= (as seen in the script output).
 The *assignment* is to manually load the compiled xdp program in the ELF OBJ
 file =xdp_prog_kern.o=, using the =xdp_loader= program in this directory.
 Observe the available options you can give the xdp_loader via =--help=. Try
-to select the program section named =xdp_drop= via =--progname=, and observe
+to select the program named =xdp_drop_func= via =--progname=, and observe
 via ping that packets gets dropped.
 
 Here are some example commands:
 #+begin_example sh
 sudo ./xdp_loader --help
 sudo ./xdp_loader --dev veth-basic02
-sudo ./xdp_loader --dev veth-basic02 --force --progname xdp_drop
-sudo ./xdp_loader --dev veth-basic02 --force --progname xdp_pass
+sudo ./xdp_loader --dev veth-basic02 --unload-all
+sudo ./xdp_loader --dev veth-basic02 --progname xdp_drop_func
+sudo ./xdp_loader --dev veth-basic02 --progname xdp_pass_func
 #+end_example
 
 The testenv script also has a helper command for "load" which will use the
 =xdp_loader= program in the current directory:
 #+begin_example
 sudo ../testenv/testenv.sh load --name veth-basic02
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --force
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progname xdp_drop
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progname xdp_pass
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --unload-all
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --progname xdp_drop_func
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --progname xdp_pass_func
 #+end_example
 
 *** A note about: The test environment and veth packets directions
@@ -215,7 +195,8 @@ Add a new program section "xdp_abort" in [[file:xdp_prog_kern.c]] that uses
 new program, e.g. similar to above:
 
 #+begin_example sh
-sudo ./xdp_loader --dev veth-basic02 --force --progname xdp_abort
+sudo ./xdp_loader --dev veth-basic02 --unload-all
+sudo ./xdp_loader --dev veth-basic02 --progname xdp_abort_func
 #+end_example
 
 *Lesson*: XDP_ABORTED is different from XDP_DROP, because it triggers the
@@ -228,4 +209,3 @@ these records. E.g with perf like this:
 sudo perf record -a -e xdp:xdp_exception sleep 4
 sudo perf script
 #+end_example
-
