@@ -195,14 +195,14 @@ check_libxdp()
         (export LIBBPF_DIR="$(readlink -m lib/libbpf)" \
                 LIBBPF_INCLUDE_DIR="$(readlink -m lib/install/include)" \
                 LIBBPF_UNBUILT=1;
-         cd lib/xdp-tools; ./configure)
+         cd lib/xdp-tools; EMACS="" ./configure)
 
         # libxdp.a has to come before libbpf.a so the former can pick up symbols
         # from the latter
         sed -i 's/-l:libbpf.a/-l:libxdp.a -l:libbpf.a/' $CONFIG
     else
         echo "Configuring libxdp without our libbpf"
-        (cd lib/xdp-tools; ./configure)
+        (cd lib/xdp-tools; EMACS="" ./configure)
 
         echo 'LDLIBS += -l:libxdp.a' >>$CONFIG
     fi
