@@ -22,16 +22,19 @@ this document and install the needed software packages.
   - [[#packages-on-debian][Packages on Debian]]
   - [[#packages-on-opensuse-2][Packages on openSUSE]]
 
-* Based on libbpf
+* Based on libxdp and libbpf
 
-This XDP-tutorial leverages [[https://github.com/libbpf/libbpf/][libbpf]] to ease development and loading of
-BPF-programs. The library libbpf is part of the kernel tree under
-[[https://github.com/torvalds/linux/blob/master/tools/lib/bpf/README.rst][tools/lib/bpf]], but Facebook engineers maintain a stand-alone build on
-GitHub under https://github.com/libbpf/libbpf.
+This XDP-tutorial leverages [[https://github.com/xdp-project/xdp-tools/][libxdp]] to load and manage XDP programs. The
+libxdp library is maintained as part of the [[https://github.com/xdp-project][XDP Project]]. The tutorial also
+leverages [[https://github.com/libbpf/libbpf/][libbpf]] to ease development and loading of BPF programs. The libbpf
+library is part of the kernel tree under [[https://github.com/torvalds/linux/blob/master/tools/lib/bpf/README.rst][tools/lib/bpf]], but Facebook
+engineers maintain a stand-alone build on GitHub under
+https://github.com/libbpf/libbpf.
 
-** libbpf as git-submodule
+** libxdp and libbpf as git-submodules
 
-This repository uses [[https://github.com/libbpf/libbpf][libbpf]] as a git-submodule. After cloning this repository you need to run the command:
+This repository uses both [[https://github.com/xdp-project/xdp-tools/][libxdp]] and [[https://github.com/libbpf/libbpf][libbpf]] as git-submodules. After cloning
+this repository you need to run the command:
 
 #+begin_example
 git submodule update --init
@@ -43,19 +46,21 @@ If you want submodules to be part of the clone, you can use this command:
 git clone --recurse-submodules https://github.com/xdp-project/xdp-tutorial
 #+end_example
 
-If you need to add this to your own project, you can use the command:
+If you need to add them to your own project, you can use the command:
 
 #+begin_example
+git submodule add https://github.com/xdp-project/xdp-tools/ xdp-tools
 git submodule add https://github.com/libbpf/libbpf/ libbpf
 #+end_example
 
 * Dependencies
 
-The main dependencies are =libbpf=, =llvm=, =clang= and =libelf=. LLVM+clang
-compiles our restricted-C programs into BPF-byte-code, which is stored in an
-ELF object file (=libelf=), that is loaded by =libbpf= into the kernel via
-the =bpf= syscall. Some of the lessons also use the =perf= utility to
-track the kernel behaviour through tracepoints.
+The main dependencies are =libxdp=, =libbpf=, =llvm=, =clang= and
+=libelf=. LLVM+clang compiles our restricted-C programs into BPF-byte-code,
+which is stored in an ELF object file (=libelf=), that is loaded by =libbpf=
+into the kernel via the =bpf= syscall. XDP programs are managed by =libxdp=
+which implements the XDP multi-dispatch protocol. Some of the lessons also
+use the =perf= utility to track the kernel behaviour through tracepoints.
 
 The Makefiles in this repo will try to detect if you are missing some
 dependencies, and give you some pointers.

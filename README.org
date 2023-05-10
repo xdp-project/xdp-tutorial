@@ -96,5 +96,5 @@ once you start expanding your program to do more things.
 
 The topics covered in the advanced lessons include how to make eBPF programs
 in other parts of the kernel interact with your XDP program, passing
-metadata between programs, best practices for interacting with userspace and
+metadata between programs, best practices for interacting with user space and
 kernel features, and how to run multiple XDP programs on a single interface.

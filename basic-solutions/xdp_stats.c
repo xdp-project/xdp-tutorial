@@ -16,6 +16,7 @@ static const char *__doc__ = "XDP stats program\n"
 /* Lesson#1: this prog does not need to #include <bpf/libbpf.h> as it only uses
  * the simple bpf-syscall wrappers, defined in libbpf #include<bpf/bpf.h>
  */
+#include <bpf/libbpf.h> /* libbpf_num_possible_cpus */
 
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
@@ -23,8 +24,6 @@ static const char *__doc__ = "XDP stats program\n"
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/xdp_stats_kern_user.h"
-
-#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 static const struct option_wrapper long_options[] = {
 	{{"help",        no_argument,		NULL, 'h' },
@@ -134,7 +133,7 @@ void map_get_value_array(int fd, __u32 key, struct datarec *value)
 void map_get_value_percpu_array(int fd, __u32 key, struct datarec *value)
 {
 	/* For percpu maps, userspace gets a value per possible CPU */
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	struct datarec values[nr_cpus];
 	__u64 sum_bytes = 0;
 	__u64 sum_pkts = 0;
@@ -250,7 +249,7 @@ int main(int argc, char **argv)
 		.do_unload = false,
 	};
 
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	/* Required option */

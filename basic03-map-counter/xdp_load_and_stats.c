@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 static const char *__doc__ = "XDP loader and stats program\n"
-	" - Allows selecting BPF section --progsec name to XDP-attach to --dev\n";
+	" - Allows selecting BPF --progname name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +14,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
+#include <xdp/libxdp.h>
 
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
@@ -21,10 +22,9 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "common_kern_user.h"
-#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 static const char *default_filename = "xdp_prog_kern.o";
-static const char *default_progsec = "xdp_stats1";
+static const char *default_progname = "xdp_stats1_func";
 
 static const struct option_wrapper long_options[] = {
 	{{"help",        no_argument,		NULL, 'h' },
@@ -42,11 +42,11 @@ static const struct option_wrapper long_options[] = {
 	{{"auto-mode",   no_argument,		NULL, 'A' },
 	 "Auto-detect SKB or native mode"},
 
-	{{"force",       no_argument,		NULL, 'F' },
-	 "Force install, replacing existing program on interface"},
+	{{"unload",      required_argument,	NULL, 'U' },
+	 "Unload XDP program <id> instead of loading", "<id>"},
 
-	{{"unload",      no_argument,		NULL, 'U' },
-	 "Unload XDP program instead of loading"},
+	{{"unload-all",  no_argument,           NULL,  4  },
+	 "Unload all XDP programs on device"},
 
 	{{"quiet",       no_argument,		NULL, 'q' },
 	 "Quiet mode (no output)"},
@@ -54,8 +54,8 @@ static const struct option_wrapper long_options[] = {
 	{{"filename",    required_argument,	NULL,  1  },
 	 "Load program from <file>", "<file>"},
 
-	{{"progsec",    required_argument,	NULL,  2  },
-	 "Load program in <section> of the ELF file", "<section>"},
+	{{"progname",    required_argument,	NULL,  2  },
+	 "Load program from function <name> in the ELF file", "<name>"},
 
 	{{0, 0, NULL,  0 }}
 };
@@ -271,20 +271,20 @@ int main(int argc, char **argv)
 {
 	struct bpf_map_info map_expect = { 0 };
 	struct bpf_map_info info = { 0 };
-	struct bpf_object *bpf_obj;
+	struct xdp_program *program;
 	int stats_map_fd;
 	int interval = 2;
+	char errmsg[1024];
 	int err;
 
 	struct config cfg = {
-		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE,
 		.ifindex   = -1,
 		.do_unload = false,
 	};
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
-	strncpy(cfg.progsec,  default_progsec,  sizeof(cfg.progsec));
-	/* Cmdline options can change progsec */
+	strncpy(cfg.progname,  default_progname,  sizeof(cfg.progname));
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	/* Required option */
@@ -293,24 +293,38 @@ int main(int argc, char **argv)
 		usage(argv[0], __doc__, long_options, (argc == 1));
 		return EXIT_FAIL_OPTION;
 	}
-	if (cfg.do_unload)
-		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
 
-	bpf_obj = load_bpf_and_xdp_attach(&cfg);
-	if (!bpf_obj)
+        /* Unload a program by prog_id, or
+         * unload all programs on net device
+         */
+	if (cfg.do_unload || cfg.unload_all) {
+		err = do_unload(&cfg);
+		if (err) {
+			libxdp_strerror(err, errmsg, sizeof(errmsg));
+			fprintf(stderr, "Couldn't unload XDP program %d: %s\n",
+				cfg.prog_id, errmsg);
+			return err;
+		}
+
+		printf("Success: Unloading XDP prog name: %s\n", cfg.progname);
+		return EXIT_OK;
+	}
+
+	program = load_bpf_and_xdp_attach(&cfg);
+	if (!program)
 		return EXIT_FAIL_BPF;
 
 	if (verbose) {
 		printf("Success: Loaded BPF-object(%s) and used section(%s)\n",
-		       cfg.filename, cfg.progsec);
-		printf(" - XDP prog attached on device:%s(ifindex:%d)\n",
-		       cfg.ifname, cfg.ifindex);
+		       cfg.filename, cfg.progname);
+		printf(" - XDP prog id:%d attached on device:%s(ifindex:%d)\n",
+		       xdp_program__id(program), cfg.ifname, cfg.ifindex);
 	}
 
 	/* Lesson#3: Locate map file descriptor */
-	stats_map_fd = find_map_fd(bpf_obj, "xdp_stats_map");
+	stats_map_fd = find_map_fd(xdp_program__bpf_obj(program), "xdp_stats_map");
 	if (stats_map_fd < 0) {
-		xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+		/* xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0); */
 		return EXIT_FAIL_BPF;
 	}
 

@@ -9,13 +9,6 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
 
-#define bpf_printk(fmt, ...)                                    \
-({                                                              \
-	char ____fmt[] = fmt;                                   \
-	bpf_trace_printk(____fmt, sizeof(____fmt),              \
-                         ##__VA_ARGS__);                        \
-})
-
 /* to u64 in host order */
 static inline __u64 ether_addr_to_u64(const __u8 *addr)
 {

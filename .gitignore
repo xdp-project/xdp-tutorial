@@ -54,6 +54,7 @@ Mkfile.old
 dkms.conf
 
 # Userspace programs
+xdp-loader
 xdp_loader
 xdp_stats
 xdp_pass_user
@@ -66,3 +67,6 @@ trace_load_and_stats
 trace_load_and_stats
 trace_read
 xdp_sample_pkts_user
+
+# configure output
+config.mk

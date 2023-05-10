@@ -5,7 +5,7 @@
 In this lesson you will learn about BPF maps, the persistent storage
 mechanism available to BPF programs. The assignments will give you hands-on
 experience with extending the "value" size/content, and reading the contents
-from userspace.
+from user space.
 
 In this lesson we will only cover two simple maps types:
  - =BPF_MAP_TYPE_ARRAY= and
@@ -16,7 +16,7 @@ In this lesson we will only cover two simple maps types:
   - [[#defining-a-map][Defining a map]]
   - [[#libbpf-map-elf-relocation][libbpf map ELF relocation]]
   - [[#bpf_object-to-bpf_map][bpf_object to bpf_map]]
-  - [[#reading-map-values-from-userspace][Reading map values from userspace]]
+  - [[#reading-map-values-from-user-space][Reading map values from user space]]
 - [[#assignments][Assignments]]
   - [[#assignment-1-add-bytes-counter][Assignment 1: Add bytes counter]]
   - [[#assignment-2-handle-other-xdp-actions-stats][Assignment 2: Handle other XDP actions stats]]
@@ -26,25 +26,25 @@ In this lesson we will only cover two simple maps types:
 
 ** Defining a map
 
-Creating a BPF map is done by defining a global struct =bpf_map_def= (in
-[[file:xdp_prog_kern.c]]), with a special =SEC("maps")= as below:
+Creating a BPF map is done by defining a global struct (in
+[[file:xdp_prog_kern.c]]), with a special =SEC(".maps")= as below:
 
 #+begin_src C
-struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_ARRAY,
-	.key_size    = sizeof(__u32),
-	.value_size  = sizeof(struct datarec),
-	.max_entries = XDP_ACTION_MAX,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__type(key, __u32);
+	__type(value, struct datarec);
+	__uint(max_entries, XDP_ACTION_MAX);
+} xdp_stats_map SEC(".maps");
 #+end_src
 
-BPF maps are generic *key/value* stores (hence the =key_size= and
-=value_size= parameters), with a given =type=, and maximum allowed entries
+BPF maps are generic *key/value* stores (hence the =key= and =value= type
+parameters), with a given map =type=, and maximum allowed entries
 =max_entries=. Here we focus on the simple =BPF_MAP_TYPE_ARRAY=, which means
 =max_entries= array elements get allocated when the map is first created.
 
 The BPF map is accessible from both the BPF program (kernel) side and from
-userspace. How this is done and how they differ is part of this lesson.
+user space. How this is done and how they differ is part of this lesson.
 
 ** libbpf map ELF relocation
 
@@ -55,7 +55,7 @@ a BPF map?
 
 This happens by first loading all the BPF maps, and storing their
 corresponding file descriptors (FDs). Then the ELF relocation table is used
-to identify each reference  the BPF program makes to a given map; each such
+to identify each reference the BPF program makes to a given map; each such
 reference is then rewritten, so the BPF byte code instructions use the right
 map FD for each map.
 
@@ -68,8 +68,7 @@ performing the loads.
 
 As you learned in [[file:../basic02-prog-by-name/][basic02]] the libbpf API have "objects" and functions
 working on/with these objects. The struct =bpf_object= represents the ELF
-object itself (which is returned from our =load_bpf_and_xdp_attach()=
-function).
+object itself.
 
 Similarly to what we did for BPF functions, our load has a function called
 =find_map_fd()= (in [[file:xdp_load_and_stats.c]]), which uses the library
@@ -80,15 +79,15 @@ the =bpf_object=, we obtain the map file descriptor via =bpf_map__fd()=.
 There is also a libbpf function that wraps these two steps, which is called
 =bpf_object__find_map_fd_by_name()=.
 
-** Reading map values from userspace
+** Reading map values from user space
 
-The contents of a map is read from userspace via the function
+The contents of a map is read from user space via the function
 =bpf_map_lookup_elem()=, which is a simple syscall-wrapper, that operates on
 the map file descriptor (FD). The syscall looks up the =key= and stores the
 value into the memory area supplied by the value pointer. It is up to the
-calling userspace program to ensure that the memory allocated to hold the
+calling user space program to ensure that the memory allocated to hold the
 returned value is large enough to store the type of data contained in the
-map. In our example we demonstrate how userspace can query the map FD and
+map. In our example we demonstrate how user space can query the map FD and
 get back some info in struct =bpf_map_info= via the syscall wrapper
 =bpf_obj_get_info_by_fd()=.
 
@@ -111,7 +110,7 @@ Notice how the BPF map =xdp_stats_map= used:
 The BPF map has no knowledge about the data-structure used for the value
 record, it only knows the size. (The [[https://github.com/torvalds/linux/blob/master/Documentation/bpf/btf.rst][BPF Type Format]] ([[https://www.kernel.org/doc/html/latest/bpf/btf.html][BTF]]) is an advanced
 topic, that allows for associating data struct knowledge via debug info, but
-we ignore that for now). Thus, it is up to the two sides (userspace and
+we ignore that for now). Thus, it is up to the two sides (user space and
 BPF-prog kernel side) to ensure they stay in sync on the content and
 structure of =value=. The hint here on the data structure used comes from
 =sizeof(struct datarec)=, which indicate that =struct datarec= is used.
@@ -166,9 +165,9 @@ subtracting =data= from =data_end=, and update the datarec member.
 	lock_xadd(&rec->rx_bytes, bytes);
 #+end_src
 
-*** Assignment 1.2: Update the userspace program
+*** Assignment 1.2: Update the user space program
 
-Now it is time to update the userspace program that reads stats (in
+Now it is time to update the user space program that reads stats (in
 [[file:xdp_load_and_stats.c]]).
 
 Update the functions:
@@ -182,7 +181,7 @@ array, with =max_entries=XDP_ACTION_MAX=. The idea with this is to keep
 stats per [[https://elixir.bootlin.com/linux/latest/ident/xdp_action][(enum) xdp_action]], but our program does not yet take advantage of
 this.
 
-The *assignment* is to extend userspace stats tool (in
+The *assignment* is to extend user space stats tool (in
 [[file:xdp_load_and_stats.c]]) to collect and print these extra stats.
 
 ** Assignment 3: Per CPU stats
@@ -191,13 +190,13 @@ Thus far, we have used atomic operations to increment our stats counters;
 however, this is expensive as it inserts memory barriers to make sure
 different CPUs don't garble each other's data. We can avoid this by using
 another array type that stores its data in per-CPU storage. The drawback of
-this is that we move the burden of summing to userspace.
+this is that we move the burden of summing to user space.
 
 To achieve this, the first step is to change map =type= (in
 [[file:xdp_prog_kern.c]]) to use =BPF_MAP_TYPE_PERCPU_ARRAY=. If you only make
-this change, the userspace program will detect this and complain, as we
+this change, the user space program will detect this and complain, as we
 query the map FD for some info (via =bpf_obj_get_info_by_fd()=) and e.g.
-check the map type. Remember it is userspace's responsibility to make sure
+check the map type. Remember it is user space's responsibility to make sure
 the data record for the value is large enough.
 
 Next step is writing a function that gets the values per CPU and sum these.
@@ -208,7 +207,7 @@ the switch-case statement in function =map_collect()=:
 /* BPF_MAP_TYPE_PERCPU_ARRAY */
 void map_get_value_percpu_array(int fd, __u32 key, struct datarec *value)
 {
-	/* For percpu maps, userspace gets a value per possible CPU */
+	/* For percpu maps, user space gets a value per possible CPU */
 	unsigned int nr_cpus = bpf_num_possible_cpus();
 	struct datarec values[nr_cpus];
 	__u64 sum_bytes = 0;
@@ -230,4 +229,3 @@ void map_get_value_percpu_array(int fd, __u32 key, struct datarec *value)
 	value->rx_bytes   = sum_bytes;
 }
 #+end_src
-

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 static const char *__doc__ = "XDP loader and stats program\n"
-	" - Allows selecting BPF section --progsec name to XDP-attach to --dev\n";
+	" - Allows selecting BPF section --progname name to XDP-attach to --dev\n";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,12 +22,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
-#include <linux/err.h>
-
 #include "../common/common_params.h"
-#include "../common/common_user_bpf_xdp.h"
-#include "../common/common_libbpf.h"
-#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 #include <linux/perf_event.h>
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
@@ -74,7 +69,7 @@ int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
 static void stats_print(int map_fd)
 {
 	/* For percpu maps, userspace gets a value per possible CPU */
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	__u64 values[nr_cpus];
 	__s32 key;
 	void *keyp = &key, *prev_keyp = NULL;
@@ -186,71 +181,37 @@ int filename__read_int(const char *filename, int *value)
 	return err;
 }
 
-#define TP "/sys/kernel/debug/tracing/events/"
-
-static int read_tp_id(const char *name, int *id)
-{
-	char path[PATH_MAX];
-
-	snprintf(path, PATH_MAX, TP "%s/id", name);
-	return filename__read_int(path, id);
-}
-
-static inline int
-sys_perf_event_open(struct perf_event_attr *attr,
-		    pid_t pid, int cpu, int group_fd,
-		    unsigned long flags)
-{
-	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
-}
-
 static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
 {
-	struct perf_event_attr attr;
 	struct bpf_object *obj;
-	int err, bpf_fd;
-	int id, fd;
+	int err;
+	struct bpf_program *prog;
+	struct bpf_link *link;
 
-	if (bpf_prog_load(cfg->filename, BPF_PROG_TYPE_TRACEPOINT, &obj, &bpf_fd)) {
-		fprintf(stderr, "ERR: failed to load program\n");
-		goto err;
-	}
+	obj = bpf_object__open_file(cfg->filename, NULL);
+	err = libbpf_get_error(obj);
+	if (err)
+		return NULL;
 
-	if (read_tp_id("xdp/xdp_exception", &id)) {
-		fprintf(stderr, "ERR: can't get program section\n");
-		goto err;
-	}
-
-	/* Setup tracepoint perf event */
-	memset(&attr, 0, sizeof(attr));
-	attr.type = PERF_TYPE_TRACEPOINT;
-	attr.config = id;
-	attr.sample_period = 1;
-
-	/* .. and open it */
-	fd = sys_perf_event_open(&attr, -1, 0, -1, 0);
-	if (fd <= 0) {
-		fprintf(stderr, "ERR: failed to open perf event %s\n",
-			strerror(errno));
-		goto err;
-	}
-
-	/* Assign the program to the tracepoint perf event */
-	err = ioctl(fd, PERF_EVENT_IOC_SET_BPF, bpf_fd);
+	err = bpf_object__load(obj);
 	if (err) {
-		fprintf(stderr, "ERR: failed to connect perf event with eBPF prog %s\n",
-			strerror(errno));
-		goto err;
+			fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
+					cfg->filename, err, strerror(-err));
+			goto err;
 	}
 
-	/* ... and finally enable the event. */
-	err = ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
-	if (err) {
-		fprintf(stderr, "ERR: failed to enable perf event %s\n",
-			strerror(errno));
-		goto err;
+	prog = bpf_object__next_program(obj, NULL);
+	if (!prog) {
+			fprintf(stderr, "ERR: Failed to retrieve program from BPF-OBJ file(%s) (%d): %s\n",
+					cfg->filename, err, strerror(-err));
+			goto err;
 	}
 
+	link = bpf_program__attach_tracepoint(prog, "xdp", "xdp_exception");
+	if (libbpf_get_error(link)) {
+		printf("bpf_program__attach_tracepoint failed\n");
+		goto err;
+	}
 	/*
 	 * As far as this program is concerned, we don't care about
 	 * the perf event file descriptor, it will get closed when
@@ -277,7 +238,7 @@ int main(int argc, char **argv)
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
 
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	bpf_obj = load_bpf_and_trace_attach(&cfg);

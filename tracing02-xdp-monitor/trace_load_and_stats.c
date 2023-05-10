@@ -10,6 +10,8 @@ static const char *__doc__ = "XDP monitor via tracepoints\n";
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <net/if.h>
+#include <linux/perf_event.h>
+#include <sys/syscall.h>
 
 #include <locale.h>
 #include <unistd.h>
@@ -21,12 +23,9 @@ static const char *__doc__ = "XDP monitor via tracepoints\n";
 #include <net/if.h>
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
-#include <linux/err.h>
-
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
-#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 #include <linux/perf_event.h>
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
@@ -177,7 +176,7 @@ static int __check_map(int map_fd, struct bpf_map_info *exp)
 	return __check_map_fd_info(map_fd, &info, exp);
 }
 
-static int check_map(const char *name, const struct bpf_map_def *def, int fd)
+static int check_map(const char *name, int fd)
 {
 	struct {
 		const char          *name;
@@ -249,15 +248,13 @@ static int check_maps(struct bpf_object *obj)
 	struct bpf_map *map;
 
 	bpf_object__for_each_map(map, obj) {
-		const struct bpf_map_def *def;
 		const char *name;
 		int fd;
 
 		name = bpf_map__name(map);
-		def  = bpf_map__def(map);
 		fd   = bpf_map__fd(map);
 
-		if (check_map(name, def, fd))
+		if (check_map(name, fd))
 			return -1;
 	}
 
@@ -281,7 +278,7 @@ static __u64 gettime(void)
 static bool map_collect_record(int fd, __u32 key, struct record *rec)
 {
 	/* For percpu maps, userspace gets a value per possible CPU */
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	struct datarec values[nr_cpus];
 	__u64 sum_processed = 0;
 	__u64 sum_dropped = 0;
@@ -318,7 +315,7 @@ static bool map_collect_record(int fd, __u32 key, struct record *rec)
 static bool map_collect_record_u64(int fd, __u32 key, struct record_u64 *rec)
 {
 	/* For percpu maps, userspace gets a value per possible CPU */
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	struct u64rec values[nr_cpus];
 	__u64 sum_total = 0;
 	int i;
@@ -428,7 +425,7 @@ static void stats_print(struct stats_record *stats_rec,
 			struct stats_record *stats_prev,
 			bool err_only)
 {
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	int rec_i = 0, i, to_cpu;
 	double t = 0, pps = 0;
 
@@ -656,7 +653,7 @@ static bool stats_collect(struct bpf_object *obj, struct stats_record *rec)
 
 static void *alloc_rec_per_cpu(int record_size)
 {
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	void *array;
 	size_t size;
 
@@ -775,14 +772,6 @@ int filename__read_int(const char *filename, int *value)
 	return err;
 }
 
-static inline int
-sys_perf_event_open(struct perf_event_attr *attr,
-		    pid_t pid, int cpu, int group_fd,
-		    unsigned long flags)
-{
-	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
-}
-
 static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
 {
 	struct bpf_object *obj;
@@ -804,7 +793,7 @@ static struct bpf_object* load_bpf_and_trace_attach(struct config *cfg)
 	}
 
 	bpf_object__for_each_program(prog, obj) {
-		const char *sec = bpf_program__title(prog, true);
+		const char *sec = bpf_program__section_name(prog);
 		char *tp;
 
 		if (!sec) {
@@ -849,7 +838,7 @@ int main(int argc, char **argv)
 	/* Set default BPF-ELF object file and BPF program name */
 	strncpy(cfg.filename, default_filename, sizeof(cfg.filename));
 
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	bpf_obj = load_bpf_and_trace_attach(&cfg);

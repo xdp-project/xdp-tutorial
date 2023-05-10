@@ -16,7 +16,7 @@ stat application.
 
 * Tracepoints
 
-Tracepoints are useful for debugging XDP, expecially for XDP_REDIRECT.
+Tracepoints are useful for debugging XDP, especially for XDP_REDIRECT.
 
 To gain performance XDP_REDIRECT does RX-bulking towards destinations, which
 unfortunately means that XDP-prog doesn't get errors directly returned
@@ -77,8 +77,8 @@ Exception       3       0            29           XDP_UNKNOWN
 Exception       4       0            3            XDP_UNKNOWN
 Exception       5       0            8            XDP_UNKNOWN
 Exception       total   0            91           XDP_UNKNOWN
-cpumap-kthread  total   0            0            0          
-devmap-xmit     total   0            0            0.00        
+cpumap-kthread  total   0            0            0
+devmap-xmit     total   0            0            0.00
 #+end_example
 
 * Alternative solutions

@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 		.redirect_ifindex   = -1,
 	};
 
-	/* Cmdline options can change progsec */
+	/* Cmdline options can change progname */
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
 	redirect_map = (cfg.ifindex > 0) && (cfg.redirect_ifindex > 0);

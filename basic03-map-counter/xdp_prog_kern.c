@@ -8,12 +8,12 @@
  * - Here an array with XDP_ACTION_MAX (max_)entries are created.
  * - The idea is to keep stats per (enum) xdp_action
  */
-struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_ARRAY,
-	.key_size    = sizeof(__u32),
-	.value_size  = sizeof(struct datarec),
-	.max_entries = XDP_ACTION_MAX,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__type(key, __u32);
+	__type(value, struct datarec);
+	__uint(max_entries, XDP_ACTION_MAX);
+} xdp_stats_map SEC(".maps");
 
 /* LLVM maps __sync_fetch_and_add() as a built-in function to the BPF atomic add
  * instruction (that is BPF_STX | BPF_XADD | BPF_W for word sizes)
@@ -22,7 +22,7 @@ struct bpf_map_def SEC("maps") xdp_stats_map = {
 #define lock_xadd(ptr, val)	((void) __sync_fetch_and_add(ptr, val))
 #endif
 
-SEC("xdp_stats1")
+SEC("xdp")
 int  xdp_stats1_func(struct xdp_md *ctx)
 {
 	// void *data_end = (void *)(long)ctx->data_end;

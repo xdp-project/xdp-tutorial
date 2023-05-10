@@ -1,12 +1,12 @@
 # -*- fill-column: 76; -*-
-#+TITLE: Advanced: XDP userspace delivery via AF_XDP
+#+TITLE: Advanced: XDP user space delivery via AF_XDP
 #+OPTIONS: ^:nil
 
 It is important to understand that XDP in-itself is not a kernel bypass
 facility. XDP is an *in-kernel* fast-path, that operates on raw-frames
 "inline" before they reach the normal Linux Kernel network stack.
 
-To support fast delivery of /raw-frames into userspace/, XDP can *bypass*
+To support fast delivery of /raw-frames into user space/, XDP can *bypass*
 the Linux Kernel network stack via XDP_REDIRECT'ing into a special BPF-map
 containing AF_XDP sockets. The AF_XDP socket is an new Address Family type.
 ([[https://www.kernel.org/doc/html/latest/networking/af_xdp.html][The kernel documentation for AF_XDP]]).
@@ -33,26 +33,28 @@ descriptor ring queues:
   a ring, that point into UMEM area.
 
 There are *no memory allocation* per packet. Instead the UMEM memory area
-used for packets is pre-allocated and there by bounded. The UMEM area
-consists of a number of equally sized chunks, that userspace have registered
+used for packets is pre-allocated and thereby bounded. The UMEM area
+consists of a number of equally sized chunks, that user space have registered
 with the kernel (via XDP_UMEM_REG setsockopt system call). *Importantly*:
 This also means that you are responsible for returning frames to UMEM in
 timely manner, and pre-allocated enough for your application usage pattern.
 
-The [[http://www.lemis.com/grog/Documentation/vj/lca06vj.pdf][transport signature]] that Van Jacobson talked about, are replaced by the
-XDP/eBPF program choosing which AF_XDP socket to XDP_REDIRECT into.
+The [[http://www.lemis.com/grog/Documentation/vj/lca06vj.pdf][transport signature]]
+that Van Jacobson talked about, are replaced by the XDP/eBPF program choosing which
+AF_XDP socket to XDP_REDIRECT into.
 
 ** Details: Actually four SPSC ring queues
 
-As explained in the [[ https://www.kernel.org/doc/html/latest/networking/af_xdp.html][AF_XDP kernel doc]] there are actually 4 SPSC ring queues.
+As explained in the [[ https://www.kernel.org/doc/html/latest/networking/af_xdp.html][AF_XDP kernel doc]]
+there are actually 4 SPSC ring queues.
 
 In summary: the AF_XDP /socket/ has two rings for *RX* and *TX*, which
-contain descriptors that points into UMEM area. The UMEM area has two rings:
+contain descriptors that point into UMEM area. The UMEM area has two rings:
 *FILL* ring and *COMPLETION* ring. In the *FILL* ring: the application gives
 the kernel a packet area to *RX* fill. In the *COMPLETION* ring, the kernel
 tells the application that *TX is done* for a packet area (which then can be
 reused). This scheme is for transferring ownership of UMEM packet areas
-between the kernel and the userspace application.
+between the kernel and the user space application.
 
 ** Gotcha by RX-queue id binding
 
@@ -60,13 +62,14 @@ The most common mistake: Why am I not seeing any traffic on the AF_XDP
 socket?
 
 As you just learned from above, the AF_XDP socket bound to a *single
-RX-queue id* (for performance reasons). Thus, your userspace program is only
+RX-queue id* (for performance reasons). Thus, your user space program is only
 receiving raw-frames from a specific RX-queue id number. NICs will by
 default spread flows with RSS-hashing over all available RX-queues. Thus,
 traffic likely not hitting queue you expect.
 
-In order to fix that problem, you *MUST* configure the NIC to steer flow to a specific RX-queue.
-This can be done via ethtool or TC HW offloading filter setup.
+In order to fix that problem, you *MUST* configure the NIC to steer flow to
+a specific RX-queue. This can be done via ethtool or TC HW offloading filter
+setup.
 
 The following example shows how to configure the NIC to steer all UDP ipv4 traffic
 to /RX-queue id/ 42:
@@ -80,11 +83,11 @@ The parameter /action/ specifies the id of the target /RX-queue/.
 In general, a flow rule is composed of a matching criteria and an action.
 L2, L3 and L4 header values can be used to specify the matching criteria.
 For a comprehensive documentation, please check out the man page of ethtool.
-It documents all available header values that can be used as part of the matching criteria.
-
+It documents all available header values that can be used as part of the
+matching criteria.
 
 Alternative work-arounds:
-1. Create as many AF_XDP sockets as RXQs, and have userspace poll()/select
+1. Create as many AF_XDP sockets as RXQs, and have user space poll()/select
    on all sockets.
 2. For testing purposes reduce RXQ number to 1,
    e.g. via command =ethtool -L <interface> combined 1=
@@ -95,7 +98,7 @@ As hinted in the intro (driver level) support for AF_XDP depend on drivers
 implementing the XDP_REDIRECT action. For all driver implementing the basic
 XDP_REDIRECT action, AF_XDP in "copy-mode" is supported. The "copy-mode" is
 surprisingly fast, and does a single-copy of the frame (including any XDP
-placed meta-data) into the UMEM area. The userspace API remains the same.
+placed meta-data) into the UMEM area. The user space API remains the same.
 
 For AF_XDP "zero-copy" support the driver need to implement and expose the
 API for registering and using the UMEM area directly in the NIC RX-ring
@@ -110,14 +113,17 @@ allocating memory and copying over the frame.
 
 * Assignments
 The end goal of this lesson is to build an AF_XDP program that will send
-packets to userspace and if they are IPv6 ping packets reply.
+packets to user space and if they are IPv6 ping packets reply.
 
-We will do using the automatically installed XDP program, but one of the
-assignments it to implement this manually.
+We will do this using the automatically installed XDP program, but one of the
+later assignments is to implement this manually. The default XDP program is a
+simple redirect program that redirects packets from a specific device queue to
+an AF_XDP socket if a socket is attached to that queue.
 
 ** Assignment 1: Run the example program to eat all packets
 First, you need to set up the test lab environment and start an infinite
 ping. You do this by running the following:
+
 #+begin_example sh
 $ eval $(../testenv/testenv.sh alias)
 $ t setup --name veth-adv03
@@ -129,13 +135,26 @@ eaten by it:
 
 #+begin_example sh
 $ sudo ./af_xdp_user -d veth-adv03
-[sudo] password for echaudro:
 AF_XDP RX:             2 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000185
        TX:             0 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000185
 
 AF_XDP RX:             4 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000152
        TX:             0 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000152
 #+end_example
+
+Note: the [[https://github.com/xdp-project/xdp-tools/blob/master/lib/libxdp/xsk_def_xdp_prog.c][default AF_XDP]]
+program from libxdp will be loaded unless you specify a different BPF program to load by passing in
+a filename (and a program section if applicable).
+
+#+begin_example sh
+$ sudo sudo ./af_xdp_user -d veth-adv03 --filename af_xdp_kern.o
+AF_XDP RX:             2 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000185
+       TX:             0 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000185
+
+AF_XDP RX:             4 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000152
+       TX:             0 pkts (         0 pps)           0 Kbytes (     0 Mbits/s) period:2.000152
+#+end_example
+
 
 ** Assignment 2: Write an XDP program to process every other packet
 For this exercise, you need to write an eBPF program that will count the
@@ -145,6 +164,7 @@ AF_XDP socket.
 
 This should result in every other ping packet being replied too. Here is the
 expected output from the ping command, notice the icmp_seq numbers:
+
 #+begin_example sh
 $ t ping
 Running ping from inside test environment:
@@ -170,13 +190,21 @@ AF_XDP RX:             2 pkts (         0 pps)           0 Kbytes (     0 Mbits/
 
 Note that the full solution is included in the af_xdp_kern.c file.
 
+It's important to note that the AF_XDP socket creation in the case of loading
+a custom redirection program involves the use of the
+*XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD* flag. This flag prevents the default
+kernel program from being loaded as part of the *xsk_socket__create()*
+function call. This creates an AF_XDP socket that isn't entered in any
+*XSK_MAP*. Therefore, it's important to call *xsk_socket__update_xskmap()*
+to enter the AF_XDP socket into the custom program map.
 
-** Assignment 3: Write an userspace program to reply to IPv6 ping packets
-For the final exercise, you need to write some userspace code that will
+** Assignment 3: Write a user space program to reply to IPv6 ping packets
+For the final exercise, you need to write some user space code that will
 reply to the ping packets. This needs be done inside the process_packet()
 function.
 
 Once you have done this all pings should receive a reply:
+
 #+begin_example sh
 $ sudo ./af_xdp_user -d veth-adv03
 AF_XDP RX:             2 pkts (         1 pps)           0 Kbytes (     0 Mbits/s) period:2.000175
@@ -190,3 +218,36 @@ AF_XDP RX:             6 pkts (         1 pps)           0 Kbytes (     0 Mbits/
 #+end_example
 
 Note that the full solution is present in the af_xdp_user.c file.
+
+** Checking which AF_XDP program is loaded
+
+If the default AF_XDP program is loaded you will see the name: xsk_def_prog. Otherwise,
+the name will be the custom program/section name from the custom file that was loaded.
+
+#+begin_example sh
+$ sudo xdp-loader status
+CURRENT XDP PROGRAM STATUS:
+
+Interface        Prio  Program name      Mode     ID   Tag               Chain actions
+--------------------------------------------------------------------------------------
+lo                     <No XDP program loaded!>
+veth-adv03             xdp_dispatcher    native   4856 94d5f00c20184d17
+ =>              20     xsk_def_prog              4863 03b13f331978c78c  XDP_PASS
+#+end_example
+
+#+begin_example sh
+$ sudo xdp-loader status
+CURRENT XDP PROGRAM STATUS:
+
+Interface        Prio  Program name      Mode     ID   Tag               Chain actions
+--------------------------------------------------------------------------------------
+lo                     <No XDP program loaded!>
+veth-adv03             xdp_dispatcher    native   4840 94d5f00c20184d17
+ =>              50     xdp_sock_prog             4847 b215b521770e63fd  XDP_PASS
+#+end_example
+
+** Unloading an AF_XDP program from the test environment interface
+
+#+begin_example sh
+$ sudo xdp-loader unload veth-adv03 --all
+#+end_example

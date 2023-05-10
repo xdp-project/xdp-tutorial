@@ -7,8 +7,7 @@ LLC ?= llc
 CLANG ?= clang
 CC := gcc
 
-LIBBPF_DIR = ../libbpf/src/
-COMMON_DIR = ../common/
+COMMON_DIR = ../common
+COMMON_OBJS += $(COMMON_DIR)/common_user_bpf_xdp.o
 
 include $(COMMON_DIR)/common.mk
-COMMON_OBJS := $(COMMON_DIR)/common_params.o

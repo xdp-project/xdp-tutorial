@@ -4,11 +4,11 @@
 
 In this lesson you will see that a BPF ELF file produced by LLVM can contain
 more than one XDP program, and how you can select which one to load using
-the *libbpf API*. Complete each of the assignments below to complete the
+the *libxdp API*. Complete each of the assignments below to complete the
 lesson.
 
 * Table of Contents                                                     :TOC:
-- [[#using-libbpf][Using libbpf]]
+- [[#using-libbpf][Using libxdp]]
   - [[#basic-bpf_object-usage][Basic bpf_object usage]]
   - [[#converting-a-bpf_object-to-bpf_program][Converting a bpf_object to bpf_program]]
   - [[#hardware-offloading][Hardware offloading]]
@@ -16,11 +16,11 @@ lesson.
   - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
   - [[#assignment-2-add-xdp_abort-program][Assignment 2: Add xdp_abort program]]
 
-* Using libbpf
+* Using libxdp and libbpf
 
 The libbpf API not only provides the basic system call wrappers (which are
-defined in libbpf [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf.h]]). The API also provides "[[https://github.com/libbpf/libbpf/blob/master/src/README.rst#objects][objects]]" and functions to
-work with them (defined in include [[https://github.com/libbpf/libbpf/blob/master/src/libbpf.h][libbpf.h]]).
+defined in libbpf [[https://github.com/libbpf/libbpf/blob/master/src/bpf.h][bpf/bpf.h]]). The API also provides "[[https://libbpf.readthedocs.io/en/latest/libbpf_naming_convention.html#objects][objects]]" and functions to
+work with them (defined in include [[https://github.com/libbpf/libbpf/blob/master/src/libbpf.h][bpf/libbpf.h]]).
 
 The C structs corresponding to the libbpf objects are:
  - struct =bpf_object=
@@ -28,28 +28,45 @@ The C structs corresponding to the libbpf objects are:
  - struct =bpf_map=
 
 These structs are for libbpf internal use, and you must use the API
-functions to interact with the objects. Functions that work with an object
-are named after the struct, followed by a double underscore, and a
+functions to interact with the opaque objects. Functions that work with an
+object are named after the struct, followed by a double underscore, and a
 descriptive name.
 
-Lets look at a practical usage of =bpf_object= and =bpf_program=.
+The libxdp API provides objects and functions for working with XDP programs
+as well as objects and functions for working with AF_XDP sockets, defined in
+[[https://github.com/xdp-project/xdp-tools/blob/master/headers/xdp/libxdp.h][xdp/libxdp.h]].
 
-** Basic bpf_object usage
+The C structs corresponding to the libxdp objects are:
+ - struct =xdp_program=
+ - struct =xdp_multiprog=
+ - struct =xsk_umem=
+ - struct =xsk_socket=
 
-In [[file:xdp_loader.c]] the function =__load_bpf_object_file()= now returns a
-libbpf struct =bpf_object= pointer (while in the basic01 lesson we just
-returned the file descriptor to the first BPF prog).
+Let's look at practical usage of libxdp and libbpf.
 
-The struct =bpf_object= represents an ELF object, which can be of various
-types.
+** Creating an XDP Program
 
-** Converting a bpf_object to bpf_program
+In file:xdp_loader.c the function =xdp_program__create()= is used to create
+an =xdp_program= object, in this case by loading the program from an ELF
+file. The struct =xdp_program= represents a single XDP program that can be
+configured and attached to an XDP hook.
 
-In [[file:xdp_loader.c]] the function =__load_bpf_and_xdp_attach()= uses
-=bpf_object__find_program_by_title()= on the bpf_object, which finds a
-program by the "SEC" name (not the C-function name). The return type is a
-struct =bpf_program= object, and we can use the function =bpf_program__fd()=
-for getting the file descriptor that we want to attach to the XDP hook.
+We use the =filename= and =progname= to identify the XDP program that we
+want to create from the ELF file, by using struct =xdp_program_opts=:
+
+#+begin_example C
+DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts);
+DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts,
+        .open_filename = cfg->filename,
+        .prog_name = cfg->progname,
+        .opts = &opts);
+#+end_example
+
+When a struct =xdp_program= is created from an ELF file, it keeps a
+reference to the underlying =bpf_object= which can be used to access all the
+BPF programs and maps from the ELF file. We can use the function
+=xdp_program__bpf_obj(prog)= for getting the =bpf_object= from the
+=xdp_program=.
 
 ** Hardware offloading
 
@@ -90,24 +107,25 @@ IPv6 address =fc00:dead:cafe:1::2= (as seen in the script output).
 The *assignment* is to manually load the compiled xdp program in the ELF OBJ
 file =xdp_prog_kern.o=, using the =xdp_loader= program in this directory.
 Observe the available options you can give the xdp_loader via =--help=. Try
-to select the program section named =xdp_drop= via =--progsec=, and observe
+to select the program named =xdp_drop_func= via =--progname=, and observe
 via ping that packets gets dropped.
 
 Here are some example commands:
 #+begin_example sh
 sudo ./xdp_loader --help
 sudo ./xdp_loader --dev veth-basic02
-sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_drop
-sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_pass
+sudo ./xdp_loader --dev veth-basic02 --unload-all
+sudo ./xdp_loader --dev veth-basic02 --progname xdp_drop_func
+sudo ./xdp_loader --dev veth-basic02 --progname xdp_pass_func
 #+end_example
 
 The testenv script also has a helper command for "load" which will use the
 =xdp_loader= program in the current directory:
 #+begin_example
 sudo ../testenv/testenv.sh load --name veth-basic02
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --force
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progsec xdp_drop
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --force --progsec xdp_pass
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --unload-all
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --progname xdp_drop_func
+sudo ../testenv/testenv.sh load --name veth-basic02 -- --progname xdp_pass_func
 #+end_example
 
 *** A note about: The test environment and veth packets directions
@@ -177,7 +195,8 @@ Add a new program section "xdp_abort" in [[file:xdp_prog_kern.c]] that uses
 new program, e.g. similar to above:
 
 #+begin_example sh
-sudo ./xdp_loader --dev veth-basic02 --force --progsec xdp_abort
+sudo ./xdp_loader --dev veth-basic02 --unload-all
+sudo ./xdp_loader --dev veth-basic02 --progname xdp_abort_func
 #+end_example
 
 *Lesson*: XDP_ABORTED is different from XDP_DROP, because it triggers the
@@ -190,4 +209,3 @@ these records. E.g with perf like this:
 sudo perf record -a -e xdp:xdp_exception sleep 4
 sudo perf script
 #+end_example
-

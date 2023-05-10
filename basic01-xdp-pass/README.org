@@ -38,8 +38,8 @@ Then return here, and see if the next step compiles.
 
 If you completed the setup dependencies guide, then you should be able to
 simply run the =make= command, in this directory. (The [[file:Makefile][Makefile]] and
-[[file:../common/common.mk][common.mk]] will try to be nice and detect if you didn't complete the setup
-steps).
+[[file:configure][configure]] script will try to be nice and detect if you didn't complete the
+setup steps).
 
 ** Simple XDP code
 
@@ -86,30 +86,39 @@ is our C-function name.
 * Loading and the XDP hook
 
 As you should understand by now, the BPF byte code is stored in an ELF file.
-To load this into the kernel, userspace needs an ELF loader to read the file
-and pass it into the kernel in the right format. The *libbpf* library
-provides both an ELF loader and several XDP helper functions. In this
-tutorial you will learn how to write C code using this library, which is
-where our libelf-devel dependency comes from.
+To load this into the kernel, user space needs an ELF loader to read the
+file and pass it into the kernel in the right format.
+
+The *libbpf* library provides both an ELF loader and several BPF helper
+functions. It understands BPF Type Format (BTF) and implements [[https://nakryiko.com/posts/bpf-core-reference-guide/][CO-RE]]
+relocation as part of ELF loading, which is where our libelf-devel
+dependency comes from.
+
+The *libxdp* library provides helper functions for loading and installing
+XDP programs using the XDP multi-dispatch protocol and helper functions for
+using AF_XDP sockets. The *libxdp* library uses *libbpf* and adds extra
+features on top. In this tutorial you will learn how to write C code using
+the *libxdp* and *libbpf* libraries.
 
 The C code in [[file:xdp_pass_user.c]] (which gets compiled to the program
 =xdp_pass_user=) shows how to write a BPF loader specifically for our
-=xdp_pass_kern.o= ELF file. This loader attached the program in the ELF file
-as an XDP hook on a network device.
-
-** Loading via iproute2 ip
+=xdp_pass_kern.o= ELF file. This loader attaches the program in the ELF file
+to an XDP hook on a network device.
 
 It does seem overkill to write a C program to simply load and attach a
 specific BPF-program. However, we still include this in the tutorial
 since it will help you integrate BPF into other Open Source projects.
 
-As an alternative to writing a new loader, the standard iproute2 tool also
-contains a BPF ELF loader. However, this loader is not based on libbpf,
-which unfortunately makes it incompatible when starting to use BPF maps.
+There are some alternatives to writing a new loader:
 
-The iproute2 loader can be used with the standard =ip= tool; so in this case
-you can actually load our ELF-file =xdp_pass_kern.o= (where we named our
-ELF section "xdp") like this:
+ - The standard iproute2 tool
+ - The xdp-loader from xdp-tools
+
+** Loading via iproute2 ip
+
+Iproute2 provides libbpf based BPF loading capability that can be used with
+the standard =ip= tool; so in this case you can actually load our ELF-file
+=xdp_pass_kern.o= (where we named our ELF section "xdp") like this:
 
 #+begin_example sh
  ip link set dev lo xdpgeneric obj xdp_pass_kern.o sec xdp
@@ -121,7 +130,7 @@ Listing the device via =ip link show= also shows the XDP info:
 $ ip link show dev lo
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    prog/xdp id 220 tag 3b185187f1855c4c jited
+    prog/xdp id name xdp_prog_simple 220 tag 3b185187f1855c4c jited
 #+end_example
 
 Removing the XDP program again from the device:
@@ -129,34 +138,79 @@ Removing the XDP program again from the device:
  ip link set dev lo xdpgeneric off
 #+end_example
 
+It is important to note that the =ip= tool from iproute2 does not implement
+the XDP multi-dispatch protocol. When we use this tool, our program gets
+attached directly to the =lo= interface.
+
+** Loading using xdp-loader
+
+The xdp-tools project provides the =xdp-loader= tool which has commands for
+loading, unloading and showing the status of loaded XDP programs.
+
+We can load our =xdp_pass_kern.o= program and attach it using the XDP
+multi-dispatch protocol like this:
+
+#+begin_example sh
+xdp-loader load -m skb lo xdp_pass_kern.o
+#+end_example
+
+We can show the status of the XDP programs attached to the device:
+
+#+begin_example sh
+$ xdp-loader status lo
+CURRENT XDP PROGRAM STATUS:
+
+Interface        Prio  Program name      Mode     ID   Tag               Chain actions
+--------------------------------------------------------------------------------------
+lo                     xdp_dispatcher    skb      486  94d5f00c20184d17
+ =>              50     xdp_prog_simple           493  3b185187f1855c4c  XDP_PASS
+#+end_example
+
 ** Loading using xdp_pass_user
 
-To load the program using our own loader, simply issue this command:
+To load the program using our own loader, issue this command:
 
 #+begin_example sh
- $ sudo ./xdp_pass_user --dev lo --skb-mode
- Success: Loading XDP prog name:xdp_prog_simple(id:225) on device:lo(ifindex:1)
+ $ sudo ./xdp_pass_user --dev lo
+ Success: Loading XDP prog name:xdp_prog_simple(id:732) on device:lo(ifindex:1)
 #+end_example
 
-Loading it again will fail, as there is already a program loaded. This is
-because we use the xdp_flag =XDP_FLAGS_UPDATE_IF_NOEXIST=. This is good
-practice to avoid accidentally unloading an unrelated XDP program.
+Loading the program again will add a second program instance to the XDP dispatcher on the
+interface.
 
 #+begin_example sh
- $ sudo ./xdp_pass_user --dev lo --skb-mode
- ERR: dev:lo link set xdp fd failed (16): Device or resource busy
- Hint: XDP already loaded on device use --force to swap/replace
-#+end_example
+$ sudo ./xdp_pass_user -d lo
+Success: Loading XDP prog name:xdp_prog_simple(id:745) on device:lo(ifindex:1)
 
-As the hint suggest, the option =--force= can be used to replace the
-existing XDP program.
+$ xdp-loader status lo
+CURRENT XDP PROGRAM STATUS:
 
-#+begin_example
- $ sudo ./xdp_pass_user --dev lo --skb-mode --force
- Success: Loading XDP prog name:xdp_prog_simple(id:231) on device:lo(ifindex:1)
+Interface        Prio  Program name      Mode     ID   Tag               Chain actions
+--------------------------------------------------------------------------------------
+lo                     xdp_dispatcher    skb      738  94d5f00c20184d17
+ =>              50     xdp_prog_simple           732  3b185187f1855c4c  XDP_PASS
+ =>              50     xdp_prog_simple           745  3b185187f1855c4c  XDP_PASS
 #+end_example
 
 You can list XDP programs  on the device using different commands, and verify
 that the program ID is the same:
 - =ip link list dev lo=
 - =bpftool net list dev lo=
+- =xdp-loader status lo=
+
+** Unloading using xdp_pass_user
+
+To unload the program using our own loader, use this command, with the =id= of the program to
+unload:
+
+#+begin_example sh
+$ sudo ./xdp_pass_user --dev lo -U 745
+Detaching XDP program with ID 745 from lo
+Success: Unloading XDP prog name: xdp_prog_simple
+#+end_example
+
+You can also unload all programs from the XDP hook on hte device using this command:
+
+#+begin_example sh
+$ ./xdp_pass_user --dev lo --unload-all
+#+end_example

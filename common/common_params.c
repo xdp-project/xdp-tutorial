@@ -92,7 +92,7 @@ void parse_cmdline_args(int argc, char **argv,
 	}
 
 	/* Parse commands line args */
-	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFUMQ:czpq",
+	while ((opt = getopt_long(argc, argv, "hd:r:L:R:ASNFU:MQ:czpq",
 				  long_options, &longindex)) != -1) {
 		switch (opt) {
 		case 'd':
@@ -126,30 +126,25 @@ void parse_cmdline_args(int argc, char **argv,
 			}
 			break;
 		case 'A':
-			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
+			cfg->attach_mode = XDP_MODE_UNSPEC;
 			break;
 		case 'S':
-			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
-			cfg->xdp_flags |= XDP_FLAGS_SKB_MODE;  /* Set   flag */
-			cfg->xsk_bind_flags &= XDP_ZEROCOPY;
+			cfg->attach_mode = XDP_MODE_SKB;
+			cfg->xsk_bind_flags &= ~XDP_ZEROCOPY;
 			cfg->xsk_bind_flags |= XDP_COPY;
 			break;
 		case 'N':
-			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
-			cfg->xdp_flags |= XDP_FLAGS_DRV_MODE;  /* Set   flag */
+			cfg->attach_mode = XDP_MODE_NATIVE;
 			break;
 		case 3: /* --offload-mode */
-			cfg->xdp_flags &= ~XDP_FLAGS_MODES;    /* Clear flags */
-			cfg->xdp_flags |= XDP_FLAGS_HW_MODE;   /* Set   flag */
-			break;
-		case 'F':
-			cfg->xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
+			cfg->attach_mode = XDP_MODE_HW;
 			break;
 		case 'M':
 			cfg->reuse_maps = true;
 			break;
 		case 'U':
 			cfg->do_unload = true;
+			cfg->prog_id = atoi(optarg);
 			break;
 		case 'p':
 			cfg->xsk_poll_mode = true;
@@ -164,9 +159,9 @@ void parse_cmdline_args(int argc, char **argv,
 			dest  = (char *)&cfg->filename;
 			strncpy(dest, optarg, sizeof(cfg->filename));
 			break;
-		case 2: /* --progsec */
-			dest  = (char *)&cfg->progsec;
-			strncpy(dest, optarg, sizeof(cfg->progsec));
+		case 2: /* --progname */
+			dest  = (char *)&cfg->progname;
+			strncpy(dest, optarg, sizeof(cfg->progname));
 			break;
 		case 'L': /* --src-mac */
 			dest  = (char *)&cfg->src_mac;
@@ -177,12 +172,15 @@ void parse_cmdline_args(int argc, char **argv,
 			strncpy(dest, optarg, sizeof(cfg->dest_mac));
 			break;
 		case 'c':
-			cfg->xsk_bind_flags &= XDP_ZEROCOPY;
+			cfg->xsk_bind_flags &= ~XDP_ZEROCOPY;
 			cfg->xsk_bind_flags |= XDP_COPY;
 			break;
 		case 'z':
-			cfg->xsk_bind_flags &= XDP_COPY;
+			cfg->xsk_bind_flags &= ~XDP_COPY;
 			cfg->xsk_bind_flags |= XDP_ZEROCOPY;
+			break;
+		case 4: /* --unload-all */
+			cfg->unload_all = true;
 			break;
 		case 'h':
 			full_help = true;

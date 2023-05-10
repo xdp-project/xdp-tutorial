@@ -68,9 +68,9 @@ See the =xdp_redirect= program in the [[file:xdp_prog_kern_03.c][xdp_prog_kern_0
 *** Assignment 3: Extend to a bidirectional router
 
 See the =xdp_redirect_map= program in the [[file:xdp_prog_kern_03.c][xdp_prog_kern_03.c]] file.
-Userspace part of the assignment is implemented in the [[file:xdp_prog_user.c][xdp_prog_user.c]] file.
+User space part of the assignment is implemented in the [[file:xdp_prog_user.c][xdp_prog_user.c]] file.
 
 *** Assignment 4: Use the BPF helper for routing
 
 See the =xdp_router= program in the [[file:xdp_prog_kern_03.c][xdp_prog_kern_03.c]] file.
-Userspace part of the assignment is implemented in the [[file:xdp_prog_user.c][xdp_prog_user.c]] file.
+User space part of the assignment is implemented in the [[file:xdp_prog_user.c][xdp_prog_user.c]] file.

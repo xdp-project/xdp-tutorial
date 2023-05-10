@@ -11,32 +11,24 @@
 
 #define min(x, y) ((x) < (y) ? (x) : (y))
 
-#define bpf_printk(fmt, ...)					\
-({								\
-	       char ____fmt[] = fmt;				\
-	       bpf_trace_printk(____fmt, sizeof(____fmt),	\
-				##__VA_ARGS__);			\
-})
-
 /* Metadata will be in the perf event before the packet data. */
 struct S {
 	__u16 cookie;
 	__u16 pkt_len;
 } __packed;
 
-struct bpf_map_def SEC("maps") my_map = {
-	.type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = sizeof(__u32),
-	.max_entries = MAX_CPUS,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+	__type(key, int);
+	__type(value, __u32);
+	__uint(max_entries, MAX_CPUS);
+} my_map SEC(".maps");
 
-SEC("xdp_sample")
+SEC("xdp")
 int xdp_sample_prog(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
-
 	if (data < data_end) {
 		/* The XDP perf_event_output handler will use the upper 32 bits
 		 * of the flags argument as a number of bytes to include of the
@@ -49,13 +41,12 @@ int xdp_sample_prog(struct xdp_md *ctx)
 		 * will be indexed by the CPU number in the event map.
 		 */
 		__u64 flags = BPF_F_CURRENT_CPU;
-		__u16 sample_size;
+		__u16 sample_size = (__u16)(data_end - data);
 		int ret;
 		struct S metadata;
 
 		metadata.cookie = 0xdead;
-		metadata.pkt_len = (__u16)(data_end - data);
-		sample_size = min(metadata.pkt_len, SAMPLE_SIZE);
+		metadata.pkt_len = min(sample_size, SAMPLE_SIZE);
 
 		flags |= (__u64)sample_size << 32;
 
