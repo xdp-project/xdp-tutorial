@@ -28,8 +28,8 @@ endif
 
 HAVE_FEATURES :=
 
-CFLAGS += $(DEFINES)
-BPF_CFLAGS += $(DEFINES)
+CFLAGS += $(DEFINES) $(ARCH_INCLUDES)
+BPF_CFLAGS += $(DEFINES) $(ARCH_INCLUDES)
 
 CONFIGMK := $(LIB_DIR)/../config.mk
 LIBMK := Makefile $(CONFIGMK) $(LIB_DIR)/defines.mk $(LIB_DIR)/common.mk $(LIB_DIR)/util/util.mk
