@@ -12,6 +12,7 @@ TMPDIR=$(mktemp -d config.XXXXXX)
 trap 'status=$?; rm -rf $TMPDIR; rm -f $CONFIG; exit $status' EXIT HUP INT QUIT TERM
 
 SUBMODULE_LIBBPF=0
+ARCH_INCLUDES=
 
 check_toolchain()
 {
@@ -36,6 +37,16 @@ check_toolchain()
         echo "ERROR: Need clang version >= 11, found $clang_major_version ($clang_version)"
         exit 1
     fi
+
+    ARCH_NAME=$($CC -print-multiarch 2>/dev/null)
+    if [ -z "$ARCH_INCLUDES" ] && [ -n "$ARCH_NAME" ]; then
+        for dir in $(echo | $CC -Wp,-v -E - 2>&1 | grep '^ '); do
+            local idir
+            idir="${dir}/${ARCH_NAME}"
+            [ -d "$idir" ] && ARCH_INCLUDES="-I${idir} $ARCH_INCLUDES"
+        done
+    fi
+
     echo "clang: $clang_version"
 
     echo "PKG_CONFIG:=${PKG_CONFIG}" >>$CONFIG
@@ -43,6 +54,7 @@ check_toolchain()
     echo "CLANG:=${CLANG}" >>$CONFIG
     echo "LLC:=${LLC}" >>$CONFIG
     echo "BPFTOOL:=${BPFTOOL}" >>$CONFIG
+    echo "ARCH_INCLUDES:=${ARCH_INCLUDES}" >>$CONFIG
 }
 
 check_elf()
@@ -157,7 +169,7 @@ check_bpf_use_errno()
 int dummy(void *ctx) { return 0; }
 EOF
 
-    compile_err=$($CLANG -target bpf -c $TMPDIR/bpf_use_errno_test.c 2>&1)
+    compile_err=$($CLANG -target bpf ${ARCH_INCLUDES} -c $TMPDIR/bpf_use_errno_test.c 2>&1)
     if [ "$?" -ne "0" ]; then
         echo "*** ERROR - Clang BPF-prog cannot include <errno.h>"
         echo "          - Install missing userspace header file"
@@ -255,7 +267,6 @@ echo -n "libbpf support: "
 check_libbpf
 echo -n "libxdp support: "
 check_libxdp
-
 check_bpf_use_errno
 
 if [ -n "$KERNEL_HEADERS" ]; then
