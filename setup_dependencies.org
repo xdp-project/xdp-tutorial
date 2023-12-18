@@ -33,8 +33,16 @@ https://github.com/libbpf/libbpf.
 
 ** libxdp and libbpf as git-submodules
 
-This repository uses both [[https://github.com/xdp-project/xdp-tools/][libxdp]] and [[https://github.com/libbpf/libbpf][libbpf]] as git-submodules. After cloning
-this repository you need to run the command:
+This repository uses both [[https://github.com/xdp-project/xdp-tools/][libxdp]] and [[https://github.com/libbpf/libbpf][libbpf]] as git-submodules.
+
+We will start by cloning this repository:
+
+#+begin_example
+git clone git@github.com:xdp-project/xdp-tutorial.git
+#+end_example
+
+
+After cloning this repository you need to run the command:
 
 #+begin_example
 git submodule update --init
@@ -71,7 +79,7 @@ On a machine running the Fedora Linux distribution, install the packages:
 
 #+begin_example
  $ sudo dnf install clang llvm
- $ sudo dnf install elfutils-libelf-devel libpcap-devel perf
+ $ sudo dnf install elfutils-libelf-devel libpcap-devel perf glibc-devel.i686
 #+end_example
 
 Note also that Fedora by default sets a limit on the amount of locked memory
@@ -91,7 +99,7 @@ Note that you need to do this in the shell you are using to load programs
 On Debian and Ubuntu installations, install the dependencies like this:
 
 #+begin_example
- $ sudo apt install clang llvm libelf-dev libpcap-dev build-essential
+ $ sudo apt install clang llvm libelf-dev libpcap-dev build-essential libc6-dev-i386
 #+end_example
 
 To install the 'perf' utility, run this on Debian:
@@ -110,7 +118,7 @@ or this on Ubuntu:
 On a machine running the openSUSE distribution, install the packages:
 
 #+begin_example
- $ sudo zypper install clang llvm libelf-devel libpcap-devel perf
+ $ sudo zypper install clang llvm libelf-devel libpcap-devel perf linux-glibc-devel
 #+end_example
 
 * Kernel headers dependency
@@ -153,7 +161,7 @@ On a machine running the openSUSE distribution, install the package:
 #+end_example
 
 
-* Recommended tools
+* Extra tools
 
 The =bpftool= is the recommended tool for inspecting BPF programs running on
 your system. It also offers simple manipulation of eBPF programs and maps.
@@ -203,3 +211,25 @@ On a machine running the openSUSE Tumbleweed distribution, install package:
  $ sudo zypper install bpftool
  $ sudo zypper install tcpdump
 #+end_example
+
+
+* Generate the necessary files
+
+Once you have installed the dependencies you need genereate the necessary files to follow the exercises.
+
+Start by running ./configure from the root of the repository to make sure every dependency is installed.
+
+#+begin_example
+ $ ./configure
+#+end_example
+
+If there is a missing dependency it should output some error, if not we can continue.
+
+Now run make to generate all the necessary files:
+
+#+begin_example
+ $ sudo make
+#+end_example
+
+
+
