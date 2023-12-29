@@ -75,7 +75,7 @@ Similarly to what we did for BPF functions, our load has a function called
 function =bpf_object__find_map_by_name()= for finding the =bpf_map= object
 with a given name. (Note, the length of the map name is provided by ELF and
 is longer than what the name kernel stores, after loading it). After finding
-the =bpf_object=, we obtain the map file descriptor via =bpf_map__fd()=.
+the =bpf_map=, we obtain the map file descriptor via =bpf_map__fd()=.
 There is also a libbpf function that wraps these two steps, which is called
 =bpf_object__find_map_fd_by_name()=.
 
