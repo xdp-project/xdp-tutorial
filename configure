@@ -169,7 +169,7 @@ check_bpf_use_errno()
 int dummy(void *ctx) { return 0; }
 EOF
 
-    compile_err=$($CLANG -target bpf ${ARCH_INCLUDES} -c $TMPDIR/bpf_use_errno_test.c 2>&1)
+    compile_err=$($CLANG -target bpf ${ARCH_INCLUDES} -c $TMPDIR/bpf_use_errno_test.c -o $TMPDIR/bpf_use_errno_test 2>&1)
     if [ "$?" -ne "0" ]; then
         echo "*** ERROR - Clang BPF-prog cannot include <errno.h>"
         echo "          - Install missing userspace header file"
