@@ -222,7 +222,7 @@ If there is a missing dependency it should output some error, if not we can cont
 Now run make to generate all the necessary files:
 
 #+begin_example
- $ sudo make
+ $ make
 #+end_example
 
 
