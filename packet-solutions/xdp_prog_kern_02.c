@@ -50,13 +50,34 @@ int xdp_patch_ports_func(struct xdp_md *ctx)
 			action = XDP_ABORTED;
 			goto out;
 		}
+
+		/*
+		 * We need to update the packet checksum when modifying the header.
+		 * RFC1071 contains an algorithm for in-place updating, which is what we use here
+		 * since we're always just decrementing the port number. Another option would be
+		 * to recompute the full checksum, like:
+		 *
+		 * struct udphdr udphdr_old;
+		 * __u32 csum = udphdr->check;
+		 * udphdr_old = *udphdr;
+		 * udphdr->dest = bpf_htons(bpf_ntohs(udphdr->dest) - 1);
+		 * csum = bpf_csum_diff((__be32 *)&udphdr_old, 4, (__be32 *)udphdr, 4, ~csum);
+		 * udphdr->check = csum_fold_helper(csum);
+		 */
+
 		udphdr->dest = bpf_htons(bpf_ntohs(udphdr->dest) - 1);
+		udphdr->check += bpf_htons(1);
+		if (!udphdr->check)
+			udphdr->check += bpf_htons(1);
 	} else if (ip_type == IPPROTO_TCP) {
 		if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) {
 			action = XDP_ABORTED;
 			goto out;
 		}
 		tcphdr->dest = bpf_htons(bpf_ntohs(tcphdr->dest) - 1);
+		tcphdr->check += bpf_htons(1);
+		if (!tcphdr->check)
+			tcphdr->check += bpf_htons(1);
 	}
 
 out:
