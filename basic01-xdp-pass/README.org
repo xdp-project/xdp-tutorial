@@ -38,7 +38,7 @@ Then return here, and see if the next step compiles.
 
 If you completed the setup dependencies guide, then you should be able to
 simply run the =make= command, in this directory. (The [[file:Makefile][Makefile]] and
-[[file:configure][configure]] script will try to be nice and detect if you didn't complete the
+[[file:../configure][configure]] script will try to be nice and detect if you didn't complete the
 setup steps).
 
 ** Simple XDP code
