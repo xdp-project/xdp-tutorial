@@ -153,7 +153,7 @@ void map_get_value_array(int fd, __u32 key, struct datarec *value)
 void map_get_value_percpu_array(int fd, __u32 key, struct datarec *value)
 {
 	/* For percpu maps, userspace gets a value per possible CPU */
-	// unsigned int nr_cpus = bpf_num_possible_cpus();
+	// unsigned int nr_cpus = libbpf_num_possible_cpus();
 	// struct datarec values[nr_cpus];
 
 	fprintf(stderr, "ERR: %s() not impl. see assignment#3", __func__);

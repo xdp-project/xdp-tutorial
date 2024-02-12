@@ -208,7 +208,7 @@ the switch-case statement in function =map_collect()=:
 void map_get_value_percpu_array(int fd, __u32 key, struct datarec *value)
 {
 	/* For percpu maps, user space gets a value per possible CPU */
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = libbpf_num_possible_cpus();
 	struct datarec values[nr_cpus];
 	__u64 sum_bytes = 0;
 	__u64 sum_pkts = 0;
