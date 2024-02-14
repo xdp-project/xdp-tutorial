@@ -121,21 +121,30 @@ the standard =ip= tool; so in this case you can actually load our ELF-file
 =xdp_pass_kern.o= (where we named our ELF section "xdp") like this:
 
 #+begin_example sh
- ip link set dev lo xdpgeneric obj xdp_pass_kern.o sec xdp
+$ sudo ip link set dev lo xdpgeneric obj xdp_pass_kern.o sec xdp
 #+end_example
 
 Listing the device via =ip link show= also shows the XDP info:
 
 #+begin_example sh
-$ ip link show dev lo
+$ sudo ip link show dev lo
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     prog/xdp id name xdp_prog_simple 220 tag 3b185187f1855c4c jited
 #+end_example
 
+Should you run it without =sudo=, you would have less information:
+
+#+begin_example sh
+$ ip link show dev lo
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    prog/xdp id name
+#+end_example
+
 Removing the XDP program again from the device:
 #+begin_example
- ip link set dev lo xdpgeneric off
+$ sudo ip link set dev lo xdpgeneric off
 #+end_example
 
 It is important to note that the =ip= tool from iproute2 does not implement
@@ -151,13 +160,13 @@ We can load our =xdp_pass_kern.o= program and attach it using the XDP
 multi-dispatch protocol like this:
 
 #+begin_example sh
-xdp-loader load -m skb lo xdp_pass_kern.o
+$ sudo xdp-loader load -m skb lo xdp_pass_kern.o
 #+end_example
 
 We can show the status of the XDP programs attached to the device:
 
 #+begin_example sh
-$ xdp-loader status lo
+$ sudo xdp-loader status lo
 CURRENT XDP PROGRAM STATUS:
 
 Interface        Prio  Program name      Mode     ID   Tag               Chain actions
@@ -182,7 +191,7 @@ interface.
 $ sudo ./xdp_pass_user -d lo
 Success: Loading XDP prog name:xdp_prog_simple(id:745) on device:lo(ifindex:1)
 
-$ xdp-loader status lo
+$ sudo xdp-loader status lo
 CURRENT XDP PROGRAM STATUS:
 
 Interface        Prio  Program name      Mode     ID   Tag               Chain actions
@@ -212,5 +221,5 @@ Success: Unloading XDP prog name: xdp_prog_simple
 You can also unload all programs from the XDP hook on hte device using this command:
 
 #+begin_example sh
-$ ./xdp_pass_user --dev lo --unload-all
+$ sudo ./xdp_pass_user --dev lo --unload-all
 #+end_example
