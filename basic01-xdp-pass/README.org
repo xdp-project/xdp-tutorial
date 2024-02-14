@@ -130,7 +130,7 @@ Listing the device via =ip link show= also shows the XDP info:
 $ sudo ip link show dev lo
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    prog/xdp id name xdp_prog_simple 220 tag 3b185187f1855c4c jited
+    prog/xdp id 408 name xdp_prog_simple tag 3b185187f1855c4c jited
 #+end_example
 
 Should you run it without =sudo=, you would have less information:
@@ -139,7 +139,7 @@ Should you run it without =sudo=, you would have less information:
 $ ip link show dev lo
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    prog/xdp id name
+    prog/xdp id 408
 #+end_example
 
 Removing the XDP program again from the device:
