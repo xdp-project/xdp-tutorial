@@ -45,6 +45,16 @@ See the =parse_iphdr= and =parse_icmphdr= functions from the [[file:../common/pa
 
 An example XDP program can be found in the =xdp_patch_ports= section in the [[file:xdp_prog_kern_02.c][xdp_prog_kern_02.c]] file. The program will decrease by one destination port number in any TCP or UDP packet.
 
+=fix_port_egress= section in the [[file:tc_reply_kern_02.c][tc_reply_kern_02.c]] file will increase by one source port number in reply packet.
+
+Steps to do before generate traffic:
+tc qdisc add dev eth0 clsact
+tc filter add dev eth0 egress bpf da obj tc_reply_kern_02.o sec tc
+tc filter show dev eth0 egress
+
+Clean qdisc clsact:
+tc qdisc del dev eth0 clsact
+
 *** Assignment 2: Remove the outermost VLAN tag
 
 See the =vlan_tag_pop= function from the [[file:../common/rewrite_helpers.h][rewrite_helpers.h]] file.
