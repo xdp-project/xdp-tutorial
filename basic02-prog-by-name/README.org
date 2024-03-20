@@ -46,7 +46,7 @@ Let's look at practical usage of libxdp and libbpf.
 
 ** Creating an XDP Program
 
-In file:xdp_loader.c the function =xdp_program__create()= is used to create
+In [[file:xdp_loader.c]] the function =xdp_program__create()= is used to create
 an =xdp_program= object, in this case by loading the program from an ELF
 file. The struct =xdp_program= represents a single XDP program that can be
 configured and attached to an XDP hook.
