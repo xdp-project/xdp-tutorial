@@ -54,7 +54,7 @@ of type =BPF_MAP_TYPE_DEVMAP= which maps virtual ports to actual network
 devices. See [[https://lwn.net/Articles/728146][this patch series]] which
 implemented the XDP redirect functionality. An example of usage can be found in
 the
-[[https://github.com/torvalds/linux/blob/master/samples/bpf/xdp_redirect_map_kern.c][xdp_redirect_map_kern.c]]
+[[https://github.com/torvalds/linux/blob/v5.14/samples/bpf/xdp_redirect_map_kern.c][xdp_redirect_map_kern.c]]
 file and the corresponding loader.
 
 ** Building a router using a kernel helper
