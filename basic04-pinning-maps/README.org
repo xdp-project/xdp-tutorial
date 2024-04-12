@@ -40,7 +40,7 @@ lesson. Thus, this functions as the reference solution for basic03.
 
 When splitting up the [[file:../basic03-map-counter/xdp_load_and_stats.c][xdp_load_and_stats.c]] program into [[file:xdp_loader.c]]
 and [[file:xdp_stats.c]], notice that xdp_stats.c no longer includes
-=#<bpf/libbpf.h>=. This is because xdp_stats doesn't use any of the advanced
+=#<xdp/libxdp.h>=. This is because xdp_stats doesn't use any of the advanced
 libbpf "object" related functions, it only uses the basis bpf syscall
 wrappers, which libbpf also provides.
 
