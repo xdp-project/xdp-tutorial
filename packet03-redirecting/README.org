@@ -93,8 +93,8 @@ supported and load the XDP program. Note that we also need to load a dummy
 section.
 #+begin_src sh
 $ t setup -n test --legacy-ip
-$ t exec -n test -- ./xdp_loader -d veth0 -F --progsec xdp_pass
-$ t load -n test -- -F --progsec xdp_icmp_echo
+$ t exec -n test -- ./xdp-loader load --prog-name xdp_pass_func veth0 xdp_prog_kern.o
+$ t load -n test -- --prog-name xdp_icmp_echo_func xdp_prog_kern.o
 #+end_src
 Ping the host and use the =xdp_stat= program to check that the ICMP echo server
 actually returned =XDP_TX=. Repeat for both address families (you can pass

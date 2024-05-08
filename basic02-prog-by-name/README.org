@@ -119,15 +119,6 @@ sudo ./xdp_loader --dev veth-basic02 --progname xdp_drop_func
 sudo ./xdp_loader --dev veth-basic02 --progname xdp_pass_func
 #+end_example
 
-The testenv script also has a helper command for "load" which will use the
-=xdp_loader= program in the current directory:
-#+begin_example
-sudo ../testenv/testenv.sh load --name veth-basic02
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --unload-all
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --progname xdp_drop_func
-sudo ../testenv/testenv.sh load --name veth-basic02 -- --progname xdp_pass_func
-#+end_example
-
 *** A note about: The test environment and veth packets directions
 When you load an XDP program on the interface visible on your host machine,
 it will operate on all packets arriving *to* that interface. And since

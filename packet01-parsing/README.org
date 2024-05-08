@@ -26,9 +26,9 @@ programs.
 
 * Setup notes
 
-We will use the loader from the basic04 lesson. The Makefile in this directory
+We will use the loader from xdp-tools. The Makefile in this directory
 contains a rule to copy it over to this directory, so you can run it as
-=./xdp_loader= after running =make=. The =testenv.sh= script will use this
+=./xdp-loader= after running =make=. The =testenv.sh= script will use this
 when run with the =load= command. In the example below, we assume you've
 installed the alias for testenv (by running =eval $(./testenv.sh alias)=),
 so all examples will use the short =t= command to refer to the =testenv.sh=
