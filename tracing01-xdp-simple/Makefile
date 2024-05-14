@@ -4,7 +4,7 @@
 XDP_TARGETS  := trace_prog_kern xdp_prog_kern
 USER_TARGETS := trace_load_and_stats
 
-COMMON_DIR = ../common
+COMMON_DIR := ../common
 
 include $(COMMON_DIR)/common.mk
 

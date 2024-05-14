@@ -3,7 +3,7 @@
 XDP_TARGETS  := xdp_prog_kern
 USER_TARGETS := xdp_prog_user
 
-COMMON_DIR = ../common
+COMMON_DIR := ../common
 
 COPY_LOADER := xdp-loader
 COPY_STATS  := xdp_stats
