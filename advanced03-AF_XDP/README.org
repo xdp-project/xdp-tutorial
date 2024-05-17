@@ -15,7 +15,7 @@ containing AF_XDP sockets. The AF_XDP socket is an new Address Family type.
 
 ** Where does AF_XDP performance come from?
 
-The AF_XDP socket is really fast, but what the secret behind this
+The AF_XDP socket is really fast, but what is the secret behind this
 performance boost?
 
 One of the basic ideas behind AF_XDP dates back to [[https://en.wikipedia.org/wiki/Van_Jacobson][Van Jacobson]]'s talk about
