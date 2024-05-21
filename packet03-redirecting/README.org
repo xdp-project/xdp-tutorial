@@ -93,8 +93,8 @@ supported and load the XDP program. Note that we also need to load a dummy
 section.
 #+begin_src sh
 $ t setup -n test --legacy-ip
-$ t exec -n test -- ./xdp_loader -d veth0 -F --progsec xdp_pass
-$ t load -n test -- -F --progsec xdp_icmp_echo
+$ t exec -n test -- ./xdp-loader load --prog-name xdp_pass_func veth0 xdp_prog_kern.o
+$ t load -n test -- --prog-name xdp_icmp_echo_func xdp_prog_kern.o
 #+end_src
 Ping the host and use the =xdp_stat= program to check that the ICMP echo server
 actually returned =XDP_TX=. Repeat for both address families (you can pass
@@ -134,7 +134,7 @@ Setup the two environments, patch the =xdp_redirect= program accordingly, and
 attach it to the =right= interface.  Don't forget to attach a dummy program to
 the left /inner/ interface like this:
 #+begin_src sh
-$ t exec -n left -- ./xdp_loader -d veth0 -F --progsec xdp_pass
+$ t exec -n left -- ./xdp-loader load --prog-name xdp_pass_func veth0 xdp_prog_kern.o
 #+end_src
 To test load the program, enter the right environment, and ping the /inner/
 interface of the left environment (your IPv6 address may be different):
@@ -186,13 +186,13 @@ the =xdp_prog_user.c= program.
 To test the code, configure environment as in the Assignment 2 and install the
 =xdp_redirect_map= program on both interfaces:
 #+begin_src sh
-$ t load -n left -- -F --progsec xdp_redirect_map
-$ t load -n right -- -F --progsec xdp_redirect_map
+$ t load -n left -- --prog-name xdp_redirect_map_func xdp_prog_kern.o
+$ t load -n right -- --prog-name xdp_redirect_map_func xdp_prog_kern.o
 #+end_src
 Don't forget about dummy programs for inner interfaces:
 #+begin_src sh
-$ t exec -n left -- ./xdp_loader -d veth0 -F --progsec xdp_pass
-$ t exec -n right -- ./xdp_loader -d veth0 -F --progsec xdp_pass
+$ t exec -n left -- ./xdp-loader load --prog-name xdp_pass_func veth0 xdp_prog_kern.o
+$ t exec -n right -- ./xdp-loader load --prog-name xdp_pass_func veth0 xdp_prog_kern.o
 #+end_src
 Configure parameters for both interfaces using the new =xdp_prog_user= helper.
 For simplicity there is a new special helper, =t redirect=, which will
@@ -277,13 +277,13 @@ $ t setup -n tres --legacy-ip
 $ sudo sysctl net.ipv4.conf.all.forwarding=1
 $ sudo sysctl net.ipv6.conf.all.forwarding=1
 
-$ t load -n uno -- -F --progsec xdp_router
-$ t load -n dos -- -F --progsec xdp_router
-$ t load -n tres -- -F --progsec xdp_router
+$ t load -n uno -- --prog-name xdp_router_func xdp_prog_kern.o
+$ t load -n dos -- --prog-name xdp_router_func xdp_prog_kern.o
+$ t load -n tres -- --prog-name xdp_router_func xdp_prog_kern.o
 
-$ t exec -n uno -- ./xdp_loader -d veth0 -F --progsec xdp_pass
-$ t exec -n dos -- ./xdp_loader -d veth0 -F --progsec xdp_pass
-$ t exec -n tres -- ./xdp_loader -d veth0 -F --progsec xdp_pass
+$ t exec -n uno -- ./xdp-loader load --prog-name xdp_pass_func veth0 xdp_prog_kern.o
+$ t exec -n dos -- ./xdp-loader load --prog-name xdp_pass_func veth0 xdp_prog_kern.o
+$ t exec -n tres -- ./xdp-loader load --prog-name xdp_pass_func veth0 xdp_prog_kern.o
 
 $ sudo ./xdp_stats -d uno
 $ sudo ./xdp_stats -d dos

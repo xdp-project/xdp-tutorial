@@ -20,6 +20,7 @@ struct {
 	__type(key, int);
 	__type(value, int);
 	__uint(max_entries, 256);
+	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } tx_port SEC(".maps");
 
 
@@ -28,6 +29,7 @@ struct {
 	__type(key,  unsigned char[ETH_ALEN]);
 	__type(value, unsigned char[ETH_ALEN]);
 	__uint(max_entries, 1);
+	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } redirect_params SEC(".maps");
 
 static __always_inline void swap_src_dst_mac(struct ethhdr *eth)
