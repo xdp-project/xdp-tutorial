@@ -225,5 +225,3 @@ Now run make to generate all the necessary files:
 make
 #+end_example
 
-
-
