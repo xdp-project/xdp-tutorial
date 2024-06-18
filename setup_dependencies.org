@@ -72,8 +72,8 @@ dependencies, and give you some pointers.
 On a machine running the Fedora Linux distribution, install the packages:
 
 #+begin_example
- $ sudo dnf install clang llvm
- $ sudo dnf install elfutils-libelf-devel libpcap-devel perf glibc-devel.i686
+sudo dnf install clang llvm
+sudo dnf install elfutils-libelf-devel libpcap-devel perf glibc-devel.i686
 #+end_example
 
 Note also that Fedora by default sets a limit on the amount of locked memory
@@ -93,18 +93,18 @@ Note that you need to do this in the shell you are using to load programs
 On Debian and Ubuntu installations, install the dependencies like this:
 
 #+begin_example
- $ sudo apt install clang llvm libelf-dev libpcap-dev build-essential libc6-dev-i386
+sudo apt install clang llvm libelf-dev libpcap-dev build-essential libc6-dev-i386
 #+end_example
 
 To install the 'perf' utility, run this on Debian:
 #+begin_example
- $ sudo apt install linux-perf
+sudo apt install linux-perf
 #+end_example
 
 or this on Ubuntu:
 
 #+begin_example
- $ sudo apt install linux-tools-$(uname -r)
+sudo apt install linux-tools-$(uname -r)
 #+end_example
 
 ** Packages on openSUSE
@@ -112,7 +112,7 @@ or this on Ubuntu:
 On a machine running the openSUSE distribution, install the packages:
 
 #+begin_example
- $ sudo zypper install clang llvm libelf-devel libpcap-devel perf linux-glibc-devel
+sudo zypper install clang llvm libelf-devel libpcap-devel perf linux-glibc-devel
 #+end_example
 
 * Kernel headers dependency
@@ -135,7 +135,7 @@ distro. We may choose to shadow some of these later.
 
 On a machine running the Fedora Linux distribution, install the package:
 #+begin_example
- $ sudo dnf install kernel-headers
+sudo dnf install kernel-headers
 #+end_example
 
 ** Packages on Debian/Ubuntu
@@ -143,7 +143,7 @@ On a machine running the Fedora Linux distribution, install the package:
 On Debian and Ubuntu installations, install the headers like this
 
 #+begin_example
- $ sudo apt install linux-headers-$(uname -r)
+sudo apt install linux-headers-$(uname -r)
 #+end_example
 
 ** Packages on openSUSE
@@ -151,7 +151,7 @@ On Debian and Ubuntu installations, install the headers like this
 On a machine running the openSUSE distribution, install the package:
 
 #+begin_example
- $ sudo zypper install kernel-devel
+sudo zypper install kernel-devel
 #+end_example
 
 
@@ -170,8 +170,8 @@ should also install tcpdump.
 On a machine running the Fedora Linux distribution, install package:
 
 #+begin_example
- $ sudo dnf install bpftool
- $ sudo dnf install tcpdump
+sudo dnf install bpftool
+sudo dnf install tcpdump
 #+end_example
 
 ** Packages on Ubuntu
@@ -179,8 +179,8 @@ On a machine running the Fedora Linux distribution, install package:
 Starting from Ubuntu 19.10, bpftool can be installed with:
 
 #+begin_example
- $ sudo apt install linux-tools-common linux-tools-generic
- $ sudo apt install tcpdump
+sudo apt install linux-tools-common linux-tools-generic
+sudo apt install tcpdump
 #+end_example
 
 (Ubuntu 18.04 LTS also has it, but it is an old and quite limited bpftool
@@ -191,8 +191,8 @@ version.)
 Starting from Debian Bullseye, bpftool can be installed with:
 
 #+begin_example
- $ sudo apt install bpftool
- $ sudo apt install tcpdump
+sudo apt install bpftool
+sudo apt install tcpdump
 #+end_example
 
 (If you are on Debian Buster, you can get it from [[https://backports.debian.org][buster-backports]].)
@@ -202,8 +202,8 @@ Starting from Debian Bullseye, bpftool can be installed with:
 On a machine running the openSUSE Tumbleweed distribution, install package:
 
 #+begin_example
- $ sudo zypper install bpftool
- $ sudo zypper install tcpdump
+sudo zypper install bpftool
+sudo zypper install tcpdump
 #+end_example
 
 
@@ -214,7 +214,7 @@ Once you have installed the dependencies you need genereate the necessary files 
 Start by running ./configure from the root of the repository to make sure every dependency is installed.
 
 #+begin_example
- $ ./configure
+./configure
 #+end_example
 
 If there is a missing dependency it should output some error, if not we can continue.
@@ -222,7 +222,7 @@ If there is a missing dependency it should output some error, if not we can cont
 Now run make to generate all the necessary files:
 
 #+begin_example
- $ make
+make
 #+end_example
 
 
