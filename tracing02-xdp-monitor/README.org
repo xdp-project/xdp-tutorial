@@ -112,7 +112,7 @@ bpftrace oneliner can be useful:
 
 ** perf record
 
-The perf tool also supports recording tracepoints of the the box:
+The perf tool also supports recording tracepoints of the box:
 
 #+begin_src sh
   perf record -a -e xdp:xdp_redirect_err \
