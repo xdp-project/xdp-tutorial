@@ -24,7 +24,7 @@ struct hdr_cursor {
  *
  * For Ethernet and IP headers, the content type is the type of the payload
  * (h_proto for Ethernet, nexthdr for IPv6), for ICMP it is the ICMP type field.
- * All return values are in host byte order.
+ * All return values are in network byte order.
  */
 static __always_inline int parse_ethhdr(struct hdr_cursor *nh,
 					void *data_end,
