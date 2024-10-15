@@ -188,11 +188,16 @@ functions need to be inlined into the main function. The =__always_inline=
 marker on the function definition ensures this, overriding any inlining
 decisions the compiler would otherwise make.
 
-Similarly, because eBPF does not support looping, we need to unroll any
+Before
+[[https://github.com/torvalds/linux/commit/2589726d12a1b12eaaa93c7f1ea64287e383c7a5][v5.3]],
+because eBPF did not support looping, we needed to unroll any
 loops in the program. This can be done by adding the =#pragma unroll=
 statement on the line before the loop, and only works with loops where the
 number of iterations are known at compile time (such as for loops with a
-static counter).
+static counter). Since v5.3 the verifier can determine if a loop will stop or
+not. A number of additional loop helpers have been implemented since then. The
+details can be accessed from the
+[[https://docs.ebpf.io/linux/concepts/loops/][eBPF Docs]].
 
 * Assignments
 
