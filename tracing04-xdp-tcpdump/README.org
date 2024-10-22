@@ -29,7 +29,7 @@ struct {
 } my_map SEC(".maps");
 #+end_example
 
-The value_size determines the size of the event data we will
+The value determines the size of the event data we will
 be posting to the user space through perf event ring buffer.
 In our case it's sizeof(u32) which is size of following structure:
 
