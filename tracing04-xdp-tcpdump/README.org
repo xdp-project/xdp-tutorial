@@ -29,9 +29,9 @@ struct {
 } my_map SEC(".maps");
 #+end_example
 
-The value determines the type of the event data we will
+The =value= determines the type of the event data we will
 be posting to the user space through perf event ring buffer.
-In our case it's struct S:
+In our case it's =struct S=:
 
 #+begin_example sh
 struct S {
@@ -40,8 +40,8 @@ struct S {
 } __packed;
 #+end_example
 
-We set the values of the event (metadata variable) and pass them
-into the bpf_perf_event_output call:
+We set the values of the event (=metadata= variable) and pass them
+into the =bpf_perf_event_output= call:
 
 #+begin_example sh
 int xdp_sample_prog(struct xdp_md *ctx)
@@ -64,8 +64,8 @@ int xdp_sample_prog(struct xdp_md *ctx)
 #+end_example
 
 To add the actual packet dump to the event, we can
-set flags upper 32 bits with the size of the requested sample
-and the bpf_perf_event_output will attach the specified
+set =flags= upper 32 bits with the size of the requested sample
+and the =bpf_perf_event_output= will attach the specified
 amount of bytes from packet to the perf event:
 
 
@@ -78,7 +78,7 @@ ret = bpf_perf_event_output(ctx, &my_map, flags,
                             &metadata, sizeof(metadata));
 #+end_example
 
-Please check the whole eBPF code in xdp_sample_pkts_kern.c file.
+Please check the whole eBPF code in =xdp_sample_pkts_kern.c= file.
 
 * Assignments
 
