@@ -24,14 +24,14 @@ to send events to the user space via perf event ring buffer:
 struct {
 	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
 	__type(key, int);
-	__type(value, __u32);
+	__type(value, struct S);
 	__uint(max_entries, MAX_CPUS);
 } my_map SEC(".maps");
 #+end_example
 
-The value determines the size of the event data we will
+The value determines the type of the event data we will
 be posting to the user space through perf event ring buffer.
-In our case it's sizeof(u32) which is size of following structure:
+In our case it's struct S:
 
 #+begin_example sh
 struct S {
