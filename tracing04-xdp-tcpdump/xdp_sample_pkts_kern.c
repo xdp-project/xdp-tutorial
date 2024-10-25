@@ -20,7 +20,7 @@ struct S {
 struct {
 	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
 	__type(key, int);
-	__type(value, __u32);
+	__type(value, struct S);
 	__uint(max_entries, MAX_CPUS);
 } my_map SEC(".maps");
 
