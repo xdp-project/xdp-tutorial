@@ -584,6 +584,14 @@ int main(int argc, char **argv)
 
 	/* Allow unlimited locking of memory, so all memory needed for packet
 	 * buffers can be locked.
+	 *
+	 * NOTE: since kernel v5.11, eBPF maps allocations are not tracked
+	 * through the process anymore. Now, eBPF maps are accounted to the
+	 * current cgroup of which the process that created the map is part of
+	 * (assuming the kernel was built with CONFIG_MEMCG).
+	 *
+	 * Therefore, you should ensure an appropriate memory.max setting on
+	 * the cgroup (via sysfs, for example) instead of relying on rlimit.
 	 */
 	if (setrlimit(RLIMIT_MEMLOCK, &rlim)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
