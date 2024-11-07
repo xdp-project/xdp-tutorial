@@ -281,7 +281,7 @@ static bool process_packet(struct xsk_socket_info *xsk,
 {
 	uint8_t *pkt = xsk_umem__get_data(xsk->umem->buffer, addr);
 
-    /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
+	/* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
 	 *
 	 * Some assumptions to make it easier:
 	 * - No VLAN handling
