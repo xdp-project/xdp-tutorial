@@ -24,7 +24,9 @@ you can load the program and that you understand what is going on.
   - [[#looking-into-the-bpf-elf-object][Looking into the BPF-ELF object]]
 - [[#loading-and-the-xdp-hook][Loading and the XDP hook]]
   - [[#loading-via-iproute2-ip][Loading via iproute2 ip]]
+  - [[#loading-using-xdp-loader][Loading using xdp-loader]]
   - [[#loading-using-xdp_pass_user][Loading using xdp_pass_user]]
+  - [[#unloading-using-xdp_pass_user][Unloading using xdp_pass_user]]
 
 * First step: setup dependencies
 

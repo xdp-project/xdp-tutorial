@@ -7,20 +7,21 @@ this document and install the needed software packages.
 
 * Table of Contents                                                     :TOC:
 - [[#based-on-libxdp-and-libbpf][Based on libxdp and libbpf]]
-  - [[#libbpf-as-git-submodule][libbpf as git-submodule]]
+  - [[#libxdp-and-libbpf-as-git-submodules][libxdp and libbpf as git-submodules]]
 - [[#dependencies][Dependencies]]
   - [[#packages-on-fedora][Packages on Fedora]]
   - [[#packages-on-debianubuntu][Packages on Debian/Ubuntu]]
   - [[#packages-on-opensuse][Packages on openSUSE]]
 - [[#kernel-headers-dependency][Kernel headers dependency]]
-  - [[#packages-on-fedora-1][Packages on Fedora]]
-  - [[#packages-on-debianubuntu-1][Packages on Debian/Ubuntu]]
-  - [[#packages-on-opensuse-1][Packages on openSUSE]]
-- [[#recommended-tools][Recommended tools]]
-  - [[#packages-on-fedora-2][Packages on Fedora]]
+  - [[#packages-on-fedora][Packages on Fedora]]
+  - [[#packages-on-debianubuntu][Packages on Debian/Ubuntu]]
+  - [[#packages-on-opensuse][Packages on openSUSE]]
+- [[#extra-tools][Extra tools]]
+  - [[#packages-on-fedora][Packages on Fedora]]
   - [[#packages-on-ubuntu][Packages on Ubuntu]]
   - [[#packages-on-debian][Packages on Debian]]
-  - [[#packages-on-opensuse-2][Packages on openSUSE]]
+  - [[#packages-on-opensuse][Packages on openSUSE]]
+- [[#generate-the-necessary-files][Generate the necessary files]]
 
 * Based on libxdp and libbpf
 
