@@ -8,9 +8,8 @@ the *libxdp API*. Complete each of the assignments below to complete the
 lesson.
 
 * Table of Contents                                                     :TOC:
-- [[#using-libbpf][Using libxdp]]
-  - [[#basic-bpf_object-usage][Basic bpf_object usage]]
-  - [[#converting-a-bpf_object-to-bpf_program][Converting a bpf_object to bpf_program]]
+- [[#using-libxdp-and-libbpf][Using libxdp and libbpf]]
+  - [[#creating-an-xdp-program][Creating an XDP Program]]
   - [[#hardware-offloading][Hardware offloading]]
 - [[#assignments][Assignments]]
   - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]

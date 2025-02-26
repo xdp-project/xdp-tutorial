@@ -12,7 +12,6 @@ into tracefs buffer.
   - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
   - [[#assignment-2-run-debug-code][Assignment 2: Run debug code]]
 
-
 * eBPF trace printk helper
 
 The bpf_trace_print helper function is very useful when debugging or
