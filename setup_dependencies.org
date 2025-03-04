@@ -94,7 +94,7 @@ Note that you need to do this in the shell you are using to load programs
 On Debian and Ubuntu installations, install the dependencies like this:
 
 #+begin_example
-sudo apt install clang llvm libelf-dev libpcap-dev build-essential libc6-dev-i386
+sudo apt install clang llvm libelf-dev libpcap-dev build-essential libc6-dev-i386 m4
 #+end_example
 
 To install the 'perf' utility, run this on Debian:
