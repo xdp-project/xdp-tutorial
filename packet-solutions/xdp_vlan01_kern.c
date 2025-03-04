@@ -6,7 +6,7 @@
 #include <bpf/bpf_endian.h>
 
 /* NOTICE: Re-defining VLAN header levels to parse */
-#define VLAN_MAX_DEPTH 10
+#define VLAN_MAX_DEPTH 8
 //#include "../common/parsing_helpers.h"
 /*
  * NOTICE: Copied over parts of ../common/parsing_helpers.h
