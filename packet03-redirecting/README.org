@@ -262,7 +262,7 @@ function.
 To test the router check that you can get a ping and/or establish
 a TCP connection between any two interfaces: inner-inner, inner-outer,
 outer-outer. Programs should return =XDP_PASS= for inner-outer communications
-and =XDP_FORWARD= for inner-inner.
+and =XDP_REDIRECT= for inner-inner.
 
 Try more than two test environments. Run the =xdp_stats= program to verify that
 this is the XDP program does forwarding, and not the network stack (as
