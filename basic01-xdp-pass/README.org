@@ -177,6 +177,18 @@ lo                     xdp_dispatcher    skb      486  94d5f00c20184d17
  =>              50     xdp_prog_simple           493  3b185187f1855c4c  XDP_PASS
 #+end_example
 
+We can unload the program we just added (ID 493 in above example) using this command:
+
+#+begin_example sh
+sudo xdp-loader unload -i 493 lo 
+#+end_example
+
+Or unload all programs using this command:
+
+#+begin_example sh
+sudo xdp-loader unload -a lo
+#+end_example
+
 ** Loading using xdp_pass_user
 
 To load the program using our own loader, issue this command:
