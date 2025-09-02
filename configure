@@ -106,7 +106,6 @@ int main(int argc, char **argv) {
     (void) bpf_object__open_file("file", &opts);
     (void) bpf_program__name(ptr);
     (void) bpf_map__set_initial_value(ptr, ptr, 0);
-    (void) bpf_set_link_xdp_fd_opts(0, 0, 0, &lopts);
     (void) bpf_tc_attach(ptr, ptr);
     (void) bpf_object__next_program(ptr, ptr);
     return 0;
