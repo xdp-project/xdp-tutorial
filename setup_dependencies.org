@@ -46,7 +46,7 @@ git clone --recurse-submodules https://github.com/xdp-project/xdp-tutorial.git
 Note: If you missed the --recurse-submodules option in the previous step or you already cloned it earlier without the submodules you can use the following command:
 
 #+begin_example
-git submodule update --init
+git submodule update --init --recursive
 #+end_example
 
 If you need to add the submodules to your own project, you can use the command:
@@ -73,7 +73,7 @@ dependencies, and give you some pointers.
 On a machine running the Fedora Linux distribution, install the packages:
 
 #+begin_example
-sudo dnf install clang llvm
+sudo dnf install clang llvm m4
 sudo dnf install elfutils-libelf-devel libpcap-devel perf glibc-devel.i686
 #+end_example
 
