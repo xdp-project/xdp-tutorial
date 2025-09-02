@@ -21,10 +21,9 @@ check_toolchain()
     : ${PKG_CONFIG:=pkg-config}
     : ${CC=gcc}
     : ${CLANG=clang}
-    : ${LLC=llc}
     : ${BPFTOOL=bpftool}
 
-    for TOOL in $PKG_CONFIG $CC $CLANG $LLC; do
+    for TOOL in $PKG_CONFIG $CC $CLANG; do
         if [ ! $(command -v ${TOOL} 2>/dev/null) ]; then
             echo "*** ERROR: Cannot find tool ${TOOL}" ;
             exit 1;
@@ -52,7 +51,6 @@ check_toolchain()
     echo "PKG_CONFIG:=${PKG_CONFIG}" >>$CONFIG
     echo "CC:=${CC}" >>$CONFIG
     echo "CLANG:=${CLANG}" >>$CONFIG
-    echo "LLC:=${LLC}" >>$CONFIG
     echo "BPFTOOL:=${BPFTOOL}" >>$CONFIG
     echo "ARCH_INCLUDES:=${ARCH_INCLUDES}" >>$CONFIG
 }
@@ -249,7 +247,6 @@ endif
 ifeq (\$(VERBOSE), 0)
     QUIET_CC       = @echo '    CC       '\$@;
     QUIET_CLANG    = @echo '    CLANG    '\$@;
-    QUIET_LLC      = @echo '    LLC      '\$@;
     QUIET_LINK     = @echo '    LINK     '\$@;
     QUIET_INSTALL  = @echo '    INSTALL  '\$@;
     QUIET_GEN      = @echo '    GEN      '\$@;
