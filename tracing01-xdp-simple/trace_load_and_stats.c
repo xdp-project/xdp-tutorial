@@ -128,7 +128,7 @@ static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
 	if (map_fd < 0)
 		return EXIT_FAIL;
 
-        /* BPF-info via bpf-syscall */
+	/* BPF-info via bpf-syscall */
 	err = bpf_obj_get_info_by_fd(map_fd, info, &info_len);
 	if (err) {
 		fprintf(stderr, "ERR: %s() can't get info - %s\n",

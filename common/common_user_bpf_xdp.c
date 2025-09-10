@@ -148,9 +148,9 @@ static const char *xdp_action_names[XDP_ACTION_MAX] = {
 
 const char *action2str(__u32 action)
 {
-        if (action < XDP_ACTION_MAX)
-                return xdp_action_names[action];
-        return NULL;
+	if (action < XDP_ACTION_MAX)
+		return xdp_action_names[action];
+	return NULL;
 }
 
 int check_map_fd_info(const struct bpf_map_info *info,

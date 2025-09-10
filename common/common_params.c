@@ -39,7 +39,7 @@ void _print_options(const struct option_wrapper *long_options, bool required)
 }
 
 void usage(const char *prog_name, const char *doc,
-           const struct option_wrapper *long_options, bool full)
+	   const struct option_wrapper *long_options, bool full)
 {
 	printf("Usage: %s [options]\n", prog_name);
 
@@ -78,7 +78,7 @@ int option_wrappers_to_options(const struct option_wrapper *wrapper,
 
 void parse_cmdline_args(int argc, char **argv,
 			const struct option_wrapper *options_wrapper,
-                        struct config *cfg, const char *doc)
+			struct config *cfg, const char *doc)
 {
 	struct option *long_options;
 	bool full_help = false;
