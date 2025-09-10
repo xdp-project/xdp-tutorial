@@ -114,7 +114,7 @@ int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
 
 	/* Lesson#3: bpf_object to bpf_map */
 	map = bpf_object__find_map_by_name(bpf_obj, mapname);
-        if (!map) {
+	if (!map) {
 		fprintf(stderr, "ERR: cannot find map by name: %s\n", mapname);
 		goto out;
 	}
@@ -133,7 +133,7 @@ static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
 	if (map_fd < 0)
 		return EXIT_FAIL;
 
-        /* BPF-info via bpf-syscall */
+	/* BPF-info via bpf-syscall */
 	err = bpf_obj_get_info_by_fd(map_fd, info, &info_len);
 	if (err) {
 		fprintf(stderr, "ERR: %s() can't get info - %s\n",

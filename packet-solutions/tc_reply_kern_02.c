@@ -19,15 +19,15 @@ int _fix_port_egress(struct __sk_buff *skb)
 	int eth_type, ip_type, ret = TC_ACT_OK;
 	struct ipv6hdr *ipv6hdr;
 	struct iphdr *iphdr;
-        struct udphdr *udphdr;
-        struct tcphdr *tcphdr;
+	struct udphdr *udphdr;
+	struct tcphdr *tcphdr;
 	struct ethhdr *eth;
 
 	if (data + sizeof(*eth) > data_end)
 		goto out;
 
 	eth_type = parse_ethhdr(&nh, data_end, &eth);
-        if (eth_type < 0)
+	if (eth_type < 0)
 		goto out;
 
 

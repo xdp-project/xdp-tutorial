@@ -62,9 +62,9 @@ int main(int argc, char **argv)
 
 	DECLARE_LIBBPF_OPTS(bpf_object_open_opts, bpf_opts);
 	DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts,
-                            .open_filename = filename,
-                            .prog_name = progname,
-                            .opts = &bpf_opts);
+			    .open_filename = filename,
+			    .prog_name = progname,
+			    .opts = &bpf_opts);
 
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 	/* Required option */
@@ -74,9 +74,9 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 
-        /* Unload a program by prog_id, or
-         * unload all programs on net device
-         */
+	/* Unload a program by prog_id, or
+	 * unload all programs on net device
+	 */
 	if (cfg.do_unload || cfg.unload_all) {
 		err = do_unload(&cfg);
 		if (err) {
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 		return EXIT_OK;
 	}
 
-        /* Create an xdp_program froma a BPF ELF object file */
+	/* Create an xdp_program froma a BPF ELF object file */
 	prog = xdp_program__create(&xdp_opts);
 	err = libxdp_get_error(prog);
 	if (err) {
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 		return err;
 	}
 
-        /* Attach the xdp_program to the net device XDP hook */
+	/* Attach the xdp_program to the net device XDP hook */
 	err = xdp_program__attach(prog, cfg.ifindex, cfg.attach_mode, 0);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 		return err;
 	}
 
-        /* This step is not really needed , BPF-info via bpf-syscall */
+	/* This step is not really needed , BPF-info via bpf-syscall */
 	prog_fd = xdp_program__fd(prog);
 	err = bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
 	if (err) {

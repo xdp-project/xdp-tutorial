@@ -13,7 +13,7 @@
 #define IS_ERR_VALUE(x) ((x) >= (unsigned long)-MAX_ERRNO)
 static inline bool IS_ERR_OR_NULL(const void *ptr)
 {
-        return (!ptr) || IS_ERR_VALUE((unsigned long)ptr);
+	return (!ptr) || IS_ERR_VALUE((unsigned long)ptr);
 }
 
 #define pr_warning printf
@@ -84,7 +84,7 @@ int bpf_prog_load_xattr_maps(const struct bpf_prog_load_attr_maps *attr,
 
 		if (!bpf_map__is_offload_neutral(map))
 			bpf_map__set_ifindex(map, attr->ifindex);
-                        /* Was: map->map_ifindex = attr->ifindex; */
+			/* Was: map->map_ifindex = attr->ifindex; */
 
 		for (i = 0; i < attr->nr_pinned_maps; i++) {
 			struct bpf_pinned_map *pin_map = &attr->pinned_maps[i];
