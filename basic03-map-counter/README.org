@@ -17,12 +17,14 @@ In this lesson we will only cover two simple maps types:
   - [[#libbpf-map-elf-relocation][libbpf map ELF relocation]]
   - [[#bpf_object-to-bpf_map][bpf_object to bpf_map]]
   - [[#reading-map-values-from-user-space][Reading map values from user space]]
+- [[#helpful-example-commands][Helpful example commands]]
 - [[#assignments][Assignments]]
   - [[#assignment-1-add-bytes-counter][Assignment 1: Add bytes counter]]
   - [[#assignment-2-handle-other-xdp-actions-stats][Assignment 2: Handle other XDP actions stats]]
   - [[#assignment-3-per-cpu-stats][Assignment 3: Per CPU stats]]
 
 * Things you will learn in this lesson
+
 
 ** Defining a map
 
@@ -93,6 +95,22 @@ get back some info in struct =bpf_map_info= via the syscall wrapper
 
 For example, the program =xdp_load_and_stats= will periodically read the
 xdp_stats_map value and produce some stats.
+
+* Helpful example commands
+
+#+begin_src sh
+# Load the eBPF program to localhost interface
+sudo ./xdp_load_and_stats --dev lo
+
+# Unload eBPF program from localhost interface
+sudo ./xdp_load_and_stats --dev lo --unload-all
+
+# Receive data from localhost port 12345
+ncat -lk 127.0.0.1 12345
+
+# Send data to localhost port 12345 
+printf 'hello from sender\n' | nc 127.0.0.1 12345
+#+end_src
 
 * Assignments
 
