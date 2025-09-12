@@ -198,6 +198,40 @@ sudo apt install tcpdump
 
 (If you are on Debian Buster, you can get it from [[https://backports.debian.org][buster-backports]].)
 
+If you are using Debian Buster, you may acitvate buster-backports in /etc/apt/sources.list to get access to bpftool.
+
+#+begin_example
+ $ cat /etc/apt/sources.list
+ deb http://deb.debian.org/debian buster main contrib non-free
+ deb http://deb.debian.org/debian-security buster/updates main contrib non-free
+ # Backports are _not_ enabled by default.
+ # Enable them by uncommenting the following line:
+ deb http://deb.debian.org/debian buster-backports main contrib non-free
+
+ $ apt update
+ $ apt install bpftool
+#+end_example
+
+If you are doing your experiments on a Raspberry Pi (or maybe other ARM based architectures) you might run into some dependency errors: 
+
+#+begin_example
+ In file included from xdp_pass_kern.c:2:
+ In file included from ../headers/linux/bpf.h:11:
+ /usr/include/linux/types.h:5:10: fatal error: 'asm/types.h' file not found
+ #include <asm/types.h>
+          ^~~~~~~~~~~~~
+#+end_example
+         
+Add additional BPF_CFLAGS in common/common.mk will fix that: 
+
+#+begin_example
+ $ git diff common/common.mk
+ ...
+ BPF_CFLAGS ?= -I$(LIBBPF_DIR)/build/usr/include/ -I../headers/
+ +BPF_CFLAGS += -I/usr/include/aarch64-linux-gnu
+#+end_example
+
+
 ** Packages on openSUSE
 
 On a machine running the openSUSE Tumbleweed distribution, install package:
@@ -225,3 +259,5 @@ Now run make to generate all the necessary files:
 #+begin_example
 make
 #+end_example
+
+** 
