@@ -113,18 +113,50 @@ reloading via =xdp_loader=, else it will be watching the wrong FD.
 
 *** Reusing maps with libbpf
 
-The libbpf library can *reuse and replace* a map with an existing map file
-descriptor, via the libbpf API call: =bpf_map__reuse_fd()=. But you cannot
-use =bpf_prog_load()= for this; instead you have to code it yourself, as you
-need a step in-between =bpf_object__open()= and =bpf_object__load=. The
-basic steps needed looks like:
+Sometimes you want multiple XDP programs to share the same map
+(for example, a stats map pinned in /sys/fs/bpf/…).
+The libbpf API provides a way to *reuse and replace* the map inside
+your BPF object with an already existing pinned map, using:
+
+=bpf_map__reuse_fd()=
+
+This call must be made *after* the object has been opened
+with =bpf_object__open()= but *before* it is loaded
+with =bpf_object__load()=.
+
+When using the higher-level XDP program APIs:
+
+- =xdp_program__create()= → internally calls =bpf_object__open()=
+- =xdp_program__attach()= → internally calls =bpf_object__load()=
+
+Therefore, you need to inject the =bpf_map__reuse_fd()= step in between,
+by getting the underlying =bpf_object= from the XDP program.
+
+Here is a minimal example:
 
 #+begin_src C
- int pinned_map_fd = bpf_obj_get("/sys/fs/bpf/veth0/xdp_stats_map");
- struct bpf_object *obj = bpf_object__open(cfg.filename);
- struct bpf_map    *map = bpf_object__find_map_by_name(obj, "xdp_stats_map");
- bpf_map__reuse_fd(map, pinned_map_fd);
- bpf_object__load(obj);
+struct xdp_program *prog;
+struct bpf_object *bpf_obj;
+struct bpf_map *map;
+int pinned_map_fd;
+
+/* 1. Create program (opens bpf_object) */
+prog = xdp_program__create(&xdp_opts);
+
+/* 2. Access the underlying bpf_object */
+bpf_obj = xdp_program__bpf_obj(prog);
+
+/* 3. Look up the map in the object */
+map = bpf_object__find_map_by_name(bpf_obj, "xdp_stats_map");
+
+/* 4. Get FD of the pinned map */
+pinned_map_fd = bpf_obj_get("/sys/fs/bpf/veth0/xdp_stats_map");
+
+/* 5. Reuse pinned FD instead of creating a new map */
+bpf_map__reuse_fd(map, pinned_map_fd);
+
+/* 6. Now attach program (this will load the object) */
+xdp_program__attach(prog, ifindex, attach_mode, 0);
 #+end_src
 
 (Hint: see [[#assignment2-xdp_loaderc-reuse-pinned-map][Assignment 2]])
@@ -147,9 +179,7 @@ BPF program ID.
 
 ** Assignment 2: (xdp_loader.c) reuse pinned map
 
-As mentioned above, libbpf can reuse and replace a map with an existing map,
-it just requires writing your own =bpf_prog_load()= (or
-=bpf_prog_load_xattr=).
+As mentioned above, libbpf can reuse and replace a map with an existing map. 
 
 The *assignment* is to check in [[file:xdp_loader.c][xdp_loader]] if there already is a pinned
 version of the map "xdp_stats_map" and use libbpf =bpf_map__reuse_fd()= API
