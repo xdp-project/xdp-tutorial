@@ -32,7 +32,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 		return XDP_PASS;
 	}
 
-	/* A set entry here means that the correspnding queue_id
+	/* A set entry here means that the corresponding queue_id
 	 * has an active AF_XDP socket bound to it. */
 	if (bpf_map_lookup_elem(&xsks_map, &index))
 		return bpf_redirect_map(&xsks_map, index, 0);
