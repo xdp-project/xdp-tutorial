@@ -548,10 +548,6 @@ int main(int argc, char **argv)
 		xdp_opts.opts = &opts;
 
 		if (cfg.progname[0] != 0) {
-			xdp_opts.open_filename = cfg.filename;
-			xdp_opts.prog_name = cfg.progname;
-			xdp_opts.opts = &opts;
-
 			prog = xdp_program__create(&xdp_opts);
 		} else {
 			prog = xdp_program__open_file(cfg.filename,
