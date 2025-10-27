@@ -516,8 +516,6 @@ int main(int argc, char **argv)
 	int ret;
 	void *packet_buffer;
 	uint64_t packet_buffer_size;
-	DECLARE_LIBBPF_OPTS(bpf_object_open_opts, opts);
-	DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts, 0);
 	struct rlimit rlim = {RLIM_INFINITY, RLIM_INFINITY};
 	struct xsk_umem_info *umem;
 	struct xsk_socket_info *xsk_socket;
@@ -540,23 +538,15 @@ int main(int argc, char **argv)
 
 	/* Load custom program if configured */
 	if (cfg.filename[0] != 0) {
+		DECLARE_LIBXDP_OPTS(xdp_program_opts, xdp_opts,
+			.open_filename = cfg.filename,
+		);
 		struct bpf_map *map;
-
 		custom_xsk = true;
-		xdp_opts.open_filename = cfg.filename;
-		xdp_opts.prog_name = cfg.progname;
-		xdp_opts.opts = &opts;
-
-		if (cfg.progname[0] != 0) {
-			xdp_opts.open_filename = cfg.filename;
+		if (cfg.progname[0] != 0)
 			xdp_opts.prog_name = cfg.progname;
-			xdp_opts.opts = &opts;
 
-			prog = xdp_program__create(&xdp_opts);
-		} else {
-			prog = xdp_program__open_file(cfg.filename,
-						  NULL, &opts);
-		}
+		prog = xdp_program__create(&xdp_opts);
 		err = libxdp_get_error(prog);
 		if (err) {
 			libxdp_strerror(err, errmsg, sizeof(errmsg));
