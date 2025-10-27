@@ -632,6 +632,7 @@ int main(int argc, char **argv)
 	/* Cleanup */
 	xsk_socket__delete(xsk_socket->xsk);
 	xsk_umem__delete(umem->umem);
+	free(packet_buffer);
 
 	return EXIT_OK;
 }
