@@ -19,8 +19,18 @@ will learn in this tutorial, or jump [[file:basic01-xdp-pass/README.org][straigh
 - [[#first-step-setup-dependencies][First step: Setup dependencies]]
 - [[#how-the-lessons-are-organised][How the lessons are organised]]
   - [[#basic-setup-lessons][Basic setup lessons]]
+    - [[basic01-xdp-pass][XDP Pass]]
+    - [[basic02-prog-by-name][Prog by Name]]
+    - [[basic03-map-counter][Map Counter]]
+    - [[basic04-pinning-maps][Pinning Maps]]
   - [[#packet-processing-lessons][Packet processing lessons]]
+    - [[packet01-parsing][Parsing]]
+    - [[packet02-rewriting][Rewriting]]
+    - [[packet03-redirecting][Redirecting]]
   - [[#advanced-lessons][Advanced lessons]]
+    - [[advanced01-xdp-tc-interact][XDP TC Interact]]
+    - [[advanced03-AF_XDP][AF_XDP]]
+	
 
 * Introduction
 
